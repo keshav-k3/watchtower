@@ -1,0 +1,841 @@
+#if os(macOS)
+import Foundation
+import SweetCookieKit
+import WebKit
+
+@MainActor
+public struct OpenAIDashboardBrowserCookieImporter {
+    public struct FoundAccount: Sendable, Hashable {
+        public let sourceLabel: String
+        public let email: String
+
+        public init(sourceLabel: String, email: String) {
+            self.sourceLabel = sourceLabel
+            self.email = email
+        }
+    }
+
+    public enum ImportError: LocalizedError {
+        case noCookiesFound
+        case browserAccessDenied(details: String)
+        case dashboardStillRequiresLogin
+        case noMatchingAccount(found: [FoundAccount])
+        case manualCookieHeaderInvalid
+
+        public var errorDescription: String? {
+            switch self {
+            case .noCookiesFound:
+                return "No browser cookies found."
+            case let .browserAccessDenied(details):
+                return "Browser cookie access denied. \(details)"
+            case .dashboardStillRequiresLogin:
+                return "Browser cookies imported, but dashboard still requires login."
+            case let .noMatchingAccount(found):
+                if found.isEmpty { return "No matching OpenAI web session found in browsers." }
+                let display = found
+                    .sorted { lhs, rhs in
+                        if lhs.sourceLabel == rhs.sourceLabel { return lhs.email < rhs.email }
+                        return lhs.sourceLabel < rhs.sourceLabel
+                    }
+                    .map { "\($0.sourceLabel)=\($0.email)" }
+                    .joined(separator: ", ")
+                return "OpenAI web session does not match Codex account. Found: \(display)."
+            case .manualCookieHeaderInvalid:
+                return "Manual cookie header is missing a valid OpenAI session cookie."
+            }
+        }
+    }
+
+    public struct ImportResult: Sendable {
+        public let sourceLabel: String
+        public let cookieCount: Int
+        public let signedInEmail: String?
+        public let matchesCodexEmail: Bool
+
+        public init(
+            sourceLabel: String,
+            cookieCount: Int,
+            signedInEmail: String?,
+            matchesCodexEmail: Bool)
+        {
+            self.sourceLabel = sourceLabel
+            self.cookieCount = cookieCount
+            self.signedInEmail = signedInEmail
+            self.matchesCodexEmail = matchesCodexEmail
+        }
+    }
+
+    public init(browserDetection: BrowserDetection) {
+        self.browserDetection = browserDetection
+    }
+
+    private let browserDetection: BrowserDetection
+
+    nonisolated static func shouldTrustVerifiedSession(afterPersistFailure error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorTimedOut
+    }
+
+    private struct ImportDiagnostics {
+        var mismatches: [FoundAccount] = []
+        var foundAnyCookies: Bool = false
+        var foundUnknownEmail: Bool = false
+        var accessDeniedHints: [String] = []
+    }
+
+    private struct ImportContext {
+        let targetEmail: String?
+        let allowAnyAccount: Bool
+        let cacheScope: CookieHeaderCache.Scope?
+    }
+
+    private static let cookieDomains = ["chatgpt.com", "openai.com"]
+    private static let cookieClient = BrowserCookieClient()
+    private static let cookieImportOrder: BrowserCookieImportOrder =
+        ProviderDefaults.metadata[.codex]?.browserCookieOrder ?? Browser.defaultImportOrder
+
+    private enum CandidateEvaluation {
+        case match(candidate: Candidate, signedInEmail: String)
+        case mismatch(candidate: Candidate, signedInEmail: String)
+        case loggedIn(candidate: Candidate, signedInEmail: String)
+        case unknown(candidate: Candidate)
+        case loginRequired(candidate: Candidate)
+    }
+
+    public func importBestCookies(
+        intoAccountEmail targetEmail: String?,
+        allowAnyAccount: Bool = false,
+        preferCachedCookieHeader: Bool = true,
+        cacheScope: CookieHeaderCache.Scope? = nil,
+        logger: ((String) -> Void)? = nil) async throws -> ImportResult
+    {
+        let log: (String) -> Void = { message in
+            logger?("[web] \(message)")
+        }
+
+        let targetEmail = targetEmail?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTarget = targetEmail?.isEmpty == false ? targetEmail : nil
+        let context = ImportContext(
+            targetEmail: normalizedTarget,
+            allowAnyAccount: allowAnyAccount,
+            cacheScope: cacheScope)
+
+        if normalizedTarget != nil {
+            log("Codex email known; matching required.")
+        } else {
+            guard context.allowAnyAccount else {
+                throw ImportError.noCookiesFound
+            }
+            log("Codex email unknown; importing any signed-in session.")
+        }
+
+        var diagnostics = ImportDiagnostics()
+
+        if preferCachedCookieHeader {
+            if let cached = CookieHeaderCache.load(provider: .codex, scope: cacheScope),
+               !cached.cookieHeader.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            {
+                log("Using cached cookie header from \(cached.sourceLabel)")
+                do {
+                    return try await self.importManualCookies(
+                        cookieHeader: cached.cookieHeader,
+                        intoAccountEmail: context.targetEmail,
+                        allowAnyAccount: context.allowAnyAccount,
+                        cacheScope: cacheScope,
+                        logger: log)
+                } catch let error as ImportError {
+                    switch error {
+                    case .manualCookieHeaderInvalid, .noMatchingAccount, .dashboardStillRequiresLogin:
+                        CookieHeaderCache.clear(provider: .codex, scope: cacheScope)
+                    default:
+                        throw error
+                    }
+                } catch {
+                    throw error
+                }
+            }
+        } else {
+            log("Skipping cached cookie header; forcing fresh browser import")
+        }
+
+        // Filter to cookie-eligible browsers to avoid unnecessary keychain prompts
+        let installedBrowsers = Self.cookieImportOrder.cookieImportCandidates(using: self.browserDetection)
+        for browserSource in installedBrowsers {
+            if let match = await self.trySource(
+                browserSource,
+                context: context,
+                log: log,
+                diagnostics: &diagnostics)
+            {
+                return match
+            }
+        }
+
+        if !diagnostics.mismatches.isEmpty {
+            let found = Array(Set(diagnostics.mismatches)).sorted { lhs, rhs in
+                if lhs.sourceLabel == rhs.sourceLabel { return lhs.email < rhs.email }
+                return lhs.sourceLabel < rhs.sourceLabel
+            }
+            log("No matching browser session found. Candidate count: \(found.count)")
+            throw ImportError.noMatchingAccount(found: found)
+        }
+
+        if diagnostics.foundUnknownEmail || diagnostics.foundAnyCookies {
+            log("No matching browser session found (email unknown).")
+            throw ImportError.noMatchingAccount(found: [])
+        }
+
+        if !diagnostics.accessDeniedHints.isEmpty {
+            let details = diagnostics.accessDeniedHints.joined(separator: " ")
+            log("Cookie access denied: \(details)")
+            throw ImportError.browserAccessDenied(details: details)
+        }
+
+        throw ImportError.noCookiesFound
+    }
+
+    public func importManualCookies(
+        cookieHeader: String,
+        intoAccountEmail targetEmail: String?,
+        allowAnyAccount: Bool = false,
+        cacheScope _: CookieHeaderCache.Scope? = nil,
+        logger: ((String) -> Void)? = nil) async throws -> ImportResult
+    {
+        let log: (String) -> Void = { message in
+            logger?("[web] \(message)")
+        }
+        let normalizedTarget = targetEmail?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let allowAnyAccount = allowAnyAccount || normalizedTarget == nil || normalizedTarget?.isEmpty == true
+
+        guard let normalized = CookieHeaderNormalizer.normalize(cookieHeader) else {
+            throw ImportError.manualCookieHeaderInvalid
+        }
+        let pairs = CookieHeaderNormalizer.pairs(from: normalized)
+        guard !pairs.isEmpty else { throw ImportError.manualCookieHeaderInvalid }
+        let cookies = self.cookies(from: pairs)
+        guard !cookies.isEmpty else { throw ImportError.manualCookieHeaderInvalid }
+
+        let candidate = Candidate(label: "Manual", cookies: cookies)
+        switch await self.evaluateCandidate(
+            candidate,
+            targetEmail: normalizedTarget,
+            allowAnyAccount: allowAnyAccount,
+            log: log)
+        {
+        case let .match(_, signedInEmail):
+            return try await self.persistVerifiedCandidate(
+                candidate: candidate,
+                targetEmail: signedInEmail,
+                verifiedSignedInEmail: signedInEmail,
+                logger: log)
+        case let .loggedIn(_, signedInEmail):
+            return try await self.persistVerifiedCandidate(
+                candidate: candidate,
+                targetEmail: signedInEmail,
+                verifiedSignedInEmail: signedInEmail,
+                logger: log)
+        case let .mismatch(_, signedInEmail):
+            throw ImportError.noMatchingAccount(found: [FoundAccount(sourceLabel: "Manual", email: signedInEmail)])
+        case .unknown:
+            if allowAnyAccount {
+                return try await self.persistToDefaultStore(candidate: candidate, logger: log)
+            }
+            throw ImportError.noMatchingAccount(found: [])
+        case .loginRequired:
+            throw ImportError.manualCookieHeaderInvalid
+        }
+    }
+
+    private func trySafari(
+        context: ImportContext,
+        log: @escaping (String) -> Void,
+        diagnostics: inout ImportDiagnostics) async -> ImportResult?
+    {
+        // Safari first: avoids touching Keychain ("Chrome Safe Storage") when Safari already matches.
+        do {
+            let query = BrowserCookieQuery(domains: Self.cookieDomains)
+            let sources = try Self.cookieClient.codexBarRecords(
+                matching: query,
+                in: .safari,
+                logger: log)
+            guard !sources.isEmpty else {
+                log("Safari contained 0 matching records.")
+                return nil
+            }
+            for source in sources {
+                let cookies = BrowserCookieClient.makeHTTPCookies(source.records, origin: query.origin)
+                guard !cookies.isEmpty else {
+                    log("\(source.label) produced 0 HTTPCookies.")
+                    continue
+                }
+
+                diagnostics.foundAnyCookies = true
+                log("Loaded \(cookies.count) cookies from \(source.label) (\(self.cookieSummary(cookies)))")
+                let candidate = Candidate(label: source.label, cookies: cookies)
+                if let match = await self.applyCandidate(
+                    candidate,
+                    context: context,
+                    log: log,
+                    diagnostics: &diagnostics)
+                {
+                    return match
+                }
+            }
+            return nil
+        } catch let error as BrowserCookieError {
+            BrowserCookieAccessGate.recordIfNeeded(error)
+            if let hint = error.accessDeniedHint {
+                diagnostics.accessDeniedHints.append(hint)
+            }
+            log("Safari cookie load failed: \(error.localizedDescription)")
+            return nil
+        } catch {
+            log("Safari cookie load failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Generic cookie loader for any non-Safari browser (Chrome, Edge, Firefox, Brave, Arc, etc.).
+    /// SweetCookieKit handles engine-specific decryption internally.
+    private func tryBrowser(
+        _ browser: Browser,
+        context: ImportContext,
+        log: @escaping (String) -> Void,
+        diagnostics: inout ImportDiagnostics) async -> ImportResult?
+    {
+        do {
+            let query = BrowserCookieQuery(domains: Self.cookieDomains)
+            let sources = try Self.cookieClient.codexBarRecords(
+                matching: query,
+                in: browser)
+            guard !sources.isEmpty else {
+                log("\(browser.displayName) contained 0 matching records.")
+                return nil
+            }
+            for source in sources {
+                let cookies = BrowserCookieClient.makeHTTPCookies(source.records, origin: query.origin)
+                guard !cookies.isEmpty else {
+                    log("\(source.label) produced 0 HTTPCookies.")
+                    continue
+                }
+                diagnostics.foundAnyCookies = true
+                log("Loaded \(cookies.count) cookies from \(source.label) (\(self.cookieSummary(cookies)))")
+                let candidate = Candidate(label: source.label, cookies: cookies)
+                if let match = await self.applyCandidate(
+                    candidate,
+                    context: context,
+                    log: log,
+                    diagnostics: &diagnostics)
+                {
+                    return match
+                }
+            }
+            return nil
+        } catch let error as BrowserCookieError {
+            BrowserCookieAccessGate.recordIfNeeded(error)
+            if let hint = error.accessDeniedHint {
+                diagnostics.accessDeniedHints.append(hint)
+            }
+            log("\(browser.displayName) cookie load failed: \(error.localizedDescription)")
+            return nil
+        } catch {
+            log("\(browser.displayName) cookie load failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func trySource(
+        _ source: Browser,
+        context: ImportContext,
+        log: @escaping (String) -> Void,
+        diagnostics: inout ImportDiagnostics) async -> ImportResult?
+    {
+        switch source {
+        case .safari:
+            await self.trySafari(
+                context: context,
+                log: log,
+                diagnostics: &diagnostics)
+        default:
+            // All non-Safari browsers (Chrome, Edge, Firefox, Brave, Arc, etc.)
+            // share the same cookie loading path via SweetCookieKit.
+            await self.tryBrowser(
+                source,
+                context: context,
+                log: log,
+                diagnostics: &diagnostics)
+        }
+    }
+
+    private func applyCandidate(
+        _ candidate: Candidate,
+        context: ImportContext,
+        log: @escaping (String) -> Void,
+        diagnostics: inout ImportDiagnostics) async -> ImportResult?
+    {
+        switch await self.evaluateCandidate(
+            candidate,
+            targetEmail: context.targetEmail,
+            allowAnyAccount: context.allowAnyAccount,
+            log: log)
+        {
+        case let .match(candidate, signedInEmail):
+            log("Selected \(candidate.label) (matches Codex: \(signedInEmail))")
+            guard let targetEmail = context.targetEmail else { return nil }
+            if let result = try? await self.persistVerifiedCandidate(
+                candidate: candidate,
+                targetEmail: targetEmail,
+                verifiedSignedInEmail: signedInEmail,
+                logger: log)
+            {
+                self.cacheCookies(candidate: candidate, scope: context.cacheScope)
+                return result
+            }
+            return nil
+        case let .mismatch(candidate, signedInEmail):
+            await self.handleMismatch(
+                candidate: candidate,
+                signedInEmail: signedInEmail,
+                log: log,
+                diagnostics: &diagnostics)
+            return nil
+        case let .loggedIn(candidate, signedInEmail):
+            log("Selected \(candidate.label) (signed in: \(signedInEmail))")
+            if let result = try? await self.persistVerifiedCandidate(
+                candidate: candidate,
+                targetEmail: signedInEmail,
+                verifiedSignedInEmail: signedInEmail,
+                logger: log)
+            {
+                self.cacheCookies(candidate: candidate, scope: context.cacheScope)
+                return result
+            }
+            return nil
+        case .unknown:
+            if context.allowAnyAccount {
+                log("Selected \(candidate.label) (signed in: unknown)")
+                if let result = try? await self.persistToDefaultStore(candidate: candidate, logger: log) {
+                    self.cacheCookies(candidate: candidate, scope: context.cacheScope)
+                    return result
+                }
+                return nil
+            }
+            diagnostics.foundUnknownEmail = true
+            return nil
+        case .loginRequired:
+            return nil
+        }
+    }
+
+    private func evaluateCandidate(
+        _ candidate: Candidate,
+        targetEmail: String?,
+        allowAnyAccount: Bool,
+        log: @escaping (String) -> Void) async -> CandidateEvaluation
+    {
+        log("Trying candidate \(candidate.label) (\(candidate.cookies.count) cookies)")
+
+        let apiEmail = await self.fetchSignedInEmailFromAPI(cookies: candidate.cookies, logger: log)
+        if let apiEmail {
+            log("Candidate \(candidate.label) API email: \(apiEmail)")
+        }
+
+        // Prefer the API email when available (fast; avoids WebKit hydration/timeout risks).
+        if let apiEmail, !apiEmail.isEmpty {
+            if let targetEmail {
+                if apiEmail.lowercased() == targetEmail.lowercased() {
+                    return .match(candidate: candidate, signedInEmail: apiEmail)
+                }
+                return .mismatch(candidate: candidate, signedInEmail: apiEmail)
+            }
+            if allowAnyAccount { return .loggedIn(candidate: candidate, signedInEmail: apiEmail) }
+        }
+
+        if !self.hasSessionCookies(candidate.cookies) {
+            log("Candidate \(candidate.label) missing session cookies; skipping")
+            return .loginRequired(candidate: candidate)
+        }
+
+        let scratch = WKWebsiteDataStore.nonPersistent()
+        await self.setCookies(candidate.cookies, into: scratch)
+
+        do {
+            let probe = try await OpenAIDashboardFetcher().probeUsagePage(
+                websiteDataStore: scratch,
+                logger: log,
+                timeout: 25)
+            let signedInEmail = probe.signedInEmail?.trimmingCharacters(in: .whitespacesAndNewlines)
+            log("Candidate \(candidate.label) DOM email: \(signedInEmail ?? "unknown")")
+
+            let resolvedEmail = signedInEmail?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let resolvedEmail, !resolvedEmail.isEmpty {
+                if let targetEmail {
+                    if resolvedEmail.lowercased() == targetEmail.lowercased() {
+                        return .match(candidate: candidate, signedInEmail: resolvedEmail)
+                    }
+                    return .mismatch(candidate: candidate, signedInEmail: resolvedEmail)
+                }
+                if allowAnyAccount { return .loggedIn(candidate: candidate, signedInEmail: resolvedEmail) }
+            }
+
+            return .unknown(candidate: candidate)
+        } catch OpenAIDashboardFetcher.FetchError.loginRequired {
+            log("Candidate \(candidate.label) requires login.")
+            return .loginRequired(candidate: candidate)
+        } catch {
+            log("Candidate \(candidate.label) probe error: \(error.localizedDescription)")
+            return .unknown(candidate: candidate)
+        }
+    }
+
+    private func hasSessionCookies(_ cookies: [HTTPCookie]) -> Bool {
+        for cookie in cookies {
+            let name = cookie.name.lowercased()
+            if name.contains("session-token") || name.contains("authjs") || name.contains("next-auth") {
+                return true
+            }
+            if name == "_account" { return true }
+        }
+        return false
+    }
+
+    private func handleMismatch(
+        candidate: Candidate,
+        signedInEmail: String,
+        log: @escaping (String) -> Void,
+        diagnostics: inout ImportDiagnostics) async
+    {
+        log("Candidate \(candidate.label) mismatch (\(signedInEmail)); continuing browser search")
+        diagnostics.mismatches.append(FoundAccount(sourceLabel: candidate.label, email: signedInEmail))
+        // Mismatch still means we found a valid signed-in session. Persist it keyed by its email so if
+        // the user switches Codex accounts later, we can reuse this session immediately without another
+        // Keychain prompt.
+        await self.persistCookies(candidate: candidate, accountEmail: signedInEmail, logger: log)
+    }
+
+    private func fetchSignedInEmailFromAPI(
+        cookies: [HTTPCookie],
+        logger: (String) -> Void) async -> String?
+    {
+        let chatgptCookies = cookies.filter { $0.domain.lowercased().contains("chatgpt.com") }
+        guard !chatgptCookies.isEmpty else { return nil }
+
+        let cookieHeader = chatgptCookies
+            .map { "\($0.name)=\($0.value)" }
+            .joined(separator: "; ")
+
+        let endpoints = [
+            "https://chatgpt.com/backend-api/me",
+            "https://chatgpt.com/api/auth/session",
+        ]
+
+        for urlString in endpoints {
+            guard let url = URL(string: urlString) else { continue }
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 10
+            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                logger("API \(url.host ?? "chatgpt.com") \(url.path) status=\(status)")
+                guard status >= 200, status < 300 else { continue }
+                if let email = Self.findFirstEmail(inJSONData: data) {
+                    return email.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            } catch {
+                logger("API request failed: \(error.localizedDescription)")
+            }
+        }
+
+        return nil
+    }
+
+    private static func findFirstEmail(inJSONData data: Data) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else { return nil }
+        var queue: [Any] = [json]
+        var seen = 0
+        while !queue.isEmpty, seen < 2000 {
+            let cur = queue.removeFirst()
+            seen += 1
+            if let str = cur as? String, str.contains("@") {
+                return str
+            }
+            if let dict = cur as? [String: Any] {
+                for (k, v) in dict {
+                    if k.lowercased() == "email", let s = v as? String, s.contains("@") { return s }
+                    queue.append(v)
+                }
+            } else if let arr = cur as? [Any] {
+                queue.append(contentsOf: arr)
+            }
+        }
+        return nil
+    }
+
+    private func persistVerifiedCandidate(
+        candidate: Candidate,
+        targetEmail: String,
+        verifiedSignedInEmail: String,
+        logger: @escaping (String) -> Void) async throws -> ImportResult
+    {
+        do {
+            return try await self.persist(candidate: candidate, targetEmail: targetEmail, logger: logger)
+        } catch {
+            guard Self.shouldTrustVerifiedSession(afterPersistFailure: error) else {
+                throw error
+            }
+
+            let signedInEmail = verifiedSignedInEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            logger(
+                "Persistent validation timed out after session verification; " +
+                    "keeping \(candidate.label) cookies for \(signedInEmail).")
+            return ImportResult(
+                sourceLabel: candidate.label,
+                cookieCount: candidate.cookies.count,
+                signedInEmail: signedInEmail,
+                matchesCodexEmail: signedInEmail.lowercased() == targetEmail.lowercased())
+        }
+    }
+
+    private func persist(
+        candidate: Candidate,
+        targetEmail: String,
+        logger: @escaping (String) -> Void) async throws -> ImportResult
+    {
+        let persistent = OpenAIDashboardWebsiteDataStore.store(forAccountEmail: targetEmail)
+        await self.clearChatGPTCookies(in: persistent)
+        await self.setCookies(candidate.cookies, into: persistent)
+
+        // Validate against the persistent store (login + email sync).
+        do {
+            let probe = try await OpenAIDashboardFetcher().probeUsagePage(
+                websiteDataStore: persistent,
+                logger: logger,
+                timeout: 20,
+                preserveLoadedPageForReuse: true)
+            let signed = probe.signedInEmail?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            let matches = signed?.lowercased() == targetEmail.lowercased()
+            logger("Persistent session signed in as: \(signed ?? "unknown")")
+            if signed != nil, matches == false {
+                let found = signed?.isEmpty == false
+                    ? [FoundAccount(sourceLabel: candidate.label, email: signed!)]
+                    : []
+                throw ImportError.noMatchingAccount(found: found)
+            }
+            return ImportResult(
+                sourceLabel: candidate.label,
+                cookieCount: candidate.cookies.count,
+                signedInEmail: signed,
+                matchesCodexEmail: matches)
+        } catch OpenAIDashboardFetcher.FetchError.loginRequired {
+            OpenAIDashboardWebViewCache.shared.evict(websiteDataStore: persistent)
+            logger("Selected \(candidate.label) but dashboard still requires login.")
+            throw ImportError.dashboardStillRequiresLogin
+        } catch {
+            OpenAIDashboardWebViewCache.shared.evict(websiteDataStore: persistent)
+            throw error
+        }
+    }
+
+    private func persistToDefaultStore(
+        candidate: Candidate,
+        logger: @escaping (String) -> Void) async throws -> ImportResult
+    {
+        let persistent = OpenAIDashboardWebsiteDataStore.store(forAccountEmail: nil)
+        await self.clearChatGPTCookies(in: persistent)
+        await self.setCookies(candidate.cookies, into: persistent)
+
+        do {
+            let probe = try await OpenAIDashboardFetcher().probeUsagePage(
+                websiteDataStore: persistent,
+                logger: logger,
+                timeout: 20,
+                preserveLoadedPageForReuse: true)
+            let signed = probe.signedInEmail?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            logger("Persistent session signed in as: \(signed ?? "unknown")")
+            return ImportResult(
+                sourceLabel: candidate.label,
+                cookieCount: candidate.cookies.count,
+                signedInEmail: signed,
+                matchesCodexEmail: false)
+        } catch OpenAIDashboardFetcher.FetchError.loginRequired {
+            OpenAIDashboardWebViewCache.shared.evict(websiteDataStore: persistent)
+            logger("Selected \(candidate.label) but dashboard still requires login.")
+            throw ImportError.dashboardStillRequiresLogin
+        } catch {
+            OpenAIDashboardWebViewCache.shared.evict(websiteDataStore: persistent)
+            throw error
+        }
+    }
+
+    // MARK: - Candidates
+
+    private func cookies(from pairs: [(name: String, value: String)]) -> [HTTPCookie] {
+        var cookies: [HTTPCookie] = []
+        for domain in Self.cookieDomains {
+            for pair in pairs {
+                let props: [HTTPCookiePropertyKey: Any] = [
+                    .name: pair.name,
+                    .value: pair.value,
+                    .domain: domain,
+                    .path: "/",
+                    .secure: true,
+                ]
+                if let cookie = HTTPCookie(properties: props) {
+                    cookies.append(cookie)
+                }
+            }
+        }
+        return cookies
+    }
+
+    private func cacheCookies(candidate: Candidate, scope: CookieHeaderCache.Scope?) {
+        let header = self.cookieHeader(from: candidate.cookies)
+        guard !header.isEmpty else { return }
+        CookieHeaderCache.store(provider: .codex, scope: scope, cookieHeader: header, sourceLabel: candidate.label)
+    }
+
+    private func cookieHeader(from cookies: [HTTPCookie]) -> String {
+        cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+    }
+
+    private struct Candidate {
+        let label: String
+        let cookies: [HTTPCookie]
+    }
+
+    // MARK: - WebKit cookie store
+
+    private func persistCookies(candidate: Candidate, accountEmail: String, logger: (String) -> Void) async {
+        let store = OpenAIDashboardWebsiteDataStore.store(forAccountEmail: accountEmail)
+        await self.clearChatGPTCookies(in: store)
+        await self.setCookies(candidate.cookies, into: store)
+        logger("Persisted cookies for \(accountEmail) (source=\(candidate.label))")
+    }
+
+    private func clearChatGPTCookies(in store: WKWebsiteDataStore) async {
+        await withCheckedContinuation { cont in
+            store.fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
+                let filtered = records.filter { record in
+                    let name = record.displayName.lowercased()
+                    return name.contains("chatgpt.com") || name.contains("openai.com")
+                }
+                store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), for: filtered) {
+                    cont.resume()
+                }
+            }
+        }
+    }
+
+    private func setCookies(_ cookies: [HTTPCookie], into store: WKWebsiteDataStore) async {
+        for cookie in cookies {
+            await withCheckedContinuation { cont in
+                store.httpCookieStore.setCookie(cookie) { cont.resume() }
+            }
+        }
+    }
+
+    private func cookieSummary(_ cookies: [HTTPCookie]) -> String {
+        let nameCounts = Dictionary(grouping: cookies, by: \.name).mapValues { $0.count }
+        let important = [
+            "__Secure-next-auth.session-token",
+            "__Secure-next-auth.session-token.0",
+            "__Secure-next-auth.session-token.1",
+            "_account",
+            "oai-did",
+            "cf_clearance",
+        ]
+        let parts: [String] = important.compactMap { name -> String? in
+            guard let c = nameCounts[name], c > 0 else { return nil }
+            return "\(name)=\(c)"
+        }
+        if parts.isEmpty { return "no key cookies detected" }
+        return parts.joined(separator: ", ")
+    }
+}
+#else
+import Foundation
+
+@MainActor
+public struct OpenAIDashboardBrowserCookieImporter {
+    public struct FoundAccount: Sendable, Hashable {
+        public let sourceLabel: String
+        public let email: String
+
+        public init(sourceLabel: String, email: String) {
+            self.sourceLabel = sourceLabel
+            self.email = email
+        }
+    }
+
+    public enum ImportError: LocalizedError {
+        case noCookiesFound
+        case browserAccessDenied(details: String)
+        case dashboardStillRequiresLogin
+        case noMatchingAccount(found: [FoundAccount])
+        case manualCookieHeaderInvalid
+
+        public var errorDescription: String? {
+            switch self {
+            case .noCookiesFound:
+                return "No browser cookies found."
+            case let .browserAccessDenied(details):
+                return "Browser cookie access denied. \(details)"
+            case .dashboardStillRequiresLogin:
+                return "Browser cookies imported, but dashboard still requires login."
+            case let .noMatchingAccount(found):
+                if found.isEmpty { return "No matching OpenAI web session found in browsers." }
+                let display = found
+                    .sorted { lhs, rhs in
+                        if lhs.sourceLabel == rhs.sourceLabel { return lhs.email < rhs.email }
+                        return lhs.sourceLabel < rhs.sourceLabel
+                    }
+                    .map { "\($0.sourceLabel)=\($0.email)" }
+                    .joined(separator: ", ")
+                return "OpenAI web session does not match Codex account. Found: \(display)."
+            case .manualCookieHeaderInvalid:
+                return "Manual cookie header is missing a valid OpenAI session cookie."
+            }
+        }
+    }
+
+    public struct ImportResult: Sendable {
+        public let sourceLabel: String
+        public let cookieCount: Int
+        public let signedInEmail: String?
+        public let matchesCodexEmail: Bool
+
+        public init(sourceLabel: String, cookieCount: Int, signedInEmail: String?, matchesCodexEmail: Bool) {
+            self.sourceLabel = sourceLabel
+            self.cookieCount = cookieCount
+            self.signedInEmail = signedInEmail
+            self.matchesCodexEmail = matchesCodexEmail
+        }
+    }
+
+    public init() {}
+
+    public func importBestCookies(
+        intoAccountEmail _: String?,
+        allowAnyAccount _: Bool = false,
+        preferCachedCookieHeader _: Bool = true,
+        cacheScope _: CookieHeaderCache.Scope? = nil,
+        logger _: ((String) -> Void)? = nil) async throws -> ImportResult
+    {
+        throw ImportError.browserAccessDenied(details: "OpenAI web cookie import is only supported on macOS.")
+    }
+
+    public func importManualCookies(
+        cookieHeader _: String,
+        intoAccountEmail _: String?,
+        allowAnyAccount _: Bool = false,
+        cacheScope _: CookieHeaderCache.Scope? = nil,
+        logger _: ((String) -> Void)? = nil) async throws -> ImportResult
+    {
+        throw ImportError.browserAccessDenied(details: "OpenAI web cookie import is only supported on macOS.")
+    }
+}
+#endif
