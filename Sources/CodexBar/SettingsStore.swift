@@ -228,14 +228,14 @@ extension SettingsStore {
         }
     }
 
-    private static func inferredInitialOpenAIWebAccessEnabled(
+    nonisolated static func inferredInitialOpenAIWebAccessEnabled(
         config: CodexBarConfig,
-        hadExistingConfig: Bool) -> Bool
+        hadExistingConfig _: Bool) -> Bool
     {
         guard let codex = config.providerConfig(for: .codex) else { return false }
         if let cookieSource = codex.cookieSource { return cookieSource.isEnabled }
         if codex.sanitizedCookieHeader != nil { return true }
-        return hadExistingConfig
+        return false
     }
 
     private static func loadDefaultsState(userDefaults: UserDefaults) -> SettingsDefaultsState {
