@@ -13,7 +13,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         static let barWidth: CGFloat = 6
     }
 
-    private struct SeriesSelection: Hashable {
+    struct SeriesSelection: Hashable {
         let name: PlanUtilizationSeriesName
         let windowMinutes: Int
 
@@ -22,7 +22,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         }
     }
 
-    private struct VisibleSeries: Identifiable, Equatable {
+    struct VisibleSeries: Identifiable, Equatable {
         let selection: SeriesSelection
         let title: String
         let history: PlanUtilizationSeriesHistory
@@ -45,7 +45,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         let windowInterval: TimeInterval
     }
 
-    private struct Point: Identifiable {
+    struct Point: Identifiable {
         let id: Date
         let index: Int
         let date: Date
@@ -53,7 +53,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         let isObserved: Bool
     }
 
-    private struct Model {
+    struct Model {
         let points: [Point]
         let axisIndexes: [Double]
         let xDomain: ClosedRange<Double>?
@@ -64,9 +64,8 @@ struct PlanUtilizationHistoryChartMenuView: View {
     }
 
     private let provider: UsageProvider
-    private let histories: [PlanUtilizationSeriesHistory]
-    private let snapshot: UsageSnapshot?
     private let width: CGFloat
+    private let preparation: PlanUtilizationHistoryChartPreparation
 
     @State private var selectedSeriesID: String?
     @State private var selectedPointID: Date?
@@ -78,22 +77,18 @@ struct PlanUtilizationHistoryChartMenuView: View {
         width: CGFloat)
     {
         self.provider = provider
-        self.histories = histories
-        self.snapshot = snapshot
         self.width = width
+        self.preparation = PlanUtilizationHistoryChartPreparation(
+            provider: provider,
+            histories: histories,
+            snapshot: snapshot)
     }
 
     var body: some View {
-        let visibleSeries = Self.visibleSeries(
-            histories: self.histories,
-            provider: self.provider,
-            snapshot: self.snapshot)
+        let visibleSeries = self.preparation.visibleSeries
         let effectiveSelectedSeries = visibleSeries.first(where: { $0.id == self.selectedSeriesID }) ?? visibleSeries
             .first
-        let model = Self.makeModel(
-            history: effectiveSelectedSeries?.history,
-            provider: self.provider,
-            referenceDate: Date())
+        let model = self.preparation.model(for: effectiveSelectedSeries?.id)
 
         VStack(alignment: .leading, spacing: 10) {
             if visibleSeries.count > 1 {
@@ -180,7 +175,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         }
     }
 
-    private nonisolated static func visibleSeries(
+    nonisolated static func visibleSeries(
         histories: [PlanUtilizationSeriesHistory],
         provider: UsageProvider,
         snapshot: UsageSnapshot?) -> [VisibleSeries]
@@ -261,7 +256,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         return names
     }
 
-    private nonisolated static func makeModel(
+    nonisolated static func makeModel(
         history: PlanUtilizationSeriesHistory?,
         provider: UsageProvider,
         referenceDate: Date) -> Model
@@ -796,6 +791,58 @@ struct PlanUtilizationHistoryChartMenuView: View {
         if self.selectedPointID != best?.id {
             self.selectedPointID = best?.id
         }
+    }
+}
+
+@MainActor
+struct PlanUtilizationHistoryChartPreparation {
+    let visibleSeries: [PlanUtilizationHistoryChartMenuView.VisibleSeries]
+
+    private let modelsBySeriesID: [String: PlanUtilizationHistoryChartMenuView.Model]
+    private let emptyModel: PlanUtilizationHistoryChartMenuView.Model
+
+    var initialSeriesID: String? {
+        self.visibleSeries.first?.id
+    }
+
+    var visibleSeriesCount: Int {
+        self.visibleSeries.count
+    }
+
+    init(
+        provider: UsageProvider,
+        histories: [PlanUtilizationSeriesHistory],
+        snapshot: UsageSnapshot? = nil,
+        referenceDate: Date = Date())
+    {
+        let visibleSeries = PlanUtilizationHistoryChartMenuView.visibleSeries(
+            histories: histories,
+            provider: provider,
+            snapshot: snapshot)
+        let modelsBySeriesID = Dictionary(uniqueKeysWithValues: visibleSeries.map { series in
+            (
+                series.id,
+                PlanUtilizationHistoryChartMenuView.makeModel(
+                    history: series.history,
+                    provider: provider,
+                    referenceDate: referenceDate))
+        })
+
+        self.visibleSeries = visibleSeries
+        self.modelsBySeriesID = modelsBySeriesID
+        self.emptyModel = PlanUtilizationHistoryChartMenuView.makeModel(
+            history: nil,
+            provider: provider,
+            referenceDate: referenceDate)
+    }
+
+    func model(for seriesID: String?) -> PlanUtilizationHistoryChartMenuView.Model {
+        guard let seriesID else { return self.emptyModel }
+        return self.modelsBySeriesID[seriesID] ?? self.emptyModel
+    }
+
+    func modelPointCount(for seriesID: String?) -> Int {
+        self.model(for: seriesID).points.count
     }
 }
 
