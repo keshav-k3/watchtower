@@ -1,46 +1,27 @@
 name: CI
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
+    branches: [main]
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  lint-build-test:
-    runs-on: macos-15-intel
-    timeout-minutes: 70
+  check:
+    name: Lint, Type-check, Build, Test
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Select Xcode 26.1.1 (if present) or fallback to default
-        run: |
-          set -euo pipefail
-          for candidate in /Applications/Xcode_26.1.1.app /Applications/Xcode_26.1.app /Applications/Xcode.app; do
-            if [[ -d "$candidate" ]]; then
-              sudo xcode-select -s "${candidate}/Contents/Developer"
-              echo "DEVELOPER_DIR=${candidate}/Contents/Developer" >> "$GITHUB_ENV"
-              break
-            fi
-          done
-          /usr/bin/xcodebuild -version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - name: Swift toolchain version
-        run: |
-          set -euo pipefail
-          swift --version
-          swift package --version
+      - run: bun install
 
-      - name: Install lint tools
-        run: ./Scripts/install_lint_tools.sh
+      - name: Type-check and build
+        run: bun run build
 
-      - name: Lint
-        run: ./Scripts/lint.sh lint
-
-      - name: Swift Test
-        timeout-minutes: 60
-        run: |
-          python3 Scripts/ci_swift_test_by_suite.py --group-size 1 --timeout 120
+      - name: Run tests
+        run: bun run test

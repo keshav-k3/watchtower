@@ -1,45 +1,91 @@
-# Repository Guidelines
+# AGENTS.md
 
-## Project Structure & Modules
-- `Sources/CodexBar`: Swift 6 menu bar app (usage/credits probes, icon renderer, settings). Keep changes small and reuse existing helpers.
-- `Tests/CodexBarTests`: XCTest coverage for usage parsing, status probes, icon patterns; mirror new logic with focused tests.
-- `Scripts`: build/package helpers (`package_app.sh`, `sign-and-notarize.sh`, `make_appcast.sh`, `build_icon.sh`, `compile_and_run.sh`). Release wrappers call `Scripts/mac-release`, which resolves `MAC_RELEASE_TOOL` or the shared `agent-scripts` checkout.
-- `docs`: release notes and process (`docs/RELEASING.md`, screenshots). Root-level zips/appcast are generated artifacts—avoid editing except during releases.
+Version: 0.31 (2026-06-10)
 
-## Build, Test, Run
-- Dev loop: `./Scripts/compile_and_run.sh` kills old instances, runs `swift build` + `swift test`, packages, relaunches `Watchtower.app`, and confirms it stays running.
-- Quick build/test: `swift build` (debug) or `swift build -c release`; `swift test` for the full XCTest suite.
-- Package locally: `./Scripts/package_app.sh` to refresh `Watchtower.app`, then restart with `pkill -x Watchtower || pkill -f Watchtower.app || true; cd /Users/keshav/Developer/watchtower && open -n /Users/keshav/Developer/watchtower/Watchtower.app`.
-- Release flow: `./Scripts/release.sh`; app metadata lives in `.mac-release.env`, repo build/signing stays in `Scripts/sign-and-notarize.sh`, and validation steps live in `docs/RELEASING.md`.
+> Watchtower is a public-facing Tauri desktop app for tracking AI provider usage across plugins.
 
-## Coding Style & Naming
-- Enforce SwiftFormat/SwiftLint: run `swiftformat Sources Tests` and `swiftlint --strict`. 4-space indent, 120-char lines, explicit `self` is intentional—do not remove.
-- Favor small, typed structs/enums; maintain existing `MARK` organization. Use descriptive symbols; match current commit tone.
+## Documentation
 
-## Testing Guidelines
-- Add/extend XCTest cases under `Tests/CodexBarTests/*Tests.swift` (`FeatureNameTests` with `test_caseDescription` methods).
-- Always run `swift test` before handoff; add focused filters for parser/provider fixes when possible.
-- After any code change, run `make check` and fix all reported format/lint issues before handoff.
-- Prefer CLI/focused tests over app-bundle live tests when behavior can be verified without relaunching CodexBar.
-- Never run tests/checks or ad-hoc validation that can display macOS Keychain prompts. Live provider probes, browser-cookie imports, `codexbar usage` against real accounts, and real SecItem reads must be explicitly requested; otherwise use parser tests, stubs, test stores, or `KeychainNoUIQuery`.
-- macOS CI is brittle around headless AppKit status/menu tests. Prefer covering menu behavior through stable state/model seams (`MenuDescriptor`, `ProvidersPane`, `CodexAccountsSectionState`, etc.) instead of constructing live `NSStatusBar`/`NSMenu` flows unless the AppKit wiring itself is the thing under test.
+- Logic changes must update any docs in `docs/` that describe the affected behavior.
+- Plans must list the doc files that need updating as part of the work.
+- Exclude design from docs, and keep them simple, less-technical, easy to skim.
 
-## Commit & PR Guidelines
-- Commit messages: short imperative clauses (e.g., “Improve usage probe”, “Fix icon dimming”); keep commits scoped.
-- PRs/patches should list summary, commands run, screenshots/GIFs for UI changes, and linked issue/reference when relevant.
+## Guardrails
 
-## Agent Notes
-- Use the provided scripts and package manager (SwiftPM); avoid adding dependencies or tooling without confirmation.
-- Validate UI/runtime behavior against the freshly built bundle; restart via the pkill+open command above to avoid running stale binaries.
-- To guarantee the right bundle is running after a rebuild, use: `pkill -x Watchtower || pkill -f Watchtower.app || true; cd /Users/keshav/Developer/watchtower && open -n /Users/keshav/Developer/watchtower/Watchtower.app`.
-- For CLI-testable provider/parser/settings behavior, use CLI/focused tests instead of `Scripts/package_app.sh` or `./Scripts/compile_and_run.sh`.
-- Run `./Scripts/compile_and_run.sh` only when UI/runtime behavior needs bundle-level validation; it builds, tests, packages, relaunches, and verifies the app stays running.
-- Widget/Tahoe UI issues: use Parallels macOS VM plus screenshots/clicks for autonomous verification.
-- Release script: keep it in the foreground; do not background it—wait until it finishes.
-- Release keys: find in `~/.profile` if missing (Sparkle + App Store Connect).
-- Swift concurrency: treat sibling `async let` tasks as a review red flag when one child is required and another is optional/best-effort. Prefer sequential awaits or a drained `withThrowingTaskGroup` that surfaces required failures and explicitly contains optional failures; crash stacks mentioning `swift_task_dealloc` or `asyncLet_finish_after_task_completion` should trigger an audit of nearby `async let` usage.
-- Prefer modern SwiftUI/Observation macros: use `@Observable` models with `@State` ownership and `@Bindable` in views; avoid `ObservableObject`, `@ObservedObject`, and `@StateObject`.
-- Favor modern macOS 15+ APIs over legacy/deprecated counterparts when refactoring (Observation, new display link APIs, updated menu item styling, etc.).
-- Keep provider data siloed: when rendering usage or account info for a provider (Claude vs Codex), never display identity/plan fields sourced from a different provider.***
-- Claude CLI status line is custom + user-configurable; never rely on it for usage parsing.
-- Cookie imports: default Chrome-only when possible to avoid other browser prompts; override via browser list when needed.
+- Use `trash` for deletes
+- Use `mv` / `cp` to move and copy files
+- Bugs: add regression test when it fits
+- Keep files <~500 LOC; split/refactor as needed
+- Before writing code, strictly follow the below research rules
+
+## Research
+
+- Check for and prefer available skills over web research.
+- Prefer researched knowledge over your own knowledge when skills are unavailable.
+- Research: Exa to general search, Context7 for official docs, GitHits for open source examples
+- Best results: Quote exact errors; prefer late-2025/2026+ sources.
+
+## Error Handling
+
+Always fail loudly into error logging (e.g., Sentry) and but show friendly errors to the user. Do not add silent fallbacks that hide real problems.
+
+## UI
+
+Always use titlecase any hardcoded copy for titles.
+
+Strictly use `@hugeicons-pro/core-solid-rounded`. Nothing else. If you come across `lucide-react` or similar, replace it. Pattern: `<HugeiconsIcon icon={FooIcon} className="size-4" />`. Never pass `strokeWidth` (paints an unwanted outline on filled glyphs).
+
+## Automated Testing
+
+In some environments you may have `$TEST_EMAIL` and `$TEST_PASSWORD` available when you encounter a login request for the app.
+
+## Agent Guidance
+
+When you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue in user-facing messages. If you are weighing a choice, give a recommendation, not an exhaustive survey. This does not apply to thinking blocks.
+
+Don't add features, refactor, or introduce abstractions beyond what the task requires. A bug fix doesn't need surrounding cleanup and a one-shot operation usually doesn't need a helper. Don't design for hypothetical future requirements: do the simplest thing that works well. Avoid premature abstraction and half-finished implementations. Don't add error handling, fallbacks, or validation for scenarios that cannot happen. Trust
+internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.
+
+Lead with the outcome. Your first sentence after finishing should answer "what happened" or "what did you find": the thing the user would ask for if they said "just give me the TLDR." Supporting detail and reasoning come after. Being readable and being concise are different things, and readability matters more.
+
+The way to keep output short is to be selective about what you include (drop details that don't change what the reader would do next), not to compress the writing into fragments, abbreviations, arrow chains like A → B → fails, or jargon.
+
+Pause for the user only when the work genuinely requires them: a destructive or irreversible action, a real scope change, or input that only they can provide. If you hit one of these, ask and end the turn, rather than ending on a promise.
+
+Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for; if something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.
+
+When the user is describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't apply a fix until they ask for one. Before running a command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches to a known failure may have
+a different cause.
+
+Delegate independent subtasks to subagents and keep working while they run. Intervene if a subagent goes off track or is missing relevant context.
+
+Store one lesson per file with a one-line summary at the top. Record corrections and confirmed approaches alike, including why they mattered. Don't save what the repo or chat history already records; update an existing note rather than creating a duplicate; delete notes that turn out to be wrong.
+
+You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking "Want me to…?" or "Shall I…?" will block the work. For reversible actions that follow from the original request, proceed without asking. Offering follow-ups after the task is done is fine; asking permission after already discussing with the user before doing the work is not. Before ending your turn, check your last paragraph. If it is a plan, an analysis, a question, a list of next steps, or a promise about work you have not done ("I'll…", "let me know when…"), do that work now with tool calls. End your turn only when the task is complete or you are blocked on
+input only the user can provide.
+
+You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work.
+
+I'm working on [the larger task] for [who it's for]. They need [what the output enables]. With that in mind: [request].
+
+Terse shorthand is fine between tool calls (that's you thinking out loud, and brevity there is good). Your final summary is different: it's for a reader who didn't see any of that.
+
+If you've been working for a while without the user watching (overnight, across many tool calls, since they last spoke), your final message is their first look at any of it. Write it as a re-grounding, not a continuation of your working thread: the outcome first, then the one or two things you need from them, each explained as if new. The vocabulary you built up while working is yours, not theirs; leave it behind unless you re-introduce it.
+
+When you write the summary at the end, skip the technical jargon. Write like you'd explain it to a non-engineer, without dumbing it down too much. Write complete sentences. When you mention files, commits, flags, or other identifiers, give each one its own plain-language clause. Open with the outcome: one sentence on what happened or what you found. Then the supporting detail. If you have to choose between short and clear, choose clear.
+
+## Before Creating Pull Request
+
+- Before creating a PR or pushing to main, ensure that `README.md` is updated with what plugins are supported.
+- On any plugin change/new plugin, audit plugin-exposed request/response fields against `src-tauri/src/plugin_engine/host_api.rs` redaction lists and add/update tests for gaps. Compare with existing plugins for patterns.
+- In `plugin.json`, set `brandColor` to the provider's real brand color.
+- Plugin SVG logos must use `currentColor` so icon theming works correctly.
+- If the PR includes visual changes, refuse to create it without providing before/after screenshots.
+
+## Project Memories
+
+Use below list to store and recall user notes when asked to do so.
+
+- Use this list when asked to remember things. Keep each list item concise.
+- Tauri IPC: JS must use camelCase (`{ batchId, pluginIds }`), Tauri auto-converts to Rust's snake_case. Never send snake_case from JS—params silently won't match.
+- tauri-action `latest.json`: Parallel matrix builds are safe—action fetches existing `latest.json`, merges platform entries, re-uploads. No `max-parallel: 1` needed.
