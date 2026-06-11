@@ -187,7 +187,7 @@ function makeOAuthSentinelB64(ctx, opts) {
 
 // --- Tests ---
 
-describe("antigravity plugin", () => {
+describe("gemini plugin", () => {
   beforeEach(() => {
     delete globalThis.__watchtower_plugin
     vi.resetModules()

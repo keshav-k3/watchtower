@@ -1,4 +1,4 @@
-# OpenCode Go
+# OpenCode
 
 > Uses local OpenCode history from SQLite to track observed OpenCode Go spend on this machine.
 

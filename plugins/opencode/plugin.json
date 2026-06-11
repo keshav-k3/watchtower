@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "opencode-go",
-  "name": "OpenCode Go",
+  "id": "opencode",
+  "name": "OpenCode",
   "version": "0.0.1",
   "entry": "plugin.js",
   "icon": "icon.svg",
@@ -13,7 +13,7 @@
     },
     {
       "label": "Docs",
-      "url": "https://opencode.ai/docs/go/"
+      "url": "https://opencode.ai/docs/"
     }
   ],
   "lines": [

@@ -1,4 +1,4 @@
-# Antigravity
+# Gemini
 
 > Reverse-engineered from app bundle and language server binary. May change without notice.
 

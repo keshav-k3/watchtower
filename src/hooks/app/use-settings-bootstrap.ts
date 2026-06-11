@@ -24,8 +24,8 @@ import {
   loadMenubarIconStyle,
   loadMenubarMetric,
   migrateLegacyTraySettings,
-  migrateWindsurfToDevin,
   loadPluginSettings,
+  migrateRenamedPluginIds,
   loadResetTimerDisplayMode,
   loadStartOnLogin,
   loadThemeMode,
@@ -99,8 +99,8 @@ export function useSettingsBootstrap({
         setPluginsMeta(availablePlugins)
 
         const storedSettings = await loadPluginSettings()
-        const migratedSettings = migrateWindsurfToDevin(storedSettings)
-        const normalized = normalizePluginSettings(migratedSettings, availablePlugins)
+        const renamedSettings = migrateRenamedPluginIds(storedSettings)
+        const normalized = normalizePluginSettings(renamedSettings, availablePlugins)
         if (!arePluginSettingsEqual(storedSettings, normalized)) {
           await savePluginSettings(normalized)
         }
@@ -221,7 +221,6 @@ export function useSettingsBootstrap({
     setLoadingForPlugins,
     setMenubarIconStyle,
     setMenubarMetric,
-    migrateWindsurfToDevin,
     migrateLegacyTraySettings,
     setPluginSettings,
     setPluginsMeta,
