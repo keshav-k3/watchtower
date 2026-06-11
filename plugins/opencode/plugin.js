@@ -1,5 +1,6 @@
 (function () {
-  const PROVIDER_ID = "opencode-go";
+  const PLUGIN_ID = "opencode";
+  const OPENCODE_DB_PROVIDER_ID = "opencode-go";
   const AUTH_PATH = "~/.local/share/opencode/auth.json";
   const DB_PATH = "~/.local/share/opencode/opencode.db";
   const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
@@ -14,7 +15,7 @@
     SELECT 1 AS present
     FROM message
     WHERE json_valid(data)
-      AND json_extract(data, '$.providerID') = 'opencode-go'
+      AND json_extract(data, '$.providerID') = '${OPENCODE_DB_PROVIDER_ID}'
       AND json_extract(data, '$.role') = 'assistant'
       AND json_type(data, '$.cost') IN ('integer', 'real')
     LIMIT 1
@@ -26,7 +27,7 @@
       CAST(json_extract(data, '$.cost') AS REAL) AS cost
     FROM message
     WHERE json_valid(data)
-      AND json_extract(data, '$.providerID') = 'opencode-go'
+      AND json_extract(data, '$.providerID') = '${OPENCODE_DB_PROVIDER_ID}'
       AND json_extract(data, '$.role') = 'assistant'
       AND json_type(data, '$.cost') IN ('integer', 'real')
   `;
@@ -169,7 +170,7 @@
         ctx.host.log.warn("opencode auth file is not valid json");
         return null;
       }
-      const entry = parsed[PROVIDER_ID];
+      const entry = parsed[OPENCODE_DB_PROVIDER_ID];
       if (!entry || typeof entry !== "object") return null;
       const key = typeof entry.key === "string" ? entry.key.trim() : "";
       return key || null;
@@ -265,7 +266,7 @@
     const detected = !!authKey || (history.ok && history.present);
 
     if (!detected) {
-      throw "OpenCode Go not detected. Log in with OpenCode Go or use it locally first.";
+      throw "OpenCode not detected. Log in with OpenCode or use it locally first.";
     }
 
     if (!history.ok) {
@@ -283,5 +284,5 @@
     };
   }
 
-  globalThis.__watchtower_plugin = { id: PROVIDER_ID, probe };
+  globalThis.__watchtower_plugin = { id: PLUGIN_ID, probe };
 })();

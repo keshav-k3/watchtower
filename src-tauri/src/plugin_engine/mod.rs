@@ -5,7 +5,23 @@ pub mod runtime;
 use manifest::LoadedPlugin;
 use std::path::{Path, PathBuf};
 
-const RETIRED_BUNDLED_PLUGIN_IDS: &[&str] = &["windsurf"];
+const RETIRED_BUNDLED_PLUGIN_IDS: &[&str] = &[
+    "windsurf",
+    "amp",
+    "antigravity",
+    "copilot",
+    "devin",
+    "factory",
+    "grok",
+    "jetbrains-ai-assistant",
+    "kimi",
+    "kiro",
+    "minimax",
+    "opencode-go",
+    "perplexity",
+    "synthetic",
+    "zai",
+];
 
 pub fn initialize_plugins(
     app_data_dir: &Path,
@@ -269,7 +285,7 @@ mod tests {
 
         write_plugin(&install_dir, "windsurf", "Windsurf");
         write_plugin(&install_dir, "custom", "Custom");
-        write_plugin(&bundled_dir, "devin", "Devin");
+        write_plugin(&bundled_dir, "copilot", "Copilot");
 
         let (loaded_dir, plugins) = initialize_plugins(&app_data_dir, &resource_dir);
         let ids: Vec<_> = plugins
@@ -280,8 +296,8 @@ mod tests {
         assert_eq!(loaded_dir, install_dir);
         assert!(!loaded_dir.join("windsurf").exists());
         assert!(loaded_dir.join("custom").exists());
-        assert!(loaded_dir.join("devin").exists());
-        assert_eq!(ids, vec!["custom", "devin"]);
+        assert!(!loaded_dir.join("copilot").exists());
+        assert_eq!(ids, vec!["custom"]);
     }
 
     #[test]

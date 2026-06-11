@@ -57,7 +57,7 @@ function setHistoryQuery(ctx, rows, options = {}) {
   });
 }
 
-describe("opencode-go plugin", () => {
+describe("opencode plugin", () => {
   beforeEach(() => {
     delete globalThis.__watchtower_plugin;
     vi.resetModules();
@@ -70,15 +70,15 @@ describe("opencode-go plugin", () => {
 
   it("ships plugin metadata with links and expected line layout", () => {
     const manifest = JSON.parse(
-      readFileSync("plugins/opencode-go/plugin.json", "utf8"),
+      readFileSync("plugins/opencode/plugin.json", "utf8"),
     );
 
-    expect(manifest.id).toBe("opencode-go");
-    expect(manifest.name).toBe("OpenCode Go");
+    expect(manifest.id).toBe("opencode");
+    expect(manifest.name).toBe("OpenCode");
     expect(manifest.brandColor).toBe("#000000");
     expect(manifest.links).toEqual([
       { label: "Console", url: "https://opencode.ai/auth" },
-      { label: "Docs", url: "https://opencode.ai/docs/go/" },
+      { label: "Docs", url: "https://opencode.ai/docs/" },
     ]);
     expect(manifest.lines).toEqual([
       { type: "progress", label: "Session", scope: "overview", primaryOrder: 1 },
@@ -93,7 +93,7 @@ describe("opencode-go plugin", () => {
 
     const plugin = await loadPlugin();
     expect(() => plugin.probe(ctx)).toThrow(
-      "OpenCode Go not detected. Log in with OpenCode Go or use it locally first.",
+      "OpenCode not detected. Log in with OpenCode or use it locally first.",
     );
   });
 
