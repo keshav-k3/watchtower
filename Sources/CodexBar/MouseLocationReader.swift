@@ -19,8 +19,13 @@ struct MouseLocationReader: NSViewRepresentable {
     }
 
     final class TrackingView: NSView {
+        private static let minimumDeliveredMoveDistance: CGFloat = 2
+
         var onMoved: ((CGPoint?) -> Void)?
         private var trackingArea: NSTrackingArea?
+        private var pendingLocation: CGPoint?
+        private var lastEmittedLocation: CGPoint?
+        private var isMoveDeliveryScheduled = false
 
         override var isFlipped: Bool {
             true
@@ -53,17 +58,53 @@ struct MouseLocationReader: NSViewRepresentable {
 
         override func mouseEntered(with event: NSEvent) {
             super.mouseEntered(with: event)
-            self.onMoved?(self.convert(event.locationInWindow, from: nil))
+            self.scheduleMoveDelivery(self.convert(event.locationInWindow, from: nil))
         }
 
         override func mouseMoved(with event: NSEvent) {
             super.mouseMoved(with: event)
-            self.onMoved?(self.convert(event.locationInWindow, from: nil))
+            self.scheduleMoveDelivery(self.convert(event.locationInWindow, from: nil))
         }
 
         override func mouseExited(with event: NSEvent) {
             super.mouseExited(with: event)
-            self.onMoved?(nil)
+            self.scheduleMoveDelivery(nil)
         }
+
+        private func scheduleMoveDelivery(_ location: CGPoint?) {
+            self.pendingLocation = location
+            guard !self.isMoveDeliveryScheduled else { return }
+
+            self.isMoveDeliveryScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.isMoveDeliveryScheduled = false
+                let location = self.pendingLocation
+                self.pendingLocation = nil
+                self.deliverMove(location)
+            }
+        }
+
+        private func deliverMove(_ location: CGPoint?) {
+            if let location {
+                if let lastEmittedLocation,
+                   location.distance(to: lastEmittedLocation) < Self.minimumDeliveredMoveDistance
+                {
+                    return
+                }
+                self.lastEmittedLocation = location
+                self.onMoved?(location)
+            } else {
+                guard self.lastEmittedLocation != nil else { return }
+                self.lastEmittedLocation = nil
+                self.onMoved?(nil)
+            }
+        }
+    }
+}
+
+extension CGPoint {
+    fileprivate func distance(to other: CGPoint) -> CGFloat {
+        hypot(self.x - other.x, self.y - other.y)
     }
 }
