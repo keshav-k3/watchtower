@@ -2,7 +2,7 @@
 name = "watchtower"
 version = "0.6.27"
 description = "Watchtower is an open source AI subscription limit tracker"
-authors = ["Keshav K"]
+authors = ["Kk", "Robin Ebers and OpenUsage contributors"]
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

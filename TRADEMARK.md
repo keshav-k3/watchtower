@@ -2,7 +2,7 @@
 
 ## The Watchtower Brand
 
-The "Watchtower" name, logo, and associated visual identity are trademarks of Keshav K. The MIT license covers the source code, not the brand.
+The "Watchtower" name, logo, and associated visual identity are trademarks of Kk. The MIT license covers the source code, not the brand.
 
 ## What You Can Do
 
@@ -27,4 +27,4 @@ If you fork Watchtower, you must:
 
 ## Questions
 
-If you are unsure whether your use of the Watchtower brand is allowed, contact [rob@robinebers.com](mailto:rob@robinebers.com).
+If you are unsure whether your use of the Watchtower brand is allowed, contact the Watchtower maintainers.
