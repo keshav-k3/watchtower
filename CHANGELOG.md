@@ -1,1128 +1,1139 @@
 # Changelog
 
-## 0.32.6 — Unreleased
-
-### Fixed
-- Antigravity: exclude model quotas without a remaining fraction from family summaries so they no longer mask tracked usage in the automatic menu-bar metric (#1369). Thanks @Martin-Hausleitner!
-- Claude: add bundled Fable 5 pricing, account for native 1-hour cache-write usage, and refresh Sonnet 4.6 full-context rates (#1368). Thanks @MoollaMore!
-- Claude: show a direct claude.ai re-login action when a configured web session expires or becomes invalid (#1377). Thanks @LeoLin990405!
-- Menu bar: defer data-refresh rebuilds until the tracked menu closes, avoiding multi-second WindowServer stalls with slower providers such as Grok (#1376). Thanks @jangisaac-dev!
-- Xiaomi MiMo: import automatic session cookies from Safari, Chrome variants, Firefox, and Edge instead of limiting discovery to Chrome (#1304). Thanks @Yuxin-Qiao!
-
-## 0.32.5 — 2026-06-09
-
-### Added
-- Localization: add French as a selectable app language (#1241). Thanks @Yuxin-Qiao!
-- Localization: add Ukrainian as a selectable app language (#1250). Thanks @Yuxin-Qiao!
-- Localization: add Dutch as a selectable app language (#1252). Thanks @Yuxin-Qiao!
-- Localization: add Vietnamese as a selectable app language (#1247). Thanks @Yuxin-Qiao!
-
-### Fixed
-- Menu bar: keep provider switching inside AppKit's menu-tracking transaction and defer structural dropdown rebuilds until mouse-up completes, preventing intermittent hangs when moving between providers and Overview.
-- Localization: cache resolved localized bundles so repeated menu/status text lookups no longer hit disk on the main thread (#1355, fixes #1347). Thanks @Yuxin-Qiao!
-- Menu bar: size hosted chart submenus directly instead of spinning up throwaway SwiftUI hosting controllers during menu layout (#1352). Thanks @Yuxin-Qiao!
-- Menu bar: avoid recomputing expensive readiness signatures on closed-menu store ticks while preserving root-open refresh correctness for deferred observations (#1351). Thanks @Yuxin-Qiao!
-- Menu bar: defer Quit from the status menu until AppKit menu tracking unwinds so shutdown does not wedge Dock autohide state (#1354, fixes #1353). Thanks @jskoiz!
-- Claude: remove transient ClaudeProbe session artifacts after CLI usage polls so background refreshes no longer fill Claude Code project history with CodexBar `/usage` sessions (#1301). Thanks @LPFchan and @matthewod11-stack!
-- Menu bar: keep z.ai overview rows with detail submenus in Overview so hovering quota details no longer recurses into a nested provider menu (#1279, fixes #1246). Thanks @RajvardhanPatil07!
-- Codex: backfill visible-account reset timestamps and missing 5-hour/weekly window metadata from same-workspace plan history so segmented multi-account JSON keeps machine-readable reset data (#1283). Thanks @callmepopo!
-- Antigravity: detect CLI local language-server processes and allow empty CSRF tokens only for explicit CLI matches so Antigravity CLI quota usage renders without weakening IDE CSRF detection (#1341). Thanks @oyaah!
-- Menu bar: skip closed attached-menu rebuilds during stale background data-refresh ticks so closed dropdowns are not pre-warmed while the user is not interacting (#1291). Thanks @Nicolas0315!
-- Cursor: show deficit and run-out pace details for 30-day Total, Auto, and API billing-cycle usage rows (#1336). Thanks @dhruv-anand-aintech!
-- Codex: time out stalled managed `codex login` processes so account switches no longer stay stuck in progress after OAuth completes (#1330). Thanks @dhruv-anand-aintech!
-- Codex Spark: show the same deficit and run-out pace details as the core Codex quota lanes for 5-hour and weekly model limits (#1335). Thanks @dhruv-anand-aintech!
-- Antigravity: make the automatic menu-bar summary choose the most constrained family quota so an exhausted Gemini lane is no longer hidden by a full Claude lane (#1334). Thanks @dhruv-anand-aintech!
-- Performance: memoize models.dev cost catalog load outcomes so large Codex history scans no longer re-read and decode the same cache file per row (#1322, refs #1311). Thanks @turbothad!
-- Menu bar: compute Claude pace/reserve from the selected menu-bar metric window so Primary (Session) no longer pairs the session percentage with the weekly reserve (#1302). Thanks @outfoxer!
-- Menu bar: defer merged-menu close rebuilds and cache repeated menu-card height measurements so dismissing or rapidly switching the merged dropdown avoids rebuilding SwiftUI-backed cards on the main thread (#1274, #1286, #1314). Thanks @hhh2210!
-- Menu bar: keep merged provider tab selection from invalidating broad settings observers so switching providers no longer triggers background refresh and status-icon work.
-- Menu bar: observe a compact icon-state signature so merged status icons no longer redraw for provider snapshot changes that cannot affect the visible icon (#1297). Thanks @hhh2210!
-- Menu bar: keep provider-switcher quota bars from replacing Auto Layout constraints when the visible ratio is unchanged, making tab switches responsive with many providers enabled (#1303, #1315). Thanks @juanjoseluisgarcia!
-- Kiro: retry login-shell PATH capture when CLI discovery races a slow cold shell startup, so `kiro-cli` is no longer stuck as missing for the whole app session (#1316). Thanks @bt-justtrack!
-
-## 0.32.4 — 2026-06-02
-
-### Fixed
-- Menu bar: avoid queuing redundant provider refreshes when opening a fresh merged-menu dropdown, while still retrying missing or stale provider data after menu tracking ends (#1235, #1277). Thanks @hhh2210!
-
-## 0.32.3 — 2026-06-02
-
-### Fixed
-- Menu bar: stop forcing a private preferred-position value for fresh status items; suspicious stored positions are now cleared so AppKit can place CodexBar normally on macOS 26 / 5K displays (#1267). Thanks @AdrianSimionov, @kirocop, and @Yuxin-Qiao!
-- Menu bar: cache provider brand icons so merged-icon status updates no longer repeatedly parse SVG assets on the main thread during hover/open animations (#1235, #1274). Thanks @andradebruno, @xingpz2008, and @Yuxin-Qiao!
-- Copilot: treat GitHub Copilot Business token-billing zero-entitlement quotas as unavailable instead of showing misleading 0% used usage (#1258, #1270). Thanks @devYRPauli!
-- Menu bar: prepare closed menus after refresh and only reuse stale dropdown content for data-refresh invalidations so merged menu opens stay responsive without bypassing privacy or structure changes (#1261). Thanks @ProspectOre!
-- OpenAI Web: stop reloading away from login and Cloudflare blocking states so the dashboard WebView does not loop on route corrections (#1259). Thanks @ProspectOre!
-
-## 0.32.2 — 2026-06-01
-
-### Added
-- QA: document the live CodexBar e2e flow and add a redacted provider-matrix helper for packaged CLI smoke tests.
-
-### Fixed
-- Menu bar: add breathing room to compact Codex account rows so the provider, account, status, and plan labels no longer hug the row edges.
-- Performance: make Codex token-cost scanning faster and more memory-efficient on large local session corpora.
-
-## 0.32.1 — 2026-05-31
-
-### Fixed
-- Claude: keep Claude CLI-owned OAuth refresh tokens delegated to Claude Code when CLI storage is present, preventing CodexBar from consuming rotating refresh tokens and forcing re-login (#1161, #1239). Thanks @RajvardhanPatil07!
-- Menu bar: reuse short-lived Codex account reconciliation snapshots so repeated menu rebuilds do not reread local auth state on every open.
-- Menu bar: defer automatic provider refreshes until after AppKit menu tracking ends so opening the dropdown no longer starts work that can freeze focus and keyboard input.
-- Menu bar: suppress background keychain and OpenAI dashboard work during startup/menu tracking so the dropdown stays clickable without macOS keychain prompts or WebKit memory spikes.
-
-## 0.32.0 — 2026-05-31
-
-### Added
-- Settings: add search to the Providers pane so large provider lists can be filtered by name or id (#1184). Thanks @046081-dotcom!
-
-### Fixed
-- Augment: parse the updated `auggie account status` output format, fall back to browser cookies when CLI parsing fails, and restore session cookie detection (#1224). Thanks @bcharleson!
-- Amp/Ollama: require HTTPS before reattaching imported browser cookies on provider redirects to avoid cleartext cookie exposure (#1226). Thanks @Hinotoi-agent!
-- Antigravity: filter noisy remote OAuth per-model quota rows, keep consumed noisy rows detail-only, and prevent image/lite/autocomplete/internal rows from driving summary bars (#1209). Thanks @guhyun9454!
-- Claude: preserve the last good Claude Web usage snapshot across transient Unauthorized refresh failures while still surfacing repeated auth failures (#1220). Thanks @LeoLin990405!
-- CLI: avoid executing a same-user mutable temporary installer script across the macOS administrator privilege boundary (#1222). Thanks @Hinotoi-agent!
-- Codex: cancel OpenAI WebKit dashboard refreshes promptly and avoid an immediate second background WebView retry after timeouts, reducing launch-time Web Content CPU spikes (#1217).
-- Menu: refresh open Codex menu adjuncts as dashboard, credits, token-cost, and plan-history data become ready after cold start (#1150). Thanks @AmrMohamad!
-- Menu bar: defer background parent-menu rebuilds until AppKit menu tracking ends so late-arriving usage data cannot stall dropdown hover on macOS 26.5 (#1227).
-- Menu bar: give CodexBar status items stable placement identities while preserving existing upgrade placement state (#1216). Thanks @pdurlej!
-- Release: isolate notarization API keys and upload ZIPs in a private per-run temporary directory instead of predictable shared /tmp paths (#1228). Thanks @Hinotoi-agent!
-- Status: retry startup refreshes a few times after transient offline/network failures so provider status can recover after macOS brings the network online (#1211).
-
-## 0.31.0 — 2026-05-28
-
-### Changed
-- Docs: update the Homebrew install command to use the official `codexbar` cask now that it supports Intel Macs (#1189). Thanks @SSakutaro!
-- Tests: document and audit that routine validation must not trigger macOS Keychain prompts.
-- Localization: localize popup panels and provider settings UI across supported languages (#1181). Thanks @jack24254029!
-- Localization: complete Brazilian Portuguese coverage so pt-BR no longer falls back to English for new UI strings (#1188). Thanks @ManuzimFerreira!
-
-### Added
-- AWS Bedrock: support resolving usage and cost-history credentials from a named AWS profile via the AWS CLI (#1190). Thanks @oleksandr-soldatov!
-- Codex: show Codex Spark model-specific usage as an optional extra quota lane (#1195, fixes #1177). Thanks @LeoLin990405!
-- Localization: add Swedish as a selectable app language (#1186). Thanks @yeager!
-
-### Fixed
-- CLI: bound `codexbar serve` requests with a configurable timeout and coalesce concurrent cache misses so hung `/usage` callers no longer stampede provider refreshes (#1208). Thanks @enieuwy!
-- Claude: add Opus 4.8 to the built-in pricing fallback so stale models.dev caches still show token cost (#1214, fixes #1210). Thanks @devYRPauli!
-- Codex: preserve authorized web dashboard credits-only snapshots instead of treating missing usage windows as a failed refresh (#1206, fixes #1204). Thanks @soumikbhatta!
-- Cost history: make token-cost JSONL scans cancellation-aware so quitting, forced refreshes, and account switches can stop stale scans sooner.
-- Codex: show Spark 5-hour and weekly usage as separate quota lanes in Codex breakdowns (#1201).
-- Codex: show captured `codex login` output when managed Add Account fails so users can recover from account-selection or OAuth failures (#1199). Thanks @chapati23!
-- Claude: hide the obsolete Design quota lane now that Claude Design shares the main Claude usage limit (#1197).
-- Menu bar: coalesce visible-menu rebuilds and reduce hover highlight work so the dropdown stays responsive on macOS 26.5 (#1196).
-
-## 0.30.1 — 2026-05-28
-
-### Changed
-- CLI: make `codexbar diagnose` use a generic safe provider diagnostic export for all providers, with MiniMax details attached only as provider-specific metadata.
-
-### Fixed
-- Settings: add trailing breathing room to provider-sidebar controls (#1183). Thanks @Yuxin-Qiao!
-- Claude: treat OAuth usage HTTP 429s as rate limits, preserve cached credentials, and back off background retries while still allowing manual refresh (#1179). Thanks @LeoLin990405!
-- Menu bar: stop repeated display-change status-item recreation from corrupting Control Center or confusing menu bar managers (#1176, fixes #1175). Thanks @diazdesandi!
-
-## 0.30.0 — 2026-05-27
-
-### Added
-- MiniMax: add a redacted diagnostic CLI export for safe issue reports (#1128). Thanks @Yuxin-Qiao!
-- Antigravity: show the complete per-model quota breakdown alongside the existing summary lanes (#1139). Thanks @guhyun9454!
-- Widget: show tertiary usage rows for providers that expose a third quota lane (#1160). Thanks @LeoLin990405!
-- DeepSeek: show optional web-session usage and cost summaries alongside the balance card (#1166). Thanks @Yuxin-Qiao!
-- OpenAI: scope Admin API usage to the configured project and keep token accounts from inheriting stale project filters (#1168). Thanks @mstallone!
-
-### Fixed
-- App shutdown: detach status items, close tracked menus, and cancel menu tasks before quit so Dock autohide stays responsive on macOS 26.5 (#1174). Thanks @jskoiz!
-- Widgets: package the macOS widget as a real Xcode app-extension target so WidgetKit descriptors load on macOS 26.5 (#1095). Thanks @jamesjlopez!
-- Menu: render quota-warning markers as subtle inset ticks instead of full-height bars (#1149).
-- Codex: show sign-in guidance when the Codex CLI is logged out instead of reporting a temporary usage outage (#1171, fixes #1170). Thanks @jskoiz!
-- Menu bar: clear stale hidden macOS status-item visibility defaults once before creating CodexBar items (#1169).
-- StepFun: refresh expired Oasis tokens and persist recovered manual sessions. Thanks @LeoLin990405!
-- Release: prevent manual CLI artifact builds from publishing or clobbering release assets (#1154). Thanks @jskoiz!
-- Cost history: route OpenAI and Mistral API spend through the shared cost-history cards, including OpenAI request counts (#1163). Thanks @LeoLin990405!
-- Menu: keep provider switcher Cmd-number and arrow shortcuts working while the open menu is tracking events (#1157, fixes #1156 and #1144). Thanks @anirudhvee!
-- Codex: prevent fork token replay from overcounting corrected cumulative session totals (#1164). Thanks @xx205!
-- Alibaba Token Plan: update usage refreshes to the Bailian subscription-summary endpoint (#1142). Thanks @YanxinXue!
-- Ollama: show pace projections for documented 5-hour session and 7-day weekly usage windows (#1136). Thanks @bdamokos!
-- Localization: polish Simplified Chinese wording and add notification strings (#1165). Thanks @fanfanci!
-- Localization: improve Traditional Chinese wording and localize notification copy (#1158). Thanks @jack24254029!
-- Localization: improve Simplified Chinese visible menu, dashboard, and usage labels (#1145). Thanks @Yuxin-Qiao!
-
-## 0.29.1 — 2026-05-26
-
-### Added
-- Integrations: list the Noctalia/Quickshell Codex usage plugin in the Linux CLI integrations (#1115). Thanks @rayoplateado!
-- Display: add optional workday markers for weekly progress bars (#1102). Thanks @Yuxin-Qiao!
-- Localization: add Traditional Chinese (`zh-Hant`) app strings. Thanks @ilyaliao!
-
-### Fixed
-- Claude: classify Claude CLI 2.1 subscription-only `/usage` output separately and fall back to direct CLI usage when the PTY panel fails to load (#1121, fixes #1116). Thanks @Yuxin-Qiao!
-- Provider switcher: keep multi-row account/provider controls compact so large menus stay within bounds (#1113). Thanks @Yuxin-Qiao!
-- Grok: label usage bars from the actual reset window instead of the remaining reset distance (#1148). Thanks @kiankyars!
-- Config: keep legacy credentials when migrated config changes fail to save so retry can recover them (#1146). Thanks @RajvardhanPatil07!
-- Codex: avoid overcounting forked sessions when parent logs are missing while still counting incremental usage (#1143). Thanks @jskoiz!
-- Groq: show a distinct Groq provider icon instead of reusing the Grok glyph (#1112). Thanks @kiankyars!
-- Claude: normalize OAuth extra-usage spend limits from minor units so Enterprise spend displays as currency instead of 100x too high (#1114, fixes #1111). Thanks @Yuxin-Qiao!
-- Menu bar: preserve status item identity during display-change recovery so menu bar managers do not treat CodexBar as a new hidden item (#1122, fixes #1109). Thanks @lederniermagicien!
-- OpenAI: retry transient Admin API usage failures once before surfacing an access error (#1117).
-- OpenCode Go: read local usage history before falling back to browser-cookie dashboard fetches (#1021). Thanks @sopenlaz0!
-- Menu bar: show extra-usage spend as currency text for Claude and Cursor when that metric is selected (#1107). Thanks @Yuxin-Qiao!
-- Codex: run regular credits and OpenAI dashboard refreshes in the background while coalescing overlapping refresh work (#1078). Thanks @ptstory!
-
-## 0.29.0 — 2026-05-22
-
-### Added
-- Cost history: show Codex standard and fast spend/token splits in model breakdowns (#1070). Thanks @iam-brain!
-- Alibaba Token Plan: add Bailian token-plan quota tracking via browser or manual cookies (#1098). Thanks @YanxinXue!
-- OpenCode: show workspace renewal dates for OpenCode and OpenCode Go usage windows (#1099). Thanks @Yuxin-Qiao!
-
-### Fixed
-- Localization: improve Simplified Chinese settings and menu translations (#1059). Thanks @narallee!
-- Alibaba Token Plan: reject non-HTTPS endpoint overrides and keep the provider building on Linux (#1104). Thanks @YanxinXue!
-- Settings: avoid crashing when API key or cookie settings contain only a single quote character (#1106). Thanks @m1qaweb!
-- Build scripts: derive the local development signing team ID from the certificate OU before falling back to the CN suffix (#1095).
-- Menu bar: keep retrying display-change recovery when macOS leaves status items detached from the current screen (#1077, #1088).
-- Codex: preserve last successful per-account quota snapshots when later network or DNS refreshes fail (#1097, #1101). Thanks @Yuxin-Qiao!
-
-## 0.28.0 — 2026-05-22
-
-### Added
-- Ollama: add API key authentication as an alternative to browser cookies for validating Cloud access (#1044). Thanks @nandorocker!
-- Azure OpenAI: add deployment-status validation via API key, endpoint, and deployment settings (#1045). Thanks @ZenoRewn!
-- Localizations: add Spanish and Catalan language packs and fill missing localization keys (#1041). Thanks @seifreed!
-- Providers: T3 Chat - add web-session usage tracking, can paste a full browser cURL when cookie-only refreshes hit a 429 challenge (#1091). Thanks @Quicksaver!
-
-### Fixed
-- Menu: restore full-width provider switcher quota bars and refresh them while the menu stays open (#1094). Thanks @bcharleson!
-- Codex: accept the first click in the account switcher inside menu popovers (#1079). Thanks @ptstory!
-- Codex/Claude: terminate PTY child process trees during probe cleanup so wrapper-launched CLI descendants do not linger after sessions finish (#1085). Thanks @mickobizzle!
-- MiniMax: exclude explicitly failed billing-history records from token charts and model/method totals (#1089). Thanks @Yuxin-Qiao!
-- OpenAI: parse Wednesday and Saturday dashboard reset lines so rate-limit reset times are not dropped on those days (#1080). Thanks @m1qaweb!
-- Localization: translate provider-detail labels and empty states when Simplified Chinese is selected (#1051). Thanks @wang93wei!
-- Antigravity: discover OAuth credentials from the bundled extension language server in newer IDE builds so Add Account works again (#1076). Thanks @xARSENICx!
-- Menu bar: suppress redundant icon observer work during refresh cycles, reducing icon update passes without changing rendered state (#1081). Thanks @ptstory!
-- Menu bar: wait for display changes to settle before recovering status items and retry if macOS still leaves the icon detached (#1074). Thanks @yipjunkai!
-- Menu: keep lower action rows stable when Refresh is highlighted or pressed (#1071). Thanks @MadanChaollaPark!
-- Linux CLI: avoid linking JetBrains provider parsing against `libxml2.so.2`, improving compatibility with newer distros that ship libxml2 2.15+ (#1046). Thanks @semsemyonoff!
-- Claude: remove the obsolete peak-hours indicator and setting now that Anthropic no longer applies peak-hour limits (#1023). Thanks @rohitjavvadi!
-- Antigravity: verify cloud model lists that report every quota as full against the user quota endpoint before showing remote OAuth usage (#1063). Thanks @devpras22!
-- Codex: avoid recounting repeated local token snapshots when total usage has not changed (#1062). Thanks @BarryYangi!
-- Antigravity: discover OAuth clients from Antigravity 2 app bundles and binary artifacts so Add Account works again (#1053). Thanks @vyctorbrzezowski!
-- Codex: honor the explicit OAuth credits source and keep automatic credits refresh falling back to CLI when OAuth usage has no credits (#1054). Thanks @soumikbhatta!
-- Codex: show missing-CLI installation guidance in app and CLI errors without dropping cached-refresh context (#1030). Thanks @rohitjavvadi!
-- LLM Proxy: parse fractional-second quota reset timestamps from API responses (#1022). Thanks @rohitjavvadi!
-- ElevenLabs: keep progress text legible in light mode (#1055). Thanks @vyctorbrzezowski!
-- Claude: detect loading-only CLI usage screens and give CLI-only auto refreshes one longer retry instead of stalling or reporting a false missing-session error (#1032, fixes #1031). Thanks @rohitjavvadi!
-- OpenAI: avoid serializing the full dashboard DOM during normal web refreshes, reducing CPU and memory churn while preserving account and plan detection (#1034, fixes #1033). Thanks @jb510!
-- Codex: skip macOS-blocked Codex CLI candidates during automatic binary resolution and let CLI auto mode use OAuth before falling back to `codex app-server` (#1038, fixes #1028). Thanks @m-rokai!
-- Codex: wait for explicit Refresh to finish token-cost history before rebuilding open menus, while keeping automatic/menu-open refreshes non-blocking (#1040). Thanks @zhulijin1991!
-- Antigravity: detect the new 2.0 unsuffixed `language_server` process so local IDE usage probing works again (#1049). Thanks @urbanonymous!
-- Claude: prevent headless CLI usage probes from creating Claude Code URL Handler apps in Launchpad (#1047).
-- Codex: invalidate local cost-history caches from the scanner source hash so parser fixes rebuild stale cached rows automatically (#1042). Thanks @hhh2210!
-- Release: update Homebrew automation so CodexBar releases publish both the CLI formula and app cask from the same workflow.
-
-## 0.27.0 — 2026-05-18
-
-### Added
-- Usage charts: reuse the OpenAI API inline dashboard for local Codex/Claude/Vertex/Bedrock cost history, OpenRouter day/week/month spend, z.ai hourly tokens, and Mistral daily spend.
-- Usage history: let OpenAI Admin API charts and local cost-history scans use a configurable 1–365 day window instead of a fixed 30 days (#83).
-- Grok: add xAI Grok provider support with local identity detection and billing decoding for the Grok CLI integration (#965). Thanks @taibaran!
-- ElevenLabs: add API-key usage tracking for subscription credits, reset time, and voice-slot limits.
-- Deepgram: add API-key usage tracking with project discovery and speech/agent usage breakdowns (#1003, fixes #994). Thanks @czjzpz!
-- GroqCloud: add API-key usage tracking for Enterprise Prometheus metrics with request, token, and cache-hit rate summaries (#993).
-- LLM Proxy: add API-key quota-stats support for aggregate proxy usage, key health, spend, provider breakdowns, and reset windows (#264).
-- Claude: add an Anthropic Admin API source and allow `sk-ant-admin...` keys in Claude token accounts for API spend/token tracking (#966).
-- MiniMax: add web-session billing-history summaries with 30-day token charts and top model/method breakdowns (#1007).
-- OpenCode Go: show the optional Zen pay-as-you-go balance from the workspace dashboard alongside subscription windows (#1006).
-- Kiro: add overage-credit and overage-cost menu bar display modes for exhausted plans (#972). Thanks @raflyazf!
-- CLI: add `codexbar config set-api-key` for safely storing provider API keys from stdin.
-- CLI: add `codexbar config providers`, `enable`, and `disable` for scripting the same provider toggles used by Settings.
-- CLI: let `--all-accounts` and `codexbar serve` export every visible Codex account instead of only the selected account (#1019).
-- Permissions: notify when a provider probe detects a macOS/browser permission prompt waiting for user action (#456).
-- Quota warnings: include the triggering account in notification copy when personal info is visible (#973). Thanks @raflyazf!
-- Website: replace provider-letter tiles with brand logos, add light/dark landing-page themes, and collapse OpenCode/OpenCode Go into one company entry (#989). Thanks @pasangimhana!
-- Providers: route app-owned provider HTTP calls through a shared transport seam for cleaner proxy and test support (#892). Thanks @serezha93!
-
-### Fixed
-- Codex: make local cost-history scans faster and more stable for large session archives while preserving fork attribution, priority pricing, and cached history windows.
-- Codex: collapse near-duplicate session and weekly plan-utilization history windows so charts no longer show repeated tabs (#1027). Thanks @ngutman!
-- Multi-account menus: fetch stacked Codex/token-account usage concurrently so account switchers stay responsive with many accounts (#1011).
-- Codex: keep local cost history attributed to the correct model when long or oversized `turn_context` rows precede model-less token events (#1014, fixes #1013). Thanks @hhh2210!
-- Codex: prefer per-event token usage over divergent total counters when scanning local cost history, preventing large false cost spikes (#968). Thanks @Ifan24!
-- Claude: de-duplicate copied fork/resume transcript history by provider response identity so local cost estimates do not overcount repeated rows (#1002). Thanks @Neverdie-2!
-- Codex: improve multi-account switching with quota-aware ordering, workspace grouping, persisted per-account snapshots, health labels, and auth fingerprint matching.
-- Codex: improve managed account login recovery guidance when macOS blocks or moves a stale `codex` CLI to Trash (#977).
-- Codex: show weekly pace reserve details in the menu even when the caller did not precompute pace data (#1009). Thanks @zhulijin1991!
-- Overview: expose provider chart and storage detail submenus from overview rows instead of requiring a provider-tab switch first.
-- Claude: reset stuck CLI sessions after usage probe timeouts, give slow probes longer to render, and keep stale data visible across transient timeouts.
-- Claude: keep the last successful usage card visible across transient probe timeouts while still clearing stale data after Claude auth changes.
-- Claude: keep Team and Personal Max plan-utilization history separate when the same email appears on multiple Claude accounts (#213).
-- Claude: label Extra usage denominators as the monthly cap so recharge balances are not confused with the maximum spend limit (#975).
-- Claude: wait for the CLI usage panel to finish rendering after the Current session label so slow Claude Code builds do not produce false "Missing Current session" errors (#959).
-- Claude: label five-hour session pace as "Projected empty" so it is not confused with the reset countdown (#960).
-- Claude: show Enterprise spend-limit usage in automatic menu bar metrics and expose the Extra usage metric picker when spend data is available (#964).
-- Grok: retry transient web billing timeouts once and allow slower billing RPCs to finish before showing an error.
-- Grok: fall back to grok.com's billing endpoint when `grok agent stdio` omits the xAI billing method (#984). Thanks @bcharleson!
-- OpenAI: shorten the provider label to "OpenAI" so the menu tab no longer clips.
-- OpenAI: accept numeric-string Admin API cost amounts so usage does not fail when `/v1/organization/costs` returns `"amount": { "value": "12.50" }` (#999, #1000). Thanks @SergeyLavrentev!
-- Menu: keep provider switcher buttons centered by moving quota indicators out of the button layout.
-- Menu: rebuild the selected provider content after switching tabs while an overview chart submenu is open.
-- Menu: keep the persistent Refresh row at a fixed height while highlighted or pressed so nearby items no longer jump (#1001).
-- Menu bar: avoid re-reading provider credentials, Codex account state, Claude terminal probe text, and storage footprints on hot menu paths, reducing idle CPU while providers are still loading.
-- Menu bar: skip unchanged split-provider icon redraws and avoid an extra animation-state scan during blink ticks.
-- Menu bar: recover visible status items after the display hosting the menu bar item is unplugged (#998, fixes #997). Thanks @Llldmiao!
-- Menu bar: recreate status items on startup when macOS reports them visible but never attaches a menu bar button/window (#988).
-- MiniMax: show Coding Plan model-remains quotas as used/limit cards and include weekly text-generation quota windows (#970). Thanks @Yuxin-Qiao!
-- Ollama: let automatic session import fall back from Chrome to Safari, Comet, and the rest of the browser import order when Chrome has no Ollama session (#962).
-- Kimi K2: label the legacy provider as unofficial and remove links that presented the legacy endpoint as an official Kimi account surface (#967, fixes #473). Thanks @mturac!
-- CLI: use explicit provider HTTP timeouts so blocked network connections fail instead of leaving usage commands stuck for days (#1005, fixes #1004). Thanks @msmolkin!
-- CLI: reject non-loopback `Host` headers in `codexbar serve` before serving local usage and cost metadata (#995). Thanks @rohitjavvadi!
-- Packaging: skip slow widget App Intents metadata during dev restarts and preserve the previous app bundle if required metadata generation times out.
-- Localization: fall back to English when a bundled localized string is blank instead of rendering empty menu/settings text (#952). Thanks @xiaoqianWX!
-- Settings: localize the provider storage usage toggle in the Advanced pane (#985, fixes #971). Thanks @tanish19078!
-
-## 0.26.1 — 2026-05-15
-
-### Added
-- OpenAI API: show Admin API usage inline with Today/7d/30d summaries, a 30-day spend graph, and an interactive detail chart for daily spend, tokens, and requests.
-- CLI: add `codexbar serve` for localhost JSON access to usage and cost endpoints (#957). Thanks @ThiagoCAltoe!
-
-### Fixed
-- OpenCode Go: block cross-host redirects when fetching usage so imported cookies cannot follow external redirect targets (#969). Thanks @pavbar!
-- Codex: keep background `/status` probes out of Codex Desktop history by using isolated non-persistent CLI storage (#953).
-- Menu: stabilize the Cost submenu by using a native menu item and deferring open-menu rebuilds while tracking (#954). Thanks @getogrand!
-- Localization: add Brazilian Portuguese quota-warning settings strings (#958). Thanks @ThiagoCAltoe!
-
-## 0.26.0 — 2026-05-15
-
-### Added
-- Codex: add tiered long-context and Fast/Priority pricing to local cost history using local app-server priority traces (#917). Thanks @iam-brain!
-- Kiro: show account/auth details, plan labels, credit and bonus-credit balances, overage state, and Kiro-specific menu bar display options (#933, fixes #934). Thanks @solnikhil!
-- Antigravity: add Google OAuth token-account switching with selected-account refresh persistence (#937, fixes #936). Thanks @hhh2210!
-- OpenRouter: show daily and weekly API key spend from `/api/v1/key` in the menu (#685). Thanks @ThiagoCAltoe!
-- Display: add a setting to hide quota-warning tick marks on usage bars while keeping quota warning notifications active (#918, fixes #916). Thanks @ThiagoCAltoe!
-- Menu: add left/right arrow keyboard navigation for the merged provider switcher (#266).
-- Menu: add an opt-in setting for provider changelog links, starting with Codex, Claude Code, and Gemini CLI (#929, fixes #660). Thanks @ThiagoCAltoe!
-- AWS Bedrock: add Cost Explorer usage and monthly budget tracking (#897). Thanks @afalk42!
-- Kilo: add organization selection, scoped organization fetches, and stacked Kilo usage cards (#920). Thanks @NoeFabris!
-- Moonshot / Kimi API: add API-key balance tracking, CLI support, docs, and menu bar balance copy (#899). Thanks @giuseppebisemi!
-- z.ai: add an hourly per-model token usage chart in the menu (#913). Thanks @n1majne3!
-- Localization: add Brazilian Portuguese translations (#902). Thanks @ThiagoCAltoe!
-- Localization: add Simplified Chinese translations for Claude peak-hour labels (#921). Thanks @whtis!
-
-### Fixed
-- Codex: show authenticated plan/account rows as "Limits not available" instead of a red no-rate-limit error when Codex reports profile data but no rate-limit windows yet.
-- Overview: hide provider rows that only contain an error, and avoid showing a one-item Codex System Account submenu.
-- Menu: disable implicit provider-switcher layer animations and reuse the deferred rebuild path so open menus stay stable under pointer movement (#950).
-- Menu: defer account-switcher menu rebuilds so switching Codex or token accounts does not send the open menu into a flicker loop (#946, fixes #944). Thanks @kubahasek!
-- Menu: avoid rebuilding visible menus during background open-menu refreshes so hover submenus stay responsive (#923, fixes #909). Thanks @AmrMohamad!
-- Codex: scope local cost history to the selected managed account's `CODEX_HOME` and label cost cards as local-log estimates (#910).
-- Cost history: label local log totals as API-rate estimates in menu cards, charts, and CLI output (#926). Thanks @yashiels!
-- Cursor: open Add Account in the user's browser and import the resulting browser session instead of trapping login in an embedded web view (#922).
-- Claude: handle Enterprise and organization spend-limit usage across OAuth/web accounts, including null session quota windows, inline spend-limit usage, `extra_usage`-only responses, and token-account Org ID support (#925, #941, fixes #940). Thanks @clintandrewhall!
-- OpenCode Go: let automatic cookie import scan all supported browser sources instead of Chrome only (#665).
-- Copilot: preserve over-quota usage so paid overage can show above 100% instead of clamping to exhausted (#818).
-- Codex: pause background CLI launches after macOS blocks or quarantines `codex`, avoiding repeated "Malware Blocked" prompts (#942).
-- Claude: clarify that local cost/token estimates include cache read/write tokens and may differ from Claude Code `/status` (#781, #787).
-- Updates: make the restart/apply-update menu action use Sparkle's prepared install callback on the first click (#947). Thanks @velvet-shark!
-- Multi-account menus: keep stacked token-account cards capped to current accounts and ignore stale snapshots from removed accounts (#949).
-- Droid: accept pasted Factory `Authorization: Bearer` headers and bearer tokens for manual sessions when cookies alone are insufficient (#914).
-- Menu bar: detect when macOS Tahoe hides CodexBar behind the new Allow in Menu Bar setting and show recovery guidance (#945, fixes #890). Thanks @pdurlej!
-- CLI: route Claude token-account `--source cli` reads through the selected OAuth/session credential so `--all-accounts` no longer relabels ambient CLI usage (#403).
-- Codex: route menu account refreshes through the resolved live-vs-managed account source so matched accounts keep using the stable `CODEX_HOME` (#932, fixes #931). Thanks @ThiagoCAltoe!
-- Gemini: refresh OAuth credentials when the CLI has a refresh token but no cached access token instead of reporting "not logged in" after authentication (#915).
-- Gemini: label OAuth-backed API fetches as `oauth-api` instead of plain `api` (#930). Thanks @ThiagoCAltoe!
-- Codex: keep session and weekly quota-warning marker thresholds independent so usage bars do not duplicate marker lines (#938, fixes #927). Thanks @iam-brain!
-- Codex: coalesce historical pace reset timestamps into 5-minute buckets so dashboard and live reset jitter do not duplicate weekly history windows (#901). Thanks @zhulijin1991!
-- Menu: middle-truncate long account emails in Codex account controls and keep the Codex account switcher visible during merged-menu refreshes with transient account snapshots.
-- Settings: apply the selected app language from packaged SwiftPM resources instead of falling back to English when the `.lproj` directory casing differs (#908).
-- Settings: let stale managed Codex account records be removed even when their stored home path is outside CodexBar's managed-home directory, and keep CLI known-owner tests from writing fixtures into the live app store.
-- ChatGPT credits: restrict purchase links to real HTTPS `chatgpt.com` settings/usage/billing/credits paths and drop query/fragment data (#903). Thanks @ThiagoCAltoe!
-- z.ai: show the MCP quota bucket as monthly instead of a misleading 1-minute window (#904). Thanks @ThiagoCAltoe!
-- Kimi: rebalance provider icon alignment within its viewBox (#912). Thanks @giuseppebisemi!
-- Release: include macOS platform and architecture in notarized app and dSYM asset names (#164).
-- Upstream tooling: resolve remote default branches and tolerate missing upstream remotes in review scripts (#906).
-
-## 0.25.1 — 2026-05-11
-
-### Fixed
-- Settings: avoid packaged-app crashes from SwiftPM localization bundle lookup when opening Settings or About (#896, fixes #891). Thanks @lederniermagicien!
-- CLI: include a VERSION file in standalone release archives so `--version` reports the release tag outside the app bundle (#898). Thanks @ThiagoCAltoe!
-- Pi: rebuild stale session cost caches after cache-version migrations so refreshed cost history reflects current scanner data.
-- Keychain cache: reduce repeated development prompt churn by trusting the bundled helper when writing CodexBar-owned cache items (#888).
-
-## 0.25 — 2026-05-10
-
-### Highlights
-- Localization: add Simplified Chinese app strings and an in-app language selector (#819). Thanks @markhome1!
-- New providers: Manus, MiMo, Qwen, Doubao, Command Code, StepFun, Crof, Venice, and OpenAI API balance support.
-- MiniMax: add multi-service quota cards for text, speech, image, video, and music coding-plan usage (#605). Thanks @XWind18!
-- Notifications: add opt-in quota warning notifications, warning markers, and provider-level thresholds for session and weekly quota windows (#852). Thanks @Alekstodo!
-- Codex: add stacked multi-account switchers and show official Pro 5x/Pro 20x plan labels (#869, #882). Thanks @ajmccall and @xiaoqianWX!
-- Cost history: use live models.dev pricing metadata, preserve tiered pricing boundaries, and keep large Codex/Claude log scans incremental (#863, #884, #886). Thanks @iam-brain!
-- Menu bar: fix hidden/stale status items, keep manual refreshes open, and improve balance-style menu bar text for providers without useful quota percentages (#845, #853, #861). Thanks @OlimjonovOtabek and @willytop8!
-- Accessibility: add VoiceOver labels for status icons, menu rows, provider switcher buttons, and usage charts (#860, fixes #859). Thanks @WadydX!
-
-### Providers & Usage
-- Manus: add browser-cookie provider support for credit balance, monthly credits, and daily refresh tracking (#700). Thanks @hhh2210!
-- MiMo: add browser-cookie provider support for Xiaomi token-plan usage, plan labels, balance fallback, CLI, widget, and docs (#651). Thanks @debpramanik!
-- Qwen and Doubao: add API-key provider support for Alibaba Qwen and Volcengine Ark request-limit tracking (#498). Thanks @LeoLin990405!
-- MiniMax: add multi-service quota cards for text, speech, image, video, and music coding-plan usage (#605). Thanks @XWind18!
-- Antigravity: add OAuth-backed remote usage fetching so quotas can refresh even when the IDE is closed (#635). Thanks @abnormal749!
-- Venice: add API-key balance provider support with DIEM/USD balance display and token-account CLI wiring (#865). Thanks @clawSean!
-- Crof: add API-key provider support with request quota and credit balance tracking (#872). Thanks @baanish!
-- OpenAI API: add optional platform credit-balance tracking from the billing credit-grants endpoint (#877).
-- Command Code: add browser-cookie provider support for monthly USD billing credits (#857). Thanks @sixhobbits!
-- StepFun: add username/password or Oasis-Token provider support for Step Plan rate-limit tracking (#815). Thanks @tevenfeng!
-- Factory/Droid: add token-rate-limit billing windows, Core fallback buckets, and extra usage balance display (#878). Thanks @dantemoon1!
-- OpenRouter, Mistral, and Kimi K2: show balance/spend metrics in menu bar text when quota percentage is not useful (#853). Thanks @willytop8!
-- Usage pace: show session-level pace indicators for Codex and Claude 5-hour windows, and compute pace for any explicit reset window instead of a provider allowlist (#355, #875). Thanks @johnlarkin1 and @ViperThanks!
-- Cost history: add a models.dev pricing metadata parser/cache pipeline and prefer cached models.dev pricing for Codex and Claude before bundled fallback tables (#863, #884). Thanks @iam-brain!
-- Browser cookies: bump SweetCookieKit to 0.4.1 for Comet and Yandex browser discovery, Safari profile cookie stores, and per-browser Chromium Safe Storage keys.
-
-### Menu & Settings
-- Codex: add a stacked multi-account menu layout for account switchers (#869). Thanks @ajmccall!
-- Notifications: add opt-in quota warning notifications, warning markers, and provider-level thresholds for session and weekly quota windows (#852). Thanks @Alekstodo!
-- Accessibility: add VoiceOver labels for status icons, menu rows, provider switcher buttons, and usage charts (#860, fixes #859). Thanks @WadydX!
-- Menu bar: keep status items visible on launch by avoiding macOS autosaved hidden menu-extra state from v0.24 (#861).
-- Menu bar: remove stale split provider status items instead of hiding them, avoiding leftover second-icon slots on macOS 26.4.
-- Menu: keep the status menu open when manually refreshing usage from the menu (#845). Thanks @OlimjonovOtabek!
-- Menu: route provider switcher tab clicks through the parent view's mouse tracking so a sub-provider tab still responds after switching back from the Overview tab (#867). Thanks @Karl-Dai!
-- Menu: keep long Codex account labels from widening the status menu when switching to the Codex tab.
-- Menu: keep Cost and Subscription Utilization submenus stable by deferring parent card rebuilds while hosted submenus are open (#862).
-- Settings: avoid a crash when opening the display overview provider picker.
-
-### Fixes
-- Startup: avoid blocking menu-bar creation on synchronous defaults migration/default seeding when macOS preferences services stall.
-- Codex: honor the legacy `openAIWebAccess` defaults key when importing OpenAI web extras preferences, so existing terminal workarounds no longer get ignored on launch (#794).
-- Codex: restrict OAuth auto fallback to missing/invalid auth so transient API/decode errors do not spawn `codex app-server` and burn tokens (#876, fixes #874). Thanks @ViperThanks!
-- Codex: show official Pro 5x/Pro 20x plan labels instead of Pro Lite/Pro in menu and CLI output (#882). Thanks @xiaoqianWX!
-- Cost history: keep manual refreshes on the incremental scanner cache and drain per-line JSON parse allocations so large Codex/Claude histories do not trigger full local log rescans and CPU/memory spikes.
-- Cost history: preserve cached models.dev pricing when an upstream catalog only changes a pinned snapshot suffix for the same model family (#883). Thanks @iam-brain!
-- Cost history: preserve per-request tiered pricing boundaries when aggregating Claude/Pi daily reports (#886). Thanks @iam-brain!
-- Keychain cache: trust the bundled CodexBarCLI helper when writing CodexBar-owned cache items, reducing repeated "CodexBar Cache" prompts from CLI usage (#679). Thanks @QuarkAssistant!
-- Locale: keep relative timestamps in hardcoded-English UI labels consistently English on non-English macOS systems (#868, fixes #866). Thanks @Karl-Dai!
-- Droid: send the bearer JWT subject as the usage `userId` when Factory omits `userProfile.id`, avoiding false login failures (#626). Thanks @CrystalChen1017!
-- Droid: fall back to token/allowance math when the Factory API reports a zero ratio despite non-zero usage (#864). Thanks @proxynico!
-- Alibaba: point the International Coding Plan dashboard link at the current `coding_plan` route and clarify unsupported API-key quota errors (#612).
-- Claude: allow web/sessionKey token accounts to specify `organizationId` so linked Anthropic emails can target the intended org (#848).
-- DeepSeek: show a positive CNY balance when the API also returns an empty USD balance (#873).
-- Vertex AI: detect service-account ADC files from `GOOGLE_APPLICATION_CREDENTIALS` and use `gcloud` to fetch access tokens (#871).
-- Gemini: retry direct API requests with curl when URLSession times out on hosts where curl succeeds (#826).
-- Gemini: locate Homebrew-installed CLI bundles and parse bundled OAuth client constants so token refresh works with newer `gemini-cli` installs (#695).
-- OpenRouter: keep the menu bar rendering the usage meter instead of falling back to the provider logo when no key limit is configured (#854). Thanks @willytop8!
-- DeepSeek: show balance as plain text instead of a misleading quota-style progress bar (#856). Thanks @jb381!
-- Augment: report the real 1-minute keepalive check/min-refresh intervals in startup logs and docs (#434). Thanks @guglielmofonda!
-- Website: refresh codex.bar with the current canonical domain, structured background, and updated social preview.
-
-## 0.24 — 2026-05-06
-
-### Providers & Usage
-- Windsurf: add provider support with web-session usage fetching and local SQLite-cache fallback (#583). Thanks @Coooolfan!
-- Codebuff: add provider support with credit balance tracking, weekly rate-limit usage, API-token settings, and `codebuff login` credential import (#837). Thanks @anandghegde!
-- Copilot: add multi-account support with GitHub OAuth sign-in, account switching, and per-account usage cards (#637). Thanks @ajmccall!
-- DeepSeek: add provider support with token-account balance tracking, paid vs. granted credit breakdown, and CLI support (#811). Thanks @willytop8!
-- Storage: add an opt-in menu view for local provider storage usage with background scans and copyable path breakdowns (#829). Thanks @fatiheminoge!
-- OpenRouter and DeepSeek: show remaining account balances in the menu bar, while preserving OpenRouter's API-key limit metric when explicitly selected (#832). Thanks @giuseppebisemi!
-- Claude: add a peak-hours menu-card indicator with countdowns and a provider setting to hide it (#611). Thanks @hello-amed!
-- Cost history: show per-model cost details as a compact vertical list when hovering daily bars (#513). Thanks @iam-brain!
-- Copilot: support GitHub Enterprise hosts for the device-flow login and usage API paths (#827). Thanks @ramzesenok!
-- Alibaba: clarify China-region API-key failures when the console endpoint requires a browser session (#628). Thanks @XWind18!
-
-### Fixes
-- Codex: time out hung `codex app-server` RPC reads and cap loading animation runtime so stalled refreshes no longer keep the menu bar redrawing indefinitely (#842, #844). Thanks @hyspacex!
-- Codex: make OpenAI dashboard refreshes handle non-English pages, lazy-loaded credits history, timeout retries, and unrelated Skillusage rows (#825). Thanks @xiaoqianWX!
-- Cursor: show Enterprise/Team usage from personal caps and shared pools instead of reporting 100% remaining (#813). Thanks @fcamus00!
-- Codex: keep same-workspace managed accounts distinct by matching workspace identity with email, so different OpenAI users in one workspace no longer overwrite each other (#796). Thanks @leezhuuuuu!
-- Claude: enable Claude and switch to OAuth after a successful login, clear stale selected-provider state when Claude is disabled, and tolerate OAuth payloads that omit the five-hour window (#816, #726). Thanks @pdurlej and @Brandawg93!
-- Claude: recognize OAuth `subscriptionType` before `rateLimitTier` so Pro accounts with generic Claude Code tiers
-  open the subscription usage dashboard correctly (#836, fixes #824). Thanks @shixy96!
-- Usage: preserve known reset countdowns when a refresh returns current usage without reset metadata (#427). Thanks @Whoaa512!
-- Menu: refresh open usage cards after live data changes so the “Updated” timestamp advances after manual or cadence refreshes (#715). Thanks @cooper-matt!
-- Menu: make the global open-menu shortcut behave as a true toggle when the menu is already open, avoiding queued reopens after repeated key presses (#218).
-- Menu bar: preserve existing status items and assign stable autosave names so provider icon positions survive provider toggles (#538). Thanks @hxy91819!
-- Settings: make the Preferences window 10% wider and taller so dense provider/settings panes have more breathing room.
-- CLI releases: publish macOS arm64 and x86_64 CLI tarballs alongside Linux artifacts, with release-workflow smoke tests and docs (#457, #839). Thanks @androidshu and @mondary!
-- CLI: query only enabled providers by default when three or more providers are enabled instead of expanding to every registered provider (#830). Thanks @lhoBas!
-- CLI: read MiniMax coding-plan tokens from `MINIMAX_CODING_API_KEY`, accept Alibaba Qwen/DashScope API-key aliases, and avoid duplicate generic JSON error rows after provider failures.
-- CLI discovery: prefer known install paths before interactive shell probing so common Claude installs no longer run shell init hooks during binary detection (#775).
-- CLI lookup: drain login-shell probe output and terminate spawned process groups so interactive shell helpers cannot leak after path detection (#822, fixes #821). Thanks @LPFchan!
-- OpenCode Go: open the workspace-specific usage dashboard when a workspace ID is configured (#667). Thanks @RizaSatya!
-- Augment: use the API-provided credits limit when available instead of reconstructing the limit from consumed plus remaining credits (#338). Thanks @bcharleson!
-- MiniMax: ignore login strings embedded in scripts when checking web-session pages for signed-out state (#508). Thanks @qipihen!
-- Accounts: refresh the selected provider data and open menu after switching token accounts, even while a menu-open refresh is running (#799, fixes #798). Thanks @Zeko369!
-- Codex: prefer session turn-context model metadata when calculating local cost history so GPT-5.4 sessions are not bucketed as GPT-5 (#620). Thanks @betive37!
-- Codex: stop falling back from app-server RPC to bare CLI TUI during automatic usage refreshes, preventing unexpected OpenAI auth browser tabs.
-- Menu/keychain: block delayed test-time menu mutations after teardown and enforce no-UI keychain reads more reliably (#381). Thanks @artuskg!
-- Menu bar: fix invisible status item icon on macOS 26.4 by removing remaining RenderBox-triggering SwiftUI compositing modifiers from `UsageProgressBar` (rewritten as a single Canvas) and eliminating ~28 redundant Keychain reads on every launch after the first-run migration (#805). Thanks @willytop8!
-
-## 0.23 — 2026-04-26
-
-### Highlights
-- Mistral: add provider support with monthly spend tracking, browser-cookie import, manual cookies, and CLI/token-account support (#607). Thanks @welcoMattic!
-- Claude: show Designs and Daily Routines usage bars from live Claude OAuth/Web quota data, and restore the Web-mode Sonnet bar (#740). Thanks @AISupplyGuy!
-- Cursor: add an Extra usage menu bar metric for on-demand budgets (#789). Thanks @huiye98!
-- Usage: add an opt-in confetti celebration when weekly limits reset after active use (#785). Thanks @zats!
-- Codex: add GPT-5.5 and GPT-5.5 Pro pricing so local cost scanning recognizes the new models.
-- Copilot: show a clearer GitHub Device Flow hint in Settings when the copied device code needs to be pasted into GitHub (#369). Thanks @amoranio!
-
-### Fixes
-- Droid: preserve Factory session fallbacks, use the current usage endpoint, and clarify browser-login messaging (#792). Thanks @JosephDoUrden for the original stale-session fix!
-- Widgets: package App Intents metadata for the widget extension and use configuration defaults so configurable widgets load correctly in WidgetKit (#783). Thanks @ngutman and @vincentyangch!
-- Menu: keep merged-menu cards, switcher rows, wrapped status text, and hosted chart submenus aligned with the real AppKit menu width so menus no longer grow oversized or show narrower chart submenus after width changes. Thanks @ngutman!
-- Codex: ignore invalid zero-minute subscription history so the utilization submenu no longer shows duplicate Session tabs.
-- CLI: report the app bundle version correctly when the bundled helper is launched through a symlink.
-- Codex/Claude: clean up cached CLI status probes during app shutdown so `codex -s read-only` workers are not orphaned after restart.
-
-## 0.22 — 2026-04-21
-
-### Highlights
-- Codex: restore OpenAI web dashboard fetching on the new analytics route and tighten hidden WebView reuse/expiry.
-- Synthetic: parse live quota payloads for five-hour, weekly, and search limits, including continuous reset/regeneration details (#732). Thanks @baanish!
-- Antigravity: restore account/quota probing across newer localhost endpoint/token layouts and retry paths (#727). Thanks @icey-zhang!
-- Menu: add standard shortcuts for Refresh, Settings, and Quit while the status menu is open (#737). Thanks @anirudhvee!
-- Widgets: migrate app-group sharing to the Team-ID-prefixed container and carry widget state across the move (#701). Thanks @ngutman!
-
-### Providers & Usage
-- Synthetic: parse live five-hour, weekly, and search quota payloads, including continuous reset/regeneration details (#732). Thanks @baanish!
-- Antigravity: restore localhost probing with async TLS challenge handling, extension-token fallback, and best-effort port selection (#727). Thanks @icey-zhang!
-- Gemini: discover OAuth config in fnm/Homebrew/bundled CLI layouts so expired-token refresh keeps working (#723). Thanks @Leechael!
-- Copilot: open the complete device-login verification URL when available so the browser flow carries the user code (#739). Thanks @skhe!
-- Alibaba: update the China mainland Coding Plan endpoint and browser-cookie domain while keeping older domains as fallbacks (#712). Thanks @hezhongtang!
-- Codex: restore OpenAI web dashboard fetching on the new analytics route and tighten hidden WebView reuse/expiry. @ratulsarna
-
-### Menu & Settings
-- Menu: show and handle standard shortcuts for Refresh (⌘R), Settings (⌘,), and Quit (⌘Q) while the status menu is open (#737). Thanks @anirudhvee!
-- Settings: fix provider-sidebar clipping on macOS Tahoe and resize the Preferences window when switching tabs (#580). Thanks @chadneal!
-
-### Fixes
-- Keychain cache: preserve cached credentials when macOS temporarily denies keychain UI after wake, avoiding repeated prompts (#594). Thanks @josepe98!
-
-## 0.21 — 2026-04-18
-
-### Highlights
-- Abacus AI: add a new provider for ChatLLM and RouteLLM credit tracking with browser-cookie import, manual-cookie support, and monthly pace rendering. Thanks @ChrisGVE!
-- Codex: recognize the new Pro $100 plan in OAuth, OpenAI web, menu, and CLI rendering, and preserve CLI fallback when partial OAuth payloads lose the 5-hour session lane (#691, #709). Thanks @ImLukeF!
-- Codex: make OpenAI web extras opt-in for fresh installs, preserve working legacy setups on upgrade, add an OpenAI web battery-saver toggle, and keep account-scoped dashboard state aligned during refreshes and account switches (#529). Thanks @cbrane!
-- Codex: fix local cost scanner overcounting and cross-day undercounting across forked sessions, cold-cache refreshes, and sessions-root changes (#698). Thanks @xx205!
-- z.ai: preserve weekly and 5-hour token quotas together, surface the 5-hour lane correctly across the menu/menu bar, and add regression coverage (#662). Thanks to @takumi3488 for the original fix and investigation.
-- Cursor: fix a crash in the usage fetch path and add regression coverage (#663). Thanks @anirudhvee for the report and validation!
-- Antigravity: restore account and quota probing across newer localhost endpoint/token layouts and API-level retry failures (#693, fixes #692). Thanks @anirudhvee!
-- Menu bar: fix missing icons on affected macOS 26 systems by avoiding RenderBox-triggering SwiftUI effects (#677). Thanks @andrzejchm!
-- Battery / refresh: cut menu redraw churn, skip background work for unavailable providers, and reuse cached OpenAI web views more efficiently (#708).
-- Claude: add Opus 4.7 pricing so local cost scanning and cost breakdowns recognize the new model. Thanks @knivram!
-- Codex: add Microsoft Edge as a browser-cookie import option for the Codex provider while preserving the contributor-branch workflow from the original PR (#694). Thanks @Astro-Han!
-
-### Providers & Usage
-- Abacus AI: add provider support for ChatLLM and RouteLLM monthly compute-credit tracking with cookie import, manual cookie headers, timeout/browser-detection threading, optional billing fallback, and hardened cached-session retry behavior. Thanks @ChrisGVE!
-- Codex: render the new Pro $100 plan consistently across OAuth, OpenAI web, menu, and CLI surfaces, tolerate newer Codex OAuth payload variants like `prolite`, and only fall back to the CLI in auto mode when OAuth decode damage actually drops the session lane (#691, #709).
-- Codex: make OpenAI web extras opt-in by default, preserve legacy implicit-auto cookie setups during upgrade inference, add battery-saver gating for non-forced dashboard refreshes, and preserve provider/dashboard state for enabled providers that are temporarily unavailable.
-- Cost: tighten the local Codex cost scanner around fork inheritance, cold-cache discovery, incremental parsing, and sessions-root changes so replayed sessions no longer overcount or slip usage across day boundaries (#698). Thanks @xx205!
-- z.ai: preserve both weekly and 5-hour token quotas, keep the existing 2-limit behavior unchanged, and render the 5-hour quota as a tertiary row in provider snapshots and CLI/menu cards (#662). Credit to @takumi3488 for the original fix and investigation.
-- Cursor: fix the usage fetch path so failed or cancelled requests no longer crash, and add Linux build and regression test coverage fixes (#663).
-- Antigravity: try both language-server and extension-server endpoint/token combinations, retry after API-level errors, scope insecure localhost trust handling to loopback hosts, and restore local quota/account probing on newer Antigravity builds (#693, fixes #692). Thanks @anirudhvee!
-- Antigravity: prefer `userTier.name` over generic plan info when rendering the account plan so Google AI Ultra and similar tiers show their real subscription name, while still falling back cleanly when the tier label is absent or blank (#303). Thanks @zacklavin11!
-- Ollama: recognize `__Secure-session` cookies during manual cookie entry and browser-cookie import so authenticated usage fetching continues to work with the newer cookie name (#707). Thanks @anirudhvee!
-- OpenCode: enable weekly pace visualization for the app and CLI so weekly bars show reserve percentage, expected-usage markers, and "Lasts until reset" details like Codex and Claude (#639). Thanks @Zachary!
-- Refresh pipeline: skip background work for unavailable providers, clear stale cached state, and show explicit unavailable messages (#708).
-- Codex: support Microsoft Edge in browser-cookie import for the Codex provider while keeping the contributor branch untouched in the superseding integration path (#694). Thanks @Astro-Han!
-- OpenCode / OpenCode Go: treat serialized `_server` auth/account-context failures as invalid credentials so cached browser cookies are cleared and retried instead of surfacing a misleading HTTP 500.
-- OpenAI web: keep cached WebViews across same-account refreshes and clean them up only when accounts or providers go stale (#708).
-- Claude: add Opus 4.7 pricing so local cost usage and breakdowns price the new model correctly. Thanks @knivram!
-- Claude: broaden CLI binary lookup to native installer paths (#731). Thanks @dingtang2008!
-
-### Menu & Settings
-- Menu bar: fix missing icons on affected macOS 26 systems by replacing RenderBox-triggering material/offscreen SwiftUI effects in the provider sidebar and highlighted progress bar (#677). Thanks @andrzejchm!
-- z.ai: fix menu bar selection when both weekly and 5-hour quotas are present (#662).
-- Menu bar: avoid redundant merged-icon redraws and make hosted chart submenus load lazily without losing provider context (#708).
-- Merged menu: when Overview is selected, keep the merged menu bar icon aligned with the first Overview provider in configured order, even while that provider is still loading (#724). Thanks @anirudhvee!
-- Codex: add an OpenAI web battery-saver toggle, keep manual refresh available when battery saver is on, and hide OpenAI web submenus when web extras are disabled.
-
-### Development & Tooling
-- CLI / Debug: add user-facing browser-cookie cache clearing, including provider-scoped CLI clearing that removes managed Codex account cookie caches (#592, fixes #591). Thanks @coygeek!
-- Diagnostics: add lightweight battery instrumentation for menu updates and refresh work (#708).
-- Build script: make CodexBar-owned ad-hoc keychain cleanup opt-in with `--clear-adhoc-keychain`, and extend the explicit reset path to clear both `com.steipete.CodexBar` and `com.steipete.watchtower.cache`. Thanks @magnaprog!
-
-## 0.20 — 2026-04-07
-
-### Highlights
-- Codex: switch between system accounts/profiles without manually logging out and back in. @ratulsarna
-- Add Perplexity provider support with recurring, bonus, and purchased-credit tracking, Pro/Max plan detection, browser-cookie auto-import, and manual-cookie fallback (#449). Thanks @BeelixGit!
-- Add OpenCode Go as a separate provider with 5-hour, weekly, and monthly web usage tracking, widget integration, and browser-cookie support.
-- Claude: fix token and cost inflation caused by cross-file double counting of subagent JSONL logs, fix streaming chunk deduplication, and add `claude-sonnet-4-6` pricing. Thanks @enzonaute for the investigation!
-- Cost history: include supported pi session usage in Codex/Claude provider history so provider charts reflect those local runs (#653). Thanks @ngutman!
-
-### Providers & Usage
-- Perplexity: add recurring, bonus, and purchased-credit tracking; plan detection for Pro/Max; browser-cookie auto-import; and manual-cookie fallback (#449). Thanks @BeelixGit!
-- OpenCode Go: add a dedicated provider, parse live authenticated workspace Go usage from the web app, keep monthly optional and honor workspace env overrides.
-- Codex: add workspace attribution for account labels and same-email multi-workspace accounts.
-- Codex: reconcile live-system and managed accounts by canonical identity, preserve account-scoped usage/history/dashboard state, allow OAuth CLI fallback, and tighten OpenAI web ownership gating so quota and credits only attach to the matching account. Thanks @monterrr and @Rag30 for the initial effort and ideas!
-- Codex: normalize weekly-only rate limits across OAuth and CLI/RPC so free-plan accounts render as Weekly instead of a fake Session, preserve unknown single-window payloads in the primary lane, hide the empty Session lane in widgets, and accept weekly-only Codex CLI `/status`/RPC data without failing. @ratulsarna
-- Codex: refactor the provider end to end into clearer components and better division of responsibilities.
-- OpenCode: preserve product separation between Zen and Go, improve null/unsupported usage handling, and harden cookie/domain behavior for authenticated web fetches.
-- Cost history: merge supported pi session usage into Codex/Claude provider history (#653). Thanks @ngutman!
-
-### Menu & Settings
-- Codex: add UI for switching the system-level Codex account and promoting a managed account into the live system slot.
-- Codex: hide display-only OpenAI web extras in widgets and fix buy-credits / credits-only presentation regressions.
-- Claude: enable “Avoid Keychain prompts” by default, remove the experimental label, and preserve user-action cooldown clearing plus startup bootstrap when Security.framework fallback is still needed.
-- Fix alignment of menu chart hover coordinates on macOS. Thanks @cuidong233!
-
-## 0.19.0 — 2026-03-23
-### Highlights
-- Add Alibaba Coding Plan provider with region-aware quota fetching, widget integration, and browser-cookie import defaults (#574).
-- Align Cursor usage with the dashboard's Total/Auto/API lanes. (#587). Thanks @Rag30!
-- Add subscription utilization history chart to the menu with DST-safe data point identification (#589). Thanks @maxceem!
-- Refactor the Claude provider end to end into clearer, better-tested components while preserving behavior (#494). @ratulsarna
-- Add reset time display for Codex code review limits (#581). Thanks @Q1CHENL!
-- Add per-model token counts to cost history (#546). Thanks @iam-brain!
-- Fix Antigravity model selection to use stable model-family matching for Claude, Gemini Pro, and Gemini Flash, and preserve fallback lane visibility in the menu bar and icon (#590). Thanks @skainguyen1412!
-- Add GPT-5.4 mini and nano pricing (#561). Thanks @iam-brain!
-
-### Providers & Usage
-- Alibaba: add Coding Plan provider support with region-aware web/API quota fetching, widget integration, and browser-cookie import defaults (#574).
-- Cursor: trust dashboard percent fields for Total/Auto/API usage, preserve on-demand remaining fallback views, and keep scanning imported browser-cookie candidates until a working Cursor session is found (#587, supersedes #579). Thanks @Rag30!
-- Claude: refactor the provider end to end into clearer components, with baseline docs and expanded tests to lock down behavior (#494).
-- Codex: show reset times for code review limits, including Core review reset parsing support (#581). Thanks @Q1CHENL!
-- Cost history: add per-model token counts so token usage is broken out by model (#546). Thanks @iam-brain!
-- Antigravity: replace label-order guessing with stable model-family selection for Claude, Gemini Pro, and Gemini Flash; fix mapping for Claude thinking models and placeholder model IDs; preserve fallback lane visibility in the menu bar and icon when only fallback lanes exist (#590). Thanks @skainguyen1412!
-- Kimi: tolerate API responses without `resetTime` so usage decoding no longer fails on sparse payloads.
-- Codex: add GPT-5.4 mini and nano pricing (#561). Thanks @iam-brain!
-
-### Menu & Settings
-- Menu: add subscription utilization history chart with DST-safe chart point identifiers and per-provider plan utilization tracking (#589). Thanks @maxceem!
-- Menu bar: in Both display mode, fall back to percent when pace data is unavailable so text stays visible for providers without pace metrics (#527). Thanks @Astro-Han!
-- Settings: persist the resolved refresh cadence default to `UserDefaults` on first launch and repair invalid stored values so the setting stays normalized across relaunches (#519). Thanks @Astro-Han!
-- Menu: wrap long status blurbs and preserve wrapped titles for multiline entries (#543). Thanks @zkforge!
-
-## 0.18.0 — 2026-03-15
-### Highlights
-- Add Kilo provider support with API/CLI source modes, widget integration, and pass/credit handling (#454). Built on work by @coreh.
-- Add Ollama provider, including token-account support in Settings and CLI (#380). Thanks @CryptoSageSnr!
-- Add OpenRouter provider for credit-based usage tracking (#396). Thanks @chountalas!
-- Add Codex historical pace with risk forecasting, backfill, and zero-usage-day handling (#482, supersedes #438). Thanks @tristanmanchester!
-- Add a merged-menu Overview tab with configurable providers and row-to-provider navigation (#416). @ratulsarna
-- Add an experimental option to suppress Claude Keychain prompts (#388).
-- Reduce CPU/energy regressions and JSONL scanner overhead in Codex/web usage paths (#402, #392). Thanks @bald-ai and @asonawalla!
-
-### Providers & Usage
-- Codex: add historical pace risk forecasting and backfill, gate pace computation by display mode, and handle zero-usage days in historical data (#482, supersedes #438). Thanks @tristanmanchester!
-- Kilo: add provider support with source-mode fallback, clearer credential/login guidance, auto top-up activity labeling, zero-balance credit handling, and pass parsing/menu rendering (#454). Thanks @coreh!
-- Ollama: add provider support with token-account support in app/CLI, Chrome-default auto cookie import, and manual-cookie mode (#380). Thanks @CryptoSageSnr!
-- OpenRouter: add provider support with credit tracking, key-quota popup support, token-account labels, fallback status icons, and updated icon/color (#396). Thanks @chountalas!
-- Gemini: show separate Pro, Flash, and Flash Lite meters by splitting Gemini CLI quota buckets for `gemini-2.5-flash` and `gemini-2.5-flash-lite` (#496). Thanks @aladh
-- Codex: in percent display mode with "show remaining," show remaining credits in the menu bar when session or weekly usage is exhausted (#336). Thanks @teron131!
-- Claude: surface rate-limit errors from the CLI `/usage` probe with a user-friendly message, and harden "Failed to load usage data" matching against whitespace-collapsed output.
-- Claude: restore weekly/Sonnet reset parsing from whitespace-collapsed CLI `/usage` output so reset times and pace details still appear after CLI fallback.
-- Claude: fix extra-usage double conversion so OAuth/Web values stay on a single normalization path (#472, supersedes #463). Thanks @Priyans-hu!
-- Claude: remove root-directory mtime short-circuiting in cost scanning so new session logs inside existing `~/.claude/projects/*` folders are discovered reliably (#462, fixes #411). Thanks @Priyans-hu!
-- Copilot: harden free-plan quota parsing and fallback behavior by treating underdetermined values as unknown, preserving missing metadata as nil (#432, supersedes #393). Thanks @emanuelst!
-- OpenCode: treat explicit `null` subscription responses as missing usage data, skip POST fallback, and return a clearer workspace-specific error (#412).
-- OpenCode: surface clearer HTTP errors. Thanks @SalimBinYousuf1!
-- Codex: preserve exact GPT-5 model IDs in local cost history, add GPT-5.4 pricing, and label zero-cost `gpt-5.3-codex-spark` sessions as "Research Preview" in cost breakdowns (#511). Thanks @iam-brain!
-- Augment: prevent refresh stalls when `auggie account status` hangs by replacing unbounded CLI waits with timed subprocess execution and fallback handling (#481). Thanks @bryant24hao!
-- Update Kiro parsing for `kiro-cli` 1.24+ / Q Developer formats and non-managed plan handling (#288). Thanks @kilhyeonjun!
-- Kimi: in automatic metric mode, prioritize the 5-hour rate-limit window for menu bar and merged highest-usage calculations (#390). Thanks @ajaxjiang96!
-- Browser cookie import: match Gecko `*.default*` profile directories case-insensitively so Firefox/Zen cookie detection works with uppercase `.Default` directories (#422). Thanks @bald-ai!
-- MiniMax: make both Settings "Open Coding Plan" actions region-aware so China mainland selection opens `platform.minimaxi.com` instead of the global domain (#426, fixes #378). Thanks @bald-ai!
-- Menu: rebuild the merged provider switcher when “Show usage as used” changes so switcher progress updates immediately (#306). Thanks @Flohhhhh!
-- Warp: update API key setup guidance.
-- Claude: update the "not installed" help link to the current Claude Code documentation URL (#431). Thanks @skebby11!
-- Fix Claude setup message package name (#376). Thanks @daegwang!
-
-### Menu & Settings
-- Merged menu: keep Merge Icons, the switcher, and Overview tied to user-enabled providers even when some providers are temporarily unavailable, while defaulting menu content and icon state to an available provider when possible (#525). Thanks @Astro-Han!
-- Merged menu: add an Overview switcher tab that shows up to three provider usage rows in provider order (#416).
-- Settings: add "Overview tab providers" controls to choose/deselect Overview providers, with persisted selection reconciliation as enabled providers change (#416).
-- Menu: hide contextual provider actions while Overview is selected and rebuild switcher state when overview availability changes (#416).
-
-### Claude OAuth & Keychain
-- Add an experimental Claude OAuth Security-CLI reader path and option in settings.
-- Apply stored prompt mode and fallback policy to silent/noninteractive keychain probes.
-- Add cooldown for background OAuth keychain retries.
-- Disable experimental toggle when keychain access is disabled.
-- Use a `claude-code/<version>` User-Agent for OAuth usage requests instead of a generic identifier.
-
-### Performance & Reliability
-- Codex/OpenAI web: reduce CPU and energy overhead by shortening failed CLI probe windows, capping web retry timeouts, and using adaptive idle blink scheduling (#402). Thanks @bald-ai!
-- Cost usage scanner: optimize JSONL chunk parsing to avoid buffer-front removal overhead on large logs (#392). Thanks @asonawalla!
-- TTY runner: fence shutdown registration to avoid launch/shutdown races, isolate process groups before shutdown rejection, and ensure lingering CLI descendants are cleaned up on app termination (#429). Thanks @uraimo!
-
-
-## 0.18.0-beta.3 — 2026-02-13
-### Highlights
-- Claude OAuth/keychain flows were reworked across a series of follow-up PRs to reduce prompt storms, stabilize background behavior, surface a setting to control prompt policy and make failure modes deterministic (#245, #305, #308, #309, #364). Thanks @manikv12!
-- Claude: harden Claude Code PTY capture for `/usage` and `/status` (prompt automation, safer command palette confirmation, partial UTF-8 handling, and parsing guards against status-bar context meters) (#320).
-- New provider: Warp (credits + add-on credits) (#352). Thanks @Kathie-yu!
-- Provider correctness fixes landed for Cursor plan parsing and MiniMax region routing (#240, #234, #344). Thanks @robinebers and @theglove44!
-- Menu bar animation behavior was hardened in merged mode and fallback mode (#283, #291). Thanks @vignesh07 and @Ilakiancs!
-- CI/tooling reliability improved via pinned lint tools, deterministic macOS test execution, and PTY timing test stabilization plus Node 24-ready GitHub Actions upgrades (#292, #312, #290).
-
-### Claude OAuth & Keychain
-- Claude OAuth creds are cached in CodexBar Keychain to reduce repeated prompts.
-- Prompts can still appear when Claude OAuth credentials are expired, invalid, or missing and re-auth is required.
-- In Auto mode, background refresh keeps prompts suppressed; interactive prompts are limited to user actions (menu open or manual refresh).
-- OAuth-only mode remains strict (no silent Web/CLI fallback); Auto mode may do one delegated CLI refresh + one OAuth retry before falling back.
-- Preferences now expose a Claude Keychain prompt policy (Never / Only on user action / Always allow prompts) under Providers → Claude; if global Keychain access is disabled in Advanced, this control remains visible but inactive.
-
-### Provider & Usage Fixes
-- Warp: add Warp provider support (credits + add-on credits), configurable via Settings or `WARP_API_KEY`/`WARP_TOKEN` (#352). Thanks @Kathie-yu!
-- Cursor: compute usage against `plan.limit` rather than `breakdown.total` to avoid incorrect limit interpretation (#240). Thanks @robinebers!
-- MiniMax: correct API region URL selection to route requests to the expected regional endpoint (#234). Thanks @theglove44!
-- MiniMax: always show the API region picker and retry the China endpoint when the global host rejects the token to avoid upgrade regressions for users without a persisted region (#344). Thanks @apoorvdarshan!
-- Claude: add Opus 4.6 pricing so token cost scanning tracks USD consumed correctly (#348). Thanks @arandaschimpf!
-- z.ai: handle quota responses with missing token-limit fields, avoid incorrect used-percent calculations, and harden empty-response behavior with safer logging (#346). Thanks @MohamedMohana and @halilertekin!
-- z.ai: fix provider visibility in the menu when enabled with token-account credentials (availability now considers the effective fetch environment).
-- Amp: detect login redirects during usage fetch and fail fast when the session is invalid (#339). Thanks @JosephDoUrden!
-- Resource loading: fix app bundle lookup path to avoid "could not load resource bundle" startup failures (#223). Thanks @validatedev!
-- OpenAI Web dashboard: keep WebView instances cached for reuse to reduce repeated network fetch overhead; tests were updated to avoid network-dependent flakes (#284). Thanks @vignesh07!
-- Token-account precedence: selected token account env injection now correctly overrides provider config `apiKey` values in app and CLI environments. Thanks @arvindcr4!
-- Claude: make Claude CLI probing more resilient by scoping auto-input to the active subcommand and trimming to the latest Usage panel before parsing to avoid false matches from earlier screen fragments (#320).
-
-### Menu Bar & UI Behavior
-- Prevent fallback-provider loading animation loops (battery/CPU drain when no providers are enabled) (#283). Thanks @vignesh07!
-- Prevent status overlay rendering for disabled providers while in merged mode (#291). Thanks @Ilakiancs!
-
-### CI, Tooling & Test Stability
-- Pin SwiftFormat/SwiftLint versions and harden lint installer behavior (version drift + temp-file leak fixes) (#292).
-- Use more deterministic macOS CI test settings (including non-parallel paths where needed) and align runner/toolchain behavior for stability (#292).
-- Stabilize PTY command timing tests to reduce CI flakiness (#312).
-- Upgrade `actions/checkout` to v6 and `actions/github-script` to v8 for Node 24 compatibility in `upstream-monitor.yml` (#290). Thanks @salmanmkc!
-- Tests: add TaskLocal-based keychain/cache overrides so keychain gating and KeychainCacheStore test stores do not leak across concurrent test execution (#320).
-
-### Docs & Maintenance
-- Update docs for Claude data fetch behavior and keychain troubleshooting notes.
-- Update MIT license year.
-
-## 0.18.0-beta.2 — 2026-01-21
-### Highlights
-- OpenAI web dashboard refresh cadence now follows 5× the base refresh interval.
-- OpenAI web dashboard WebView is kept warm between scrapes to avoid repeated SPA downloads while idle CPU stays low (#284). Thanks @vignesh07!
-- Menu bar: avoid fallback animation loop when all providers are disabled (#283). Thanks @vignesh07!
-- Codex settings now include a toggle to disable OpenAI web extras.
-
-### Providers
-- Providers: add Dia browser support across cookie import and profile detection (#209). Thanks @validatedev!
-- Codex: include archived session logs in local token cost scanning and dedupe by session id.
-- Claude: harden CLI /usage parsing and avoid ANTHROPIC_* env interference during probes.
-
-### Menu & Menu Bar
-- Menu: opening OpenAI web submenus triggers a refresh when the data is stale.
-- Menu: fix usage line labels to honor “Show usage as used”.
-- Debug: add a toggle to keep Codex/Claude CLI sessions alive between probes.
-- Debug: add a button to reset CLI probe sessions.
-- App icon: use the classic icon on macOS 15 and earlier while keeping Liquid Glass for macOS 26+ (#178). Thanks @zerone0x!
-
-## 0.18.0-beta.1 — 2026-01-18
-### Highlights
-- New providers: OpenCode (web usage), Vertex AI, Kiro, Kimi, Kimi K2, Augment, Amp, Synthetic.
-- Provider source controls: usage source pickers for Codex/Claude, manual cookie headers, cookie caching with source/timestamp.
-- Menu bar upgrades: display mode picker (percent/pace/both), auto-select near limit, absolute reset times, pace summary line.
-- CLI/config revamp: config-backed provider settings, JSON-only errors, config validate/dump.
-
-### Providers
-- OpenCode: add web usage provider with workspace override + Chrome-first cookie import (#188). Thanks @anthnykr!
-- OpenCode: refresh provider logo (#190). Thanks @anthnykr!
-- Vertex AI: add provider with quota-based usage from gcloud ADC. Thanks @bahag-chaurasiak!
-- Vertex AI: token costs are shown via the Claude provider (same local logs).
-- Vertex AI: harden quota usage parsing for edge-case responses.
-- Kiro: add CLI-based usage provider via kiro-cli. Thanks @neror!
-- Kiro: clean up provider wiring and show plan name in the menu.
-- Kiro: harden CLI idle handling to avoid partial usage snapshots (#145). Thanks @chadneal!
-- Kimi: add usage provider with cookie-based API token stored in Keychain (#146). Thanks @rehanchrl!
-- Kimi K2: add API-key usage provider for credit totals (#147). Thanks @0-CYBERDYNE-SYSTEMS-0!
-- Augment: add provider with browser-cookie usage tracking.
-- Augment: prefer Auggie CLI usage with web fallback, plus session refresh + recovery tools (#142). Thanks @bcharleson!
-- Amp: add provider with Amp Free usage tracking (#167). Thanks @duailibe!
-- Synthetic: add API-key usage provider with quota snapshots (#171). Thanks @monotykamary!
-- JetBrains AI: include IDEs missing quota files, expand custom paths, and add Android Studio base paths (#194). Thanks @steipete!
-- JetBrains AI: detect IDE directories case-insensitively (#200). Thanks @zerone0x!
-- Cursor: support legacy request-based plans and show individual on-demand usage (#125) — thanks @vltansky
-- Cursor: avoid Intel crash when opening login and harden WebKit teardown. Thanks @meghanto!
-- Cursor: load stored session cookies before reads to make relaunches deterministic.
-- z.ai: add BigModel CN region option for API endpoint selection (#140). Thanks @nailuoGG!
-- MiniMax: add China mainland region option + host overrides (#143). Thanks @nailuoGG!
-- MiniMax: support API token or cookie auth; API token takes precedence and hides cookie UI (#149). Thanks @aonsyed!
-- Gemini: prefer loadCodeAssist project IDs for quota fetches (#172). Thanks @lolwierd!
-- Gemini: honor loadCodeAssist project IDs for quota + support Nix CLI layout (#184). Thanks @HaukeSchnau!
-- Claude: fix OAuth “Extra usage” spend/limit units when the API returns minor currency units (#97).
-- Claude: rescale extra usage costs when plan hints are missing and prefer web plan hints for extras (#181). Thanks @jorda0mega!
-- Usage formatting: fix currency parsing/formatting on non-US locales (e.g., pt-BR). Thanks @mneves75!
-
-### Provider Sources & Security
-- Providers: cache browser cookies in Keychain (per provider) and show cached source/time in settings.
-- Codex/Claude/Cursor/Factory/MiniMax: cookie sources now include Manual (paste a Cookie header) in addition to Automatic.
-- Codex/Claude/Cursor/Factory/MiniMax: skip cookie imports from browsers without usable cookie stores (profile/cookie DB) to avoid unnecessary Keychain prompts.
-- Providers: suppress repeated Chromium Keychain prompts after access denied and honor disabled Keychain access.
-
-### Preferences & Settings
-- Preferences: swap provider refresh button and enable toggle order.
-- Preferences: animate settings width and widen Providers on selection.
-- Preferences: shrink default settings size and reduce overall height.
-- Preferences: move “Hide personal information” to Advanced.
-- Providers: shorten fetch subtitle to relative time only.
-- Preferences: soften provider sidebar background and stabilize drag reordering.
-- Preferences: restrict provider drag handle to handle-only.
-- Preferences: move provider refresh timing to a dedicated second line.
-- Preferences: tighten provider usage metrics spacing.
-- Preferences: show refresh timing inline in provider detail subtitle.
-- Preferences: move “Access OpenAI via web” into Providers → Codex.
-- Preferences: add usage source pickers for Codex + Claude with auto fallback.
-- Preferences: add cookie source pickers with contextual helper text for the selected mode.
-- Preferences: move “Disable Keychain access” to Advanced and require manual cookies when enabled.
-- Preferences: add per-provider menu bar metric picker (#185) — thanks @HaukeSchnau
-- Preferences: tighten provider rows (inline pickers, compact layout, inline refresh + auto-source status).
-- Preferences: remove the “experimental” label from Antigravity.
-
-### Menu & Menu Bar
-- Menu: add a toggle to show reset times as absolute clock values (instead of countdowns).
-- Menu: show an “Open Terminal” action when Claude OAuth fails.
-- Menu: add “Hide personal information” toggle and redact emails in menu UI (#137). Thanks @t3dotgg!
-- Menu: keep a pace summary line alongside the visual marker (#155). Thanks @antons!
-- Menu: reduce provider-switch flicker and avoid redundant menu card sizing for faster opens (#132). Thanks @ibehnam!
-- Menu: keep background refresh on open without forcing token usage (#158). Thanks @weequan93!
-- Menu: Cursor switcher shows On-Demand remaining when Plan is exhausted in show-remaining mode (#193). Thanks @vltansky!
-- Menu: avoid single-letter wraps in provider switcher titles.
-- Menu: widen provider switcher buttons to avoid clipped titles.
-- Menu bar: rebuild provider status items on reorder so icons update correctly.
-- Menu bar: optional auto-select provider closest to its rate limit and keep switcher progress visible (#159). Thanks @phillco!
-- Menu bar: add display mode picker for percent/pace/both in the menu bar icon (#169). Thanks @PhilETaylor!
-- Menu bar: fix combined loading indicator flicker during loading animation (incl. debug replay).
-- Menu bar: prevent blink updates from clobbering the loading animation.
-
-### CLI & Config
-- CLI: respect the reset time display setting.
-- CLI: add pink accents, usage bars, and weekly pace lines to text output.
-- CLI: add config-backed provider settings, `--json-only`, and `--source api` for key-based providers.
-- CLI: add `config validate`/`config dump` commands and per-provider JSON error payloads.
-- CLI/App: move provider secrets + ordering to `~/.watchtower/config.json` (no Keychain persistence).
-- Providers: resolve API tokens from config/env only (no Keychain fallback).
-
-### Dev & Tests
-- Dev: move Chromium profile discovery into SweetCookieKit (adds Helium net.imput.helium). Thanks @hhushhas!
-- Dev: bump SweetCookieKit to 0.2.0.
-- Dev: migrate stored Keychain items to reduce rebuild prompts.
-- Dev: move path debug snapshot off the main thread and debounce refreshes to avoid startup hitches (#131). Thanks @ibehnam!
-- Tests: expand Kiro CLI coverage.
-- Tests: stabilize Claude PTY integration cleanup and reset CLI sessions after probes.
-- Tests: kill leaked codex app-server after tests.
-- Tests: add regression coverage for merged loading icon layout stability.
-- Tests: cover config validation and JSON-only CLI errors.
-- Build: stabilize Swift test runtime.
-
-## 0.17.0 — 2025-12-31
-- New providers: MiniMax.
-- Keychain: show a preflight explanation before macOS prompts for OAuth tokens or cookie decryption.
-- Providers: defer z.ai + Copilot Keychain reads until the user interacts with the token field.
-- Menu bar: avoid status item menu reattachment and layout flips during refresh to reduce icon flicker.
-- Dev: align SweetCookieKit local-storage tests with Swift Testing.
-- Charts: align hover selection bands with visible bars in credits + usage breakdown history.
-- About: fix website link in the About panel. Thanks @felipeorlando!
-
-## 0.16.1 — 2025-12-29
-- Menu: reduce layout thrash when opening menus and sizing charts. Thanks @ibehnam!
-- Packaging: default release notarization builds universal (arm64 + x86_64) zip.
-- OpenAI web: reduce idle CPU by suspending cached WebViews when not scraping. Thanks @douglascamata!
-- Icons: switch provider brand icons to SVGs for sharper rendering. Thanks @vandamd!
-
-## 0.16.0 — 2025-12-29
-- Menu bar: optional “percent mode” (provider brand icons + percentage labels) via Advanced toggle.
-- CLI: add `codexbar cost` to print local cost usage (text/JSON) for Codex + Claude.
-- Cost: align local cost scanner with ccusage; stabilize parsing/decoding and handle large JSONL lines.
-- Claude: skip pricing for unknown models (tokens still tracked) to avoid hard-coded legacy prices.
-- Performance: reduce menu bar CPU usage by caching morph icons, skipping redundant status-item updates, and caching provider enablement/order during animations.
-- Menu: improve provider switcher hover contrast in light mode.
-- Icons: refresh Droid + Claude brand assets to better match menu sizing.
-- CI: avoid interactive login-shell probes to reduce noisy “CLI missing” errors.
-
-## 0.15.3 — 2025-12-28
-- Codex: default to OAuth usage API (ChatGPT backend) with CLI-only override in Debug.
-- Codex: map OAuth credits balance directly, avoiding web fallback for credits.
-- Preferences: add optional “Access OpenAI via web” toggle and show blended source labels when web extras are active.
-- Copilot: replace blocking auth wait dialog with a non-modal sheet to avoid stuck login.
-
-## 0.15.2 — 2025-12-28
-- Copilot: fix device-flow waiting modal to close reliably after auth (and avoid stuck waits).
-- Packaging: include the KeyboardShortcuts resource bundle to prevent Settings → Keyboard shortcut crashes in packaged builds.
-
-## 0.15.1 — 2025-12-28
-- Preferences: fix provider API key fields reusing the wrong input when switching rows.
-- Preferences: avoid Advanced tab crash when opening settings.
-
-## 0.15.0 — 2025-12-28
-- New providers: Droid (Factory), Cursor, z.ai, Copilot.
-- macOS: CodexBar now supports Intel Macs (x86_64 builds + Sonoma fallbacks). Thanks @epoyraz!
-- Droid (Factory): new provider with Standard + Premium usage via browser cookies, plus dashboard + status links. Thanks @shashank-factory!
-- Menu: allow multi-line error messages in the provider subtitle (up to 4 lines).
-- Menu: fix subtitle sizing for multi-line error states.
-- Menu: avoid clipping on multi-line error subtitles.
-- Menu: widen the menu card when 7+ providers are enabled.
-- Providers: Codex, Claude Code, Cursor, Gemini, Antigravity, z.ai.
-- Gemini: switch plan detection to loadCodeAssist tier lookup (Paid/Workspace/Free/Legacy). Thanks @381181295!
-- Codex: OpenAI web dashboard is now the primary source for usage + credits; CLI fallback only when no matching cookies exist.
-- Claude: prefer OAuth when credentials exist; fall back to web cookies or CLI (thanks @ibehnam).
-- CLI: replace `--web`/`--claude-source` with `--source` (auto/web/cli/oauth); auto falls back only when cookies are missing.
-- Homebrew: cask now installs the `codexbar` CLI symlink. Thanks @dalisoft!
-- Cursor: add new usage provider with browser cookie auth (cursor.com + cursor.sh), on-demand bar support, and dashboard access.
-- Cursor: keep stored sessions on transient failures; clear only on invalid auth.
-- z.ai: new provider support with Tokens + MCP usage bars and MCP details submenu; API token now lives in Preferences (stored in Keychain); usage bars respect the show-used toggle. Thanks @uwe-schwarz for the initial work!
-- Copilot: new GitHub Copilot provider with device flow login plus Premium + Chat usage bars (including CLI support). Thanks @roshan-c!
-- Preferences: fix Advanced Display checkboxes and move the Quit button to the bottom of General.
-- Preferences: hide “Augment Claude via web” unless Claude usage source is CLI; rename the cost toggle to “Show cost summary”.
-- Preferences: add an Advanced toggle to show/hide optional Codex Credits + Claude Extra usage sections (on by default).
-- Widgets: add a new “CodexBar Switcher” widget that lets you switch providers and remember the selection.
-- Menu: provider switcher now uses crisp brand icons with equal-width segments and a per-provider usage indicator.
-- Menu: tighten provider switcher sizing and increase spacing between label and weekly indicator bar.
-- Menu: provider switcher no longer forces a wider menu when many providers are enabled; segments clamp to the menu width.
-- Menu: provider switcher now aligns to the same horizontal padding grid as the menu cards when space allows.
-- Dev: `compile_and_run.sh` now force-kills old instances to avoid launching duplicates.
-- Dev: `compile_and_run.sh` now waits for slow launches (polling for the process).
-- Dev: `compile_and_run.sh` now launches a single app instance (no more extra windows).
-- CI: build/test Linux `CodexBarCLI` (x86_64 + aarch64) and publish release assets as `CodexBarCLI-<tag>-linux-<arch>.tar.gz` (+ `.sha256`).
-- CLI: add alias fallback for Codex/Claude detection when PATH lookups fail.
-- Providers: support Arc browser cookies for Factory/Droid (and other Chromium-based cookie imports).
-- Providers: support ChatGPT Atlas browser data for Chromium cookie imports.
-- Providers: accept Auth.js secure session cookies for Factory/Droid login detection.
-- Providers: accept Factory auth session cookies (session/access-token) for Droid.
-- Droid: surface Factory API errors instead of masking them as missing sessions.
-- Droid: retry auth without access-token cookies when Factory flags a stale token.
-- Droid: try all detected browser profiles before giving up.
-- Droid: fall back to auth.factory.ai endpoints when cookies live on the auth host.
-- Droid: use WorkOS refresh tokens from browser local storage when cookies fail.
-- Droid: read WorkOS refresh tokens from Safari local storage.
-- Droid: try stored/WorkOS tokens before Chrome cookies to reduce Chrome Safe Storage prompts.
-- Menu: provider switcher bars now track primary quotas (Plan/Tokens/Pro), with Premium shown for Droid.
-- Menu: avoid duplicate summary blocks when a provider has no action rows.
-- OpenAI web: ignore cookie sets without session tokens to avoid false-positive dashboard fetches.
-- Providers: hide z.ai in the menu until an API key is set.
-- Menu: refresh runs automatically when opening the menu with a short retry (refresh row removed).
-- Menu: hide the Status Page row when a provider has no status URL.
-- Menu: align switcher bar with the “show usage as used” toggle.
-- Antigravity: fix lsof port filtering by ANDing listen + pid conditions. Thanks @shaw-baobao!
-- Claude: default to Claude Code OAuth usage API (credentials from Keychain or `~/.claude/.credentials.json`), with Debug selector + `--claude-source` CLI override (OAuth/Web/CLI).
-- OpenAI web: allow importing any signed-in browser session when Codex email is unknown (first-run friendly).
-- Core: Linux CLI builds now compile (mac-only WebKit/logging gated; FoundationNetworking imports where needed).
-- Core: fix CI flake for Claude trust prompts by making PTY writes fully reliable.
-- Core: Cursor provider is macOS-only (Linux CLI builds stub it).
-- Core: make `RateWindow` equatable (used by OpenAI dashboard snapshots and tests).
-- Tests: cover alias fallback resolution for Codex/Claude and add Linux platform gating coverage (run in CI).
-- Tests: cover hiding Codex Credits + Claude Extra usage via the Advanced toggle.
-- Docs: expand CLI docs for Linux install + flags.
-
-## 0.14.0 — 2025-12-25
-- New providers: Antigravity.
-- Antigravity: new local provider for the Antigravity language server (Claude + Gemini quotas) with an experimental toggle; improved plan display + debug output; clearer not-running/port errors; hide account switch.
-- Status: poll Google Workspace incidents for Gemini + Antigravity; Status Page opens the Workspace status page.
-- Settings: add Providers tab; move ccusage + status toggles to General; keep display controls in Advanced.
-- Menu/UI: widen the menu for four providers; cards/charts adapt to menu width; tighten provider switcher/toggle spacing; keep menus refreshed while open.
-- Gemini: hide the dashboard action when unsupported.
-- Claude: fix Extra usage spend/limit units (cents); improve CLI probe stability; surface web session info in Debug.
-- OpenAI web: fix dashboard ghost overlay on desktop (WebKit keepalive window).
-- Debug: add a debug-lldb build mode for troubleshooting.
-
-## 0.13.0 — 2025-12-24
-- Claude: add optional web-first usage via Safari/Chrome cookies (no CLI fallback) including “Extra usage” budget bar.
-- Claude: web identity now uses `/api/account` for email + plan (via rate_limit_tier).
-- Settings: standardize “Augment … via web” copy for Codex + Claude web cookie features.
-- Debug: Claude dump now shows web strategy, cookie discovery, HTTP status codes, and parsed summary.
-- Dev: add Claude web probe CLI to enumerate endpoints/fields using browser cookies.
-- Tests: add unit coverage for Claude web API usage, overage, and account parsing.
-- Menu: custom menu items now use the native selection highlight color (plus matching selection text/track colors).
-- Charts: boost hover highlight contrast for credits/usage history bands.
-- Menu: reorder Codex blocks to show credits before cost.
-- Menu: split Claude “Extra usage” (no submenu) from “Cost” (history submenu) and trim redundant extra-usage subtext.
-
-## 0.12.0 — 2025-12-23
-- Widgets: add WidgetKit extension backed by a shared app‑group usage snapshot.
-- New local cost usage tracking (Codex + Claude) via a lightweight scanner — inspired by ccusage (MIT). Computes cost from local JSONL logs without Node CLIs. Thanks @ryoppippi!
-- Cost summary now includes last‑30‑days tokens; weekly pace indicators (with runout copy) hide when usage is fully depleted. Thanks @Remedy92!
-- Claude: PTY probes now stop after idle, auto‑clean on restart, and run under a watchdog to avoid runaway CLI processes.
-- Menu polish: group history under card sections, simplify history labels, and refresh menus live while open.
-- Performance: faster usage log scanning + cost parsing; cache menu icons and speed up OpenAI dashboard parsing.
-- Sparkle: auto-download updates when auto-check is enabled, and only show the restart menu entry once an update is ready.
-- Widgets: experimental WidgetKit extension (may require restarting the widget gallery/Dock to appear).
-- Credits: show credits as a progress bar and add a credits history chart when OpenAI web data is available.
-- Credits: move “Buy Credits…” into its own menu item and improve auto-start checkout flow.
-
-## 0.11.2 — 2025-12-21
-- ccusage-codex cost fetch is faster and more reliable by limiting the session scan window.
-- Fix ccusage cost fetch hanging for large Codex histories by draining subprocess output while commands run.
-- Fix merged-icon loading animation when another provider is fetching (only the selected provider animates).
-- CLI PATH capture now uses an interactive login shell and merges with the app PATH, fixing missing Node/Codex/Claude/Gemini resolution for NVM-style installs.
-
-## 0.11.1 — 2025-12-21
-- Gemini OAuth token refresh now supports Bun/npm installations. Thanks @ben-vargas!
-
-## 0.11.0 — 2025-12-21
-- New optional cost display in the menu (session + last 30 days), powered by ccusage. Thanks @Xuanwo!
-- Fix loading-state card spacing to avoid double separators.
-
-## 0.10.0 — 2025-12-20
-- Gemini provider support (usage, plan detection, login flow). Thanks @381181295!
-- Unified menu bar icon mode with a provider switcher and Merge Icons toggle (default on when multiple providers are enabled). Thanks @ibehnam!
-- Fix regression from 0.9.1 where CLI detection failed for some installs by restoring interactive login-shell PATH loading.
-
-## 0.9.1 — 2025-12-19
-- CLI resolution now uses the login shell PATH directly (no more heuristic path scanning), so Codex/Claude match your shell config reliably.
-
-## 0.9.0 — 2025-12-19
-- New optional OpenAI web access: reuses your signed-in Safari/Chrome session to show **Code review remaining**, **Usage breakdown**, and **Credits usage history** in the menu (no credentials stored).
-- Credits still come from the Codex CLI; OpenAI web access is only used for the dashboard extras above.
-- OpenAI web sessions auto-sync to the Codex CLI email, support multiple accounts, and reset/re-import cookies on account switches to avoid stale cross-account data.
-- Fix Chrome cookie import (macOS 10): signed-in Chrome sessions are detected reliably (thanks @tobihagemann!).
-- Usage breakdown submenu: compact chart with hover details for day/service totals.
-- New “Show usage as used” toggle to invert progress bars (default remains “% left”, now in Advanced).
-- Session (5-hour) reset now shows a relative countdown (“Resets in 3h 31m”) in the menu card for Codex and Claude.
-- Claude: fix reset parsing so “Resets …” can’t be mis-attributed to the wrong window (session vs weekly).
-
-## 0.8.1 — 2025-12-17
-- Claude trust prompts (“Do you trust the files in this folder?”) are now auto-accepted during probes to prevent stuck refreshes. Thanks @tobihagemann!
-
-## 0.8.0 — 2025-12-17
-- CodexBar is now available via Homebrew: `brew install --cask steipete/tap/codexbar` (updates via `brew upgrade --cask steipete/tap/codexbar`).
-- Added session quota notifications for the sliding 5-hour window (Codex + Claude): notifies when it hits 0% and when it’s available again, based only on observed refresh data (including startup when already depleted). Thanks @GKannanDev!
-
-## 0.7.3 — 2025-12-17
-- Claude Enterprise accounts whose Claude Code `/usage` panel only shows “Current session” no longer fail parsing; weekly usage is treated as unavailable (fixes #19).
-
-## 0.7.2 — 2025-12-13
-- Claude “Open Dashboard” now routes subscription accounts (Max/Pro/Ultra/Team) to the usage page instead of the API console billing page. Thanks @auroraflux!
-- Codex/Claude binary resolution now detects mise/rtx installs (shims and newest installed tool version), fixing missing CLI detection for mise users. Thanks @philipp-spiess!
-- Claude usage/status probes now auto-accept the first-run “Ready to code here?” permission prompt (when launched from Finder), preventing timeouts and parse errors. Thanks @alexissan!
-- General preferences now surface full Codex/Claude fetch errors with one-click copy and expandable details, reducing first-run confusion when a CLI is missing.
-- Polished the menu bar “critter” icons: Claude is now a crisper, blockier pixel crab, and Codex has punchier eyes with reduced blurring in SwiftUI/menu rendering.
-
-## 0.7.1 — 2025-12-09
-- Menu bar icons now render on a true 18 pt/2× backing with pixel-aligned bars and overlays for noticeably crisper edges.
-- PTY runner now preserves the caller’s environment (HOME/TERM/bun installs) while enriching PATH, preventing Codex/Claude
-  probes from failing when CLIs are installed via bun/nvm or need their auth/config paths.
-- Added regression tests to lock in the enriched environment behavior.
-- Fixed a first-launch crash on macOS 26 caused by the 1×1 keepalive window triggering endless constraint updates; the hidden
-  window now uses a safe size and no longer spams SwiftUI state warnings.
-- Menu action rows now ship with SF Symbol icons (refresh, dashboard, status, settings, about, quit, copy error) for clearer at-a-glance affordances.
-- When the Codex CLI is missing, menu and CLI now surface an actionable install hint (`npm i -g @openai/codex` / bun) instead of a generic PATH error.
-- Node manager (nvm/fnm) resolution corrected so codex/claude binaries — and their `node` — are found reliably even when installed via fnm aliases or nvm defaults. Thanks @aliceisjustplaying for surfacing the gaps.
-- Login menu now shows phase-specific subtitles and disables interaction while running: “Requesting login…” while starting the CLI, then “Waiting in browser…” once the auth URL is printed; success still triggers the macOS notification.
-- Login state is tracked per provider so Codex and Claude icons/menus no longer share the same in-flight status when switching accounts.
-- Claude login PTY runner detects the auth URL without clearing buffers, keeps the session alive until confirmation, and exposes a Sendable phase callback used by the menu.
-- Claude CLI detection now includes Claude Code’s self-updating paths (`~/.claude/local/claude`, `~/.claude/bin/claude`) so PTY probes work even when only the bundled installer is used.
-
-## 0.7.0 — 2025-12-07
-- ✨ New rich menu card with inline progress bars and reset times for each provider, giving the menu a beautiful, at-a-glance dashboard feel (credit: Anton Sotkov @antons).
-
-## 0.6.1 — 2025-12-07
-- Claude CLI probes stop passing `--dangerously-skip-permissions`, aligning with the default permission prompt and avoiding hidden first-run failures.
-
-## 0.6.0 — 2025-12-04
-- New bundled CLI (`codexbar`) with single `usage` command, `--format text|json`, `--status`, and fast `-h/-V`.
-- CLI output now shows consistent headers (`Codex 0.x.y (codex-cli)`, `Claude Code <ver> (claude)`) and JSON includes `source` + `status`.
-- Advanced prefs install button symlinks `codexbar` into /usr/local/bin and /opt/homebrew/bin; docs refreshed.
-
-## 0.5.7 — 2025-11-26
-- Status Page and Usage Dashboard menu actions now honor the icon you click; Codex menus no longer open the Claude status site.
-
-## 0.5.6 — 2025-11-25
-- New playful “Surprise me” option adds occasional blinks/tilts/wiggles to the menu bar icons (one random effect at a time) plus a Debug “Blink now” trigger.
-- Preferences now include an Advanced tab (refresh cadence, Surprise me toggle, Debug visibility); window height trimmed ~20% for a tighter fit.
-- Motion timing eased and lengthened so blinks/wiggles feel smoother and less twitchy.
-
-## 0.5.5 — 2025-11-25
-- Claude usage scrape now recognizes the new “Current week (Sonnet only)” bar while keeping the legacy Opus label as a fallback.
-- Menu and docs now label the Claude tertiary limit as Sonnet to match the latest CLI wording.
-- PATH seeding now uses a deterministic binary locator plus a one-shot login-shell capture at startup (no globbed nvm paths); the Debug tab shows the resolved Codex binary and effective PATH layers.
-
-## 0.5.4 — 2025-11-24
-- Status blurb under “Status Page” no longer prefixes the text with “Status:”, keeping the incident description concise.
-- PTY runner now registers cleanup before launch so both ends of the TTY and the process group are torn down even when `Process.run()` throws (no leaked fds when spawn fails).
-
-## 0.5.3 — 2025-11-22
-- Added a per-provider “Status Page” menu item beneath Usage that opens the provider’s live status page (OpenAI or Claude).
-- Status API now refreshes alongside usage; incident states show a dot/! overlay on the status icon plus a status blurb under the menu item.
-- General preferences now include a default-on “Check provider status” toggle above refresh cadence.
-
-## 0.5.2 — 2025-11-22
-- Release packaging now includes uploading the dSYM archive alongside the app zip to aid crash symbolication (policy documented in the shared mac release guide).
-- Claude PTY fallback removed: Claude probes now rely solely on `script` stdout parsing, and the generic TTY runner is trimmed to Codex `/status` handling.
-- Fixed a busy-loop on the codex RPC stderr pipe (handler now detaches on EOF), eliminating the long-running high-CPU spin reported in issue #9.
-
-## 0.5.1 — 2025-11-22
-- Debug pane now exposes the Claude parse dump toggle, keeping the captured raw scrape in memory for inspection.
-- Claude About/debug views embed the current git hash so builds can be identified precisely.
-- Minor runtime robustness tweaks in the PTY runner and usage fetcher.
-
-## 0.5.0 — 2025-11-22
-- Codex usage/credits now use the codex app-server RPC by default (with PTY `/status` fallback when RPC is unavailable), reducing flakiness and speeding refreshes.
-- Codex CLI launches seed PATH with Homebrew/bun/npm/nvm/fnm defaults to avoid ENOENT in hardened/release builds; TTY probes reuse the same PATH.
-- Claude CLI probe now runs `/usage` and `/status` in parallel (no simulated typing), captures reset strings, and uses a resilient parser (label-first with ordered fallback) while keeping org/email separate by provider.
-- TTY runner now always tears down the spawned process group (even on early Claude login prompts) to avoid leaking CLI processes.
-- Default refresh cadence is now 5 minutes, and a 15-minute option was added to the settings picker.
-- Claude probes/version detection now start with `--allowed-tools ""` (tool access disabled) while keeping interactive PTY mode working.
-- Codex probes and version detection now launch the CLI with `-s read-only -a untrusted` to keep PTY runs sandboxed.
-- Codex warm-up screens (“data not available yet”) are handled gracefully: cached credits stay visible and the menu skips the scary parse error.
-- Codex reset times are shown for both RPC and TTY fallback, and plan labels are capitalized while emails stay verbatim.
-
-## 0.4.3 — 2025-11-21
-- Fix status item creation timing on macOS 15 by deferring NSStatusItem setup to after launch; adds a regression test for the path.
-- Menu bar icon with unknown usage now draws empty tracks (instead of a full bar when decorations are shown) by treating nil values as 0%.
-
-## 0.4.2 — 2025-11-21
-- Sparkle updates re-enabled in release builds (disabled only for the debug bundle ID).
-
-## 0.4.1 — 2025-11-21
-- Both Codex and Claude probes now run off the main thread (background PTY), avoiding menu/UI stalls during `/status` or `/usage` fetches.
-- Codex credits stay available even when `/status` times out: cached values are kept and errors are surfaced separately.
-- Claude/Codex provider autodetect runs on first launch (defaults to Codex if neither is installed) with a debug reset button.
-- Sparkle updates re-enabled in release builds (disabled only for debug bundle ID).
-- Claude probe now issues the `/usage` slash command directly to land on the Usage tab reliably and avoid palette misfires.
-
-## 0.4.0 — 2025-11-21
-- Claude Code support: dedicated Claude menu/icon plus dual-wired menus when both providers are enabled; shows email/org/plan and Sonnet usage with clickable errors.
-- New Preferences window: General/About tabs with provider toggles, refresh cadence, start-at-login, and always-on Quit.
-- Codex credits without web login: we now read `codex /status` in a PTY, auto-skip the update prompt, and parse session/weekly/credits; cached credits stay visible on transient timeouts.
-- Resilience: longer PTY timeouts, cached-credit fallback, one-line menu errors, and clearer parse/update messages.
-
-## 0.3.0 — 2025-11-18
-- Credits support: reads Codex CLI `/status` via PTY (no browser login), shows remaining credits inline, and moves history to a submenu.
-- Sign-in window with cookie reuse and a logout/clear-cookies action; waits out workspace picker and auto-navigates to usage page.
-- Menu: credits line bolded; login prompt hides once credits load; debug toggle always visible (HTML dump).
-- Icon: when weekly is empty, top bar becomes a thick credits bar (capped at 1k); otherwise bars stay 5h/weekly.
-
-## 0.2.2 — 2025-11-17
-- Menu bar icon stays static when no account/usage is present; loading animation only runs while fetching (12 fps) to keep idle CPU low.
-- Usage refresh first tails the newest session log (512 KB window) before scanning everything, reducing IO on large Codex logs.
-- Packaging/signing hardened: strip extended attributes, delete AppleDouble (`._*`) files, and re-sign Sparkle + app bundle to satisfy Gatekeeper.
-
-## 0.2.1 — 2025-11-17
-- Patch bump for refactor/relative-time changes; packaging scripts set to 0.2.1 (5).
-- Streamlined Codex usage parsing: modern rate-limit handling, flexible reset time parsing, and account rate-limit updates (thanks @jazzyalex and https://jazzyalex.github.io/agent-sessions/).
-
-## 0.2.0 — 2025-11-16
-- CADisplayLink-based loading animations (macOS 15 displayLink API) with randomized patterns (Knight Rider, Cylon, outside-in, race, pulse) and debug replay cycling through all.
-- Debug replay toggle (`defaults write com.steipete.watchtower debugMenuEnabled -bool YES`) to view every pattern.
-- Usage Dashboard link in menu; menu layout tweaked.
-- Updated time now shows relative formatting when fresher than 24h; refactored sources into smaller files for maintainability.
-- Version bumped to 0.2.0 (4).
-
-## 0.1.2 — 2025-11-16
-- Animated loading icon (dual bars sweep until usage arrives); always uses rendered template icon.
-- Sparkle embedding/signing fixed with deep+timestamp; notarization pipeline solid.
-- Icon conversion scripted via ictool with docs.
-- Menu: settings submenu, no GitHub item; About link clickable.
-
-## 0.1.1 — 2025-11-16
-- Launch-at-login toggle (SMAppService) and saved preference applied at startup.
-- Sparkle auto-update wiring (SUFeedURL to GitHub, SUPublicEDKey set); Settings submenu with auto-update toggle + Check for Updates.
-- Menu cleanup: settings grouped, GitHub menu removed, About link clickable.
-- Usage parser scans newest session logs until it finds `token_count` events.
-- Icon pipeline fixed: regenerated `.icns` via ictool with proper transparency (docs in docs/icon.md).
-- Added lint/format configs, Swift Testing, strict concurrency, and usage parser tests.
-- Notarized release build "CodexBar-0.1.0.zip" remains current artifact; app version 0.1.1.
-
-## 0.1.0 — 2025-11-16
-- Initial CodexBar release: macOS 15+ menu bar app, no Dock icon.
-- Reads latest Codex CLI `token_count` events from session logs (5h + weekly usage, reset times); no extra login or browser scraping.
-- Shows account email/plan decoded locally from `auth.json`.
-- Horizontal dual-bar icon (top = 5h, bottom = weekly); dims on errors.
-- Configurable refresh cadence, manual refresh, and About links.
-- Async off-main log parsing for responsiveness; strict-concurrency build flags enabled.
-- Packaging + signing/notarization scripts (arm64); build scripts convert `.icon` bundle to `.icns`.
+## v0.6.27
+
+### Bug Fixes
+- Support Devin auth from the Devin - Next app ([#554](https://github.com/keshav-k3/watchtower/pull/554)) by @validatedev
+- Clamp panel to visible screen when menu bar auto-hides ([#557](https://github.com/keshav-k3/watchtower/pull/557)) by @westline-marketing
+- Allow keychain reads without account ([#559](https://github.com/keshav-k3/watchtower/pull/559)) by @rohithgoud30
+
+### Chores
+- Remove retired Windsurf plugin on startup ([#552](https://github.com/keshav-k3/watchtower/pull/552)) by @robinebers
+- Bump log from 0.4.30 to 0.4.32 in /src-tauri ([#564](https://github.com/keshav-k3/watchtower/pull/564)) by @dependabot
+- Bump serial_test from 3.4.0 to 3.5.0 in /src-tauri ([#563](https://github.com/keshav-k3/watchtower/pull/563)) by @dependabot
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.26...v0.6.27](https://github.com/keshav-k3/watchtower/compare/v0.6.26...v0.6.27)
+
+- [cad8468](https://github.com/keshav-k3/watchtower/commit/cad846874d54eefe9c689274d514a6ce7613e7c1) Remove retired Windsurf plugin on startup by @robinebers
+- [16bb1e1](https://github.com/keshav-k3/watchtower/commit/16bb1e19ce777199ee5e82ce4e14b9eaaa50186f) fix: support Devin auth from the Devin - Next app by @validatedev
+- [aa424a4](https://github.com/keshav-k3/watchtower/commit/aa424a4cf2e82771f76b8edcce52a2ad50ac79c5) fix(panel): clamp panel to visible screen when menu bar auto-hides by @westline-marketing
+- [d25321a](https://github.com/keshav-k3/watchtower/commit/d25321a958d3e04f25b8093c11495684973dcdb0) fix: allow keychain reads without account by @rohithgoud30
+- [534da86](https://github.com/keshav-k3/watchtower/commit/534da86afef1b4bda36330cf0ffd992326afcf75) chore(deps): bump log from 0.4.30 to 0.4.32 in /src-tauri by @dependabot
+- [848ec86](https://github.com/keshav-k3/watchtower/commit/848ec8674c5255125c2dfe483a22d2de9b4afa84) chore(deps): bump serial_test from 3.4.0 to 3.5.0 in /src-tauri by @dependabot
+
+## v0.6.26
+
+### New Features
+- Add local usage trend chart and per-model usage percentages ([#542](https://github.com/keshav-k3/watchtower/pull/542)) by @rohithgoud30
+- Replace Windsurf provider with Devin ([#551](https://github.com/keshav-k3/watchtower/pull/551)) by @robinebers
+
+### Bug Fixes
+- Fix tray percentage fallback and Claude extra usage metric scope ([#548](https://github.com/keshav-k3/watchtower/pull/548)) by @krismolendyke
+- Handle Cursor free account pooled limit ([#544](https://github.com/keshav-k3/watchtower/pull/544)) by @rohithgoud30
+- Make provider rail scrollable ([#543](https://github.com/keshav-k3/watchtower/pull/543)) by @rohithgoud30
+
+### Chores
+- Rename Devin weekly quota label by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.25...v0.6.26](https://github.com/keshav-k3/watchtower/compare/v0.6.25...v0.6.26)
+
+- [fdee2b2](https://github.com/keshav-k3/watchtower/commit/fdee2b2478b44a15c894cee75bd854018075a6fa) Rename Devin weekly quota label by @robinebers
+- [4848fce](https://github.com/keshav-k3/watchtower/commit/4848fcee864cd42716f34a550db0cdf7b8571060) Replace Windsurf provider with Devin by @robinebers
+- [455f721](https://github.com/keshav-k3/watchtower/commit/455f72111664d71336f935c46becf2fa96767ba9) test(tray): refactor and expand fallback tests for tray primary progress by @krismolendyke
+- [8a801cc](https://github.com/keshav-k3/watchtower/commit/8a801cc6061b366a0c641a74a57cd2efe671700c) fix(plugins/claude): change extra usage spent metric scope to overview by @krismolendyke
+- [83911d8](https://github.com/keshav-k3/watchtower/commit/83911d8a905f40d06ce6cf4ac57a3235bc2ee4cd) fix(plugins/claude): add fallback primary candidates for tray percentage by @krismolendyke
+- [219c4b8](https://github.com/keshav-k3/watchtower/commit/219c4b8f4314445b9ee2db0d556ed031d25a5405) fix(cursor): handle free account pooled limit by @rohithgoud30
+- [1c2e113](https://github.com/keshav-k3/watchtower/commit/1c2e11304f5cb676d2e60a7d2f3c36d757e50db3) fix(side-nav): make provider rail scrollable by @rohithgoud30
+- [3cb8a75](https://github.com/keshav-k3/watchtower/commit/3cb8a75c0a198a6110c683458fb92e25b258ef59) fix: bound barChart point parsing and de-flake usage trend tests by @rohithgoud30
+- [4b5a38f](https://github.com/keshav-k3/watchtower/commit/4b5a38fb7ea999b355311e2efa1a69ba3650244b) refactor: address review feedback on usage trend feature by @rohithgoud30
+- [a6b581f](https://github.com/keshav-k3/watchtower/commit/a6b581fbc17d763ab5d46a18c4e099f6a962cfce) feat: add local usage trend chart and per-model usage percentages by @rohithgoud30
+
+## v0.6.25
+
+### New Features
+- Replace Gemini CLI with agy Antigravity support ([#538](https://github.com/keshav-k3/watchtower/pull/538)) by @robinebers
+- Add tray action to copy log path ([#541](https://github.com/keshav-k3/watchtower/pull/541)) by @robinebers
+
+### Bug Fixes
+- fix(grok): refresh expired auth tokens ([#540](https://github.com/keshav-k3/watchtower/pull/540)) by @robinebers
+- fix(minimax): prefer displayable CN usage rows ([#539](https://github.com/keshav-k3/watchtower/pull/539)) by @robinebers
+- Update MiniMax API endpoint from coding_plan to token_plan ([#534](https://github.com/keshav-k3/watchtower/pull/534)) by @doublezz10
+- fix: patch critical/high vulnerabilities ([#537](https://github.com/keshav-k3/watchtower/pull/537)) by @devin-ai-integration
+
+### Refactor
+- Debounce usage API cache writes ([#503](https://github.com/keshav-k3/watchtower/pull/503)) by @zergzorg
+- Bound local HTTP API concurrency ([#502](https://github.com/keshav-k3/watchtower/pull/502)) by @zergzorg
+- Cap concurrent plugin probes per batch ([#499](https://github.com/keshav-k3/watchtower/pull/499)) by @zergzorg
+- Add per-probe runtime deadline ([#500](https://github.com/keshav-k3/watchtower/pull/500)) by @zergzorg
+- Skip auto-update probes already in flight ([#498](https://github.com/keshav-k3/watchtower/pull/498)) by @zergzorg
+- Pause ticker while panel is hidden ([#490](https://github.com/keshav-k3/watchtower/pull/490)) by @zergzorg
+
+### Chores
+- Stabilize ccusage timeout cleanup test ([#501](https://github.com/keshav-k3/watchtower/pull/501)) by @zergzorg
+- chore(deps): bump rquickjs from 0.11.0 to 0.12.0 in /src-tauri by @dependabot
+- chore(deps): bump tauri-plugin-global-shortcut from 2.3.1 to 2.3.2 in /src-tauri by @dependabot
+- chore(deps): bump reqwest from 0.13.3 to 0.13.4 in /src-tauri by @dependabot
+- chore(deps): bump uuid from 1.23.1 to 1.23.2 in /src-tauri by @dependabot
+- chore(deps): bump log from 0.4.29 to 0.4.30 in /src-tauri by @dependabot
+- chore(deps): bump tokio from 1.52.1 to 1.52.3 in /src-tauri by @dependabot
+- chore(deps): bump tauri from 2.11.1 to 2.11.2 in /src-tauri by @dependabot
+- chore(deps): bump serde_json from 1.0.149 to 1.0.150 in /src-tauri by @dependabot
+- chore(deps): bump tauri-plugin-opener from 2.5.3 to 2.5.4 in /src-tauri by @dependabot
+- chore(deps): bump tauri-build from 2.6.1 to 2.6.2 in /src-tauri by @dependabot
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.24...v0.6.25](https://github.com/keshav-k3/watchtower/compare/v0.6.24...v0.6.25)
+
+- [2fa079a](https://github.com/keshav-k3/watchtower/commit/2fa079a700a14a67736f254084813af3ca7c7922) Replace Gemini CLI with agy Antigravity support by @robinebers
+- [f33e6c0](https://github.com/keshav-k3/watchtower/commit/f33e6c09943677f03831777e289117226ea9cb1a) Add tray action to copy log path by @robinebers
+- [c063e54](https://github.com/keshav-k3/watchtower/commit/c063e54f4a4f5c88de7d050dcf5dcf670dba7272) fix(grok): refresh expired auth tokens by @robinebers
+- [8fc2165](https://github.com/keshav-k3/watchtower/commit/8fc21651c75e5581523e2764ef245480d9d691ed) fix(minimax): prefer displayable CN usage rows by @robinebers
+- [94ddf1a](https://github.com/keshav-k3/watchtower/commit/94ddf1a7a226d65a6fdefebb6f53427d1a3f4e8b) Update MiniMax API endpoints from coding_plan to token_plan by @doublezz10
+- [41d6716](https://github.com/keshav-k3/watchtower/commit/41d67161883392dcb25a5e0010068ec3976f5ee8) chore(deps): bump rquickjs from 0.11.0 to 0.12.0 in /src-tauri by @dependabot
+- [84b99e0](https://github.com/keshav-k3/watchtower/commit/84b99e0a531a4150846a329fdd930946b6887c0e) chore(deps): bump tauri-plugin-global-shortcut from 2.3.1 to 2.3.2 in /src-tauri by @dependabot
+- [dd8f8b1](https://github.com/keshav-k3/watchtower/commit/dd8f8b1d5cb5d508da6b7f9c8b94443c8fb12c85) chore(deps): bump reqwest from 0.13.3 to 0.13.4 in /src-tauri by @dependabot
+- [bf277f8](https://github.com/keshav-k3/watchtower/commit/bf277f861c3a8067c3455d233135884628696e8c) chore(deps): bump uuid from 1.23.1 to 1.23.2 in /src-tauri by @dependabot
+- [c6adbcc](https://github.com/keshav-k3/watchtower/commit/c6adbcce3ab69b89bc18f81499f956663f8083b0) chore(deps): bump log from 0.4.29 to 0.4.30 in /src-tauri by @dependabot
+- [52f5588](https://github.com/keshav-k3/watchtower/commit/52f5588d7a8169f46e3e4d90bdfe93c7140f6d0c) fix: patch critical/high vulnerabilities by @devin-ai-integration
+- [810b122](https://github.com/keshav-k3/watchtower/commit/810b1226119c5ee66ac1d479e2a98ee70cce2cda) Debounce usage API cache writes by @zergzorg
+- [ce7f682](https://github.com/keshav-k3/watchtower/commit/ce7f68248a1b91e3c32756d2c3d58aa5c6579372) Bound local HTTP API concurrency by @zergzorg
+- [d44008f](https://github.com/keshav-k3/watchtower/commit/d44008f32a068494274bb400e4b95d333c7b2775) Pause ticker while panel is hidden by @zergzorg
+- [a291696](https://github.com/keshav-k3/watchtower/commit/a2916962c7c4a4dcd473d45b9449095e1aae3b3e) Skip auto-update probes already in flight by @zergzorg
+- [f0e2914](https://github.com/keshav-k3/watchtower/commit/f0e2914ff7cd03058b5debc1d1b6f949160dde9a) Stabilize ccusage timeout cleanup test by @zergzorg
+- [9a9f01d](https://github.com/keshav-k3/watchtower/commit/9a9f01df604d1da3625467c7c6c2f9551dcda46f) Add per-probe runtime deadline by @zergzorg
+- [abc68e8](https://github.com/keshav-k3/watchtower/commit/abc68e85e9a35fcbb552cf5491c930da184247c2) Cap concurrent plugin probes per batch by @zergzorg
+- [5de48f1](https://github.com/keshav-k3/watchtower/commit/5de48f1c187f72f3542432270899b614ac38fa8a) chore(deps): bump tokio from 1.52.1 to 1.52.3 in /src-tauri by @dependabot
+- [ba0c01d](https://github.com/keshav-k3/watchtower/commit/ba0c01d043652bcf6a6841757bc7a02937176888) chore(deps): bump tauri from 2.11.1 to 2.11.2 in /src-tauri by @dependabot
+- [e523c7b](https://github.com/keshav-k3/watchtower/commit/e523c7b2b74b3883c84d7b5809815506a59b8dd6) chore(deps): bump serde_json from 1.0.149 to 1.0.150 in /src-tauri by @dependabot
+- [d61df10](https://github.com/keshav-k3/watchtower/commit/d61df10e9eae37fa8e4b82ed5e8a491a54922ed2) chore(deps): bump tauri-plugin-opener from 2.5.3 to 2.5.4 in /src-tauri by @dependabot
+- [6257fc9](https://github.com/keshav-k3/watchtower/commit/6257fc9cd3c4142a371f716c2760c5b43e28f32c) chore(deps): bump tauri-build from 2.6.1 to 2.6.2 in /src-tauri by @dependabot
+
+## v0.6.24
+
+### New Features
+- feat: add Grok usage plugin ([#484](https://github.com/keshav-k3/watchtower/pull/484)) by @robinebers
+- feat: add 12h/24h/auto time format setting ([#427](https://github.com/keshav-k3/watchtower/pull/427)) by @HDash
+
+### Bug Fixes
+- fix(ui): improve pace marker visibility on usage bars ([#485](https://github.com/keshav-k3/watchtower/pull/485)) by @robinebers
+- fix(claude): prefer keychain credentials ([#483](https://github.com/keshav-k3/watchtower/pull/483)) by @robinebers
+- fix(ccusage): add release-age fallback for costs ([#482](https://github.com/keshav-k3/watchtower/pull/482)) by @robinebers
+- fix(codex): trust zero-credit usage response ([#481](https://github.com/keshav-k3/watchtower/pull/481)) by @robinebers
+- fix(ccusage): resolve nvm node bin path from alias/default ([#463](https://github.com/keshav-k3/watchtower/pull/463)) by @devKagan
+- fix(perplexity): handle missing group in API response ([#462](https://github.com/keshav-k3/watchtower/pull/462)) by @malhobayyeb
+
+### Chores
+- chore(grok): move pay-as-you-go badge to detail scope by @robinebers
+- chore(deps): bump tauri from 2.11.0 to 2.11.1 in /src-tauri by @dependabot
+- chore(deps): bump tauri-plugin-store from 2.4.2 to 2.4.3 in /src-tauri by @dependabot
+- chore(deps): bump libc from 0.2.184 to 0.2.186 in /src-tauri by @dependabot
+- chore(deps): bump sha2 from 0.10.9 to 0.11.0 in /src-tauri by @dependabot
+- chore: enforce package release age by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.23...v0.6.24](https://github.com/keshav-k3/watchtower/compare/v0.6.23...v0.6.24)
+
+- [6fc6cd0](https://github.com/keshav-k3/watchtower/commit/6fc6cd0d323d9863399f27a8018b87b2b8983ee0) chore(grok): move pay-as-you-go badge to detail scope by @robinebers
+- [38786d0](https://github.com/keshav-k3/watchtower/commit/38786d021b16247e41960b83fd054302b2db93ea) fix(ccusage): add release-age fallback for costs by @robinebers
+- [7c83829](https://github.com/keshav-k3/watchtower/commit/7c83829a6319f9b1b86d76bca388401e5ebca9ff) fix(codex): trust zero-credit usage response by @robinebers
+- [eb7eaf7](https://github.com/keshav-k3/watchtower/commit/eb7eaf7e5136437e79da7cf36c974afa94ea2a07) fix(claude): prefer keychain credentials by @robinebers
+- [2a5605d](https://github.com/keshav-k3/watchtower/commit/2a5605dd41ec6bc2bc545d7d5cab4ec6ddddb0c5) feat: add Grok usage plugin by @robinebers
+- [8d2d51c](https://github.com/keshav-k3/watchtower/commit/8d2d51c799cc27bee580f7be527d49ff2ff62f43) fix(ui): improve pace marker visibility on usage bars by @robinebers
+- [41c2d79](https://github.com/keshav-k3/watchtower/commit/41c2d79ea2fff927d44ca32309c1c6205d990176) fix(ccusage): resolve nvm node bin path from alias/default by @devKagan
+- [f847b24](https://github.com/keshav-k3/watchtower/commit/f847b247472c338be88ead07b37bd98743e22bae) fix(perplexity): handle missing group in API response by @malhobayyeb
+- [88de6bd](https://github.com/keshav-k3/watchtower/commit/88de6bd10ede77f81990bd9c1018d07ccc255225) feat: add 12h/24h/auto time format setting by @HDash
+- [1ce87c1](https://github.com/keshav-k3/watchtower/commit/1ce87c15c82f253da567fb816d070f3d24f255f9) chore(deps): bump tauri from 2.11.0 to 2.11.1 in /src-tauri by @dependabot
+- [59a18e2](https://github.com/keshav-k3/watchtower/commit/59a18e2c2b945a7b4cd5af4a55d546c7d4cf6485) chore(deps): bump sha2 from 0.10.9 to 0.11.0 in /src-tauri by @dependabot
+- [83bc08e](https://github.com/keshav-k3/watchtower/commit/83bc08e9a130eb0db5d20cc25df6eb298d541413) chore(deps): bump tauri-plugin-store from 2.4.2 to 2.4.3 in /src-tauri by @dependabot
+- [047092e](https://github.com/keshav-k3/watchtower/commit/047092edd56b09794d1be81d4080cf6aa4d718db) chore(deps): bump libc from 0.2.184 to 0.2.186 in /src-tauri by @dependabot
+- [de22ad6](https://github.com/keshav-k3/watchtower/commit/de22ad6540d4b23aae0d1f5dac723ed52d44c801) chore: enforce package release age by @robinebers
+
+## v0.6.23
+
+### Bug Fixes
+- fix(claude): remove peak hours indicator integration ([#447](https://github.com/keshav-k3/watchtower/pull/447)) by @validatedev
+- fix(codex): correct usage dashboard URL to ChatGPT Codex settings ([#436](https://github.com/keshav-k3/watchtower/pull/436)) by @devKagan
+
+### Chores
+- chore(analytics): drop UI-side Aptabase events ([#449](https://github.com/keshav-k3/watchtower/pull/449)) by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.22...v0.6.23](https://github.com/keshav-k3/watchtower/compare/v0.6.22...v0.6.23)
+
+- [cb365ef](https://github.com/keshav-k3/watchtower/commit/cb365ef) chore(analytics): drop UI-side Aptabase events by @robinebers
+- [7aa655d](https://github.com/keshav-k3/watchtower/commit/7aa655d) fix(claude): remove peak hours indicator integration by @validatedev
+- [7376251](https://github.com/keshav-k3/watchtower/commit/7376251) fix(codex): correct usage dashboard URL to ChatGPT Codex settings by @devKagan
+
+## v0.6.22
+
+### Bug Fixes
+- fix(ccusage): kill timed-out process groups ([#433](https://github.com/keshav-k3/watchtower/pull/433)) by @robinebers
+- fix(claude): support hashed macOS keychain service name (closes #423) ([#424](https://github.com/keshav-k3/watchtower/pull/424)) by @robinebers
+
+### Chores
+- chore(deps): bump tauri from 2.10.3 to 2.11.0 in /src-tauri ([#429](https://github.com/keshav-k3/watchtower/pull/429)) by @dependabot
+- chore(deps): bump reqwest from 0.13.2 to 0.13.3 in /src-tauri ([#428](https://github.com/keshav-k3/watchtower/pull/428)) by @dependabot
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.21...v0.6.22](https://github.com/keshav-k3/watchtower/compare/v0.6.21...v0.6.22)
+
+- [2730669](https://github.com/keshav-k3/watchtower/commit/2730669a866cef4d38533466094e2347ae3d1f26) fix(ccusage): kill timed-out process groups (#433) by @robinebers
+- [5651a3a](https://github.com/keshav-k3/watchtower/commit/5651a3ab32cd44c337fad3cb6749633afd62c492) fix(claude): only hash keychain when CLAUDE_CONFIG_DIR is set by @robinebers
+- [1562a07](https://github.com/keshav-k3/watchtower/commit/1562a07e85a27d00c14cd9e919862314d430ca25) fix(claude): support hashed macOS keychain service name (closes #423) by @robinebers
+- [2b5c5db](https://github.com/keshav-k3/watchtower/commit/2b5c5db95d73013c2917bd3540ee54d1ad9fb480) chore(deps): bump tauri from 2.10.3 to 2.11.0 in /src-tauri by @dependabot
+- [ee02c4c](https://github.com/keshav-k3/watchtower/commit/ee02c4c582a9dfc7ba3ece20168919cb8616583c) chore(deps): bump reqwest from 0.13.2 to 0.13.3 in /src-tauri by @dependabot
+
+## v0.6.21
+
+### Bug Fixes
+- fix(codex): lazy-load keychain auth fallback ([#419](https://github.com/keshav-k3/watchtower/pull/419)) by @validatedev
+
+### Chores
+- docs(codex): clarify file-based OAuth credentials description ([#419](https://github.com/keshav-k3/watchtower/pull/419)) by @validatedev
+- docs(agents): replace internal HQ header with Watchtower title by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.20...v0.6.21](https://github.com/keshav-k3/watchtower/compare/v0.6.20...v0.6.21)
+
+- [6f52da5](https://github.com/keshav-k3/watchtower/commit/6f52da586bef10d97b84e0dfadc9b8ced3e9376e) docs(codex): clarify file-based OAuth credentials description by @validatedev
+- [e7b4072](https://github.com/keshav-k3/watchtower/commit/e7b4072d280dd6cf6cd6d4a626b1c2a4e948da1f) fix(codex): lazy-load keychain auth fallback by @validatedev
+- [1395f20](https://github.com/keshav-k3/watchtower/commit/1395f2083d78a0bac224e095a0265b379410daec) docs(agents): replace internal HQ header with Watchtower title by @robinebers
+
+## v0.6.20
+
+### New Features
+- feat: preserve usage data during refresh (stale-while-revalidate) ([#386](https://github.com/keshav-k3/watchtower/pull/386)) by @DoozyX
+- Add agent worktree setup by @robinebers
+
+### Bug Fixes
+- fix(factory): retry with GET when usage endpoint returns HTTP 405 ([#390](https://github.com/keshav-k3/watchtower/pull/390)) by @allensama0403
+- fix: read OAuth tokens from unified state key ([#392](https://github.com/keshav-k3/watchtower/pull/392)) by @validatedev
+- fix: only refresh Antigravity OAuth on auth failure ([#392](https://github.com/keshav-k3/watchtower/pull/392)) by @validatedev
+- address review feedback on stale-while-revalidate PR ([#386](https://github.com/keshav-k3/watchtower/pull/386)) by @DoozyX
+- address second round of review feedback on stale-while-revalidate PR ([#386](https://github.com/keshav-k3/watchtower/pull/386)) by @DoozyX
+- Prevent shell noise from breaking Z.ai auth headers ([#398](https://github.com/keshav-k3/watchtower/pull/398)) by @KYankee6
+- Prevent empty marker output from becoming a fake env value ([#398](https://github.com/keshav-k3/watchtower/pull/398)) by @KYankee6
+- fix(gemini): refresh OAuth tokens on Homebrew-installed gemini-cli ([#401](https://github.com/keshav-k3/watchtower/pull/401)) by @Rich627
+- fix(codex): map pro to Pro 20x (closes #408) ([#411](https://github.com/keshav-k3/watchtower/pull/411)) by @validatedev
+- Fix Codex auth fallback ([#413](https://github.com/keshav-k3/watchtower/pull/413)) by @robinebers
+
+### Refactor
+- refactor: rename probe()'s `proto` var to `dbTokens` ([#392](https://github.com/keshav-k3/watchtower/pull/392)) by @validatedev
+
+### Chores
+- chore(gemini): clarify OAuth candidate warn message ([#401](https://github.com/keshav-k3/watchtower/pull/401)) by @Rich627
+- chore(deps): bump uuid from 1.23.0 to 1.23.1 in /src-tauri ([#405](https://github.com/keshav-k3/watchtower/pull/405)) by @dependabot[bot]
+- chore(deps): bump tokio from 1.51.1 to 1.52.1 in /src-tauri ([#406](https://github.com/keshav-k3/watchtower/pull/406)) by @dependabot[bot]
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.15...v0.6.20](https://github.com/keshav-k3/watchtower/compare/v0.6.15...v0.6.20)
+
+- [722e91b](https://github.com/keshav-k3/watchtower/commit/722e91b5a3a1b2c4db882a5d01e608c8552deea0) fix(factory): retry with GET when usage endpoint returns HTTP 405 by @allensama0403
+- [4625376](https://github.com/keshav-k3/watchtower/commit/4625376c3cc9efb2e97294a3d5d73cff9753a4cb) fix: read OAuth tokens from unified state key by @validatedev
+- [6147b1c](https://github.com/keshav-k3/watchtower/commit/6147b1c834efec96746f4ba0e6d05d2b6340dbd5) refactor: rename probe()'s `proto` var to `dbTokens` by @validatedev
+- [cfa1e69](https://github.com/keshav-k3/watchtower/commit/cfa1e699537aee53a418abdbfe1ad671edc28b88) fix: only refresh Antigravity OAuth on auth failure by @validatedev
+- [0c5185b](https://github.com/keshav-k3/watchtower/commit/0c5185bb1827dc07ca02ebf6f0575b94f3029c63) feat: preserve usage data during refresh (stale-while-revalidate) by @DoozyX
+- [d794535](https://github.com/keshav-k3/watchtower/commit/d79453533e683eb1b6c76405fe970283295f31d5) address review feedback on stale-while-revalidate PR by @DoozyX
+- [7afc4fe](https://github.com/keshav-k3/watchtower/commit/7afc4fe71aa8e7217167614c10c4823bac2328a5) address second round of review feedback on stale-while-revalidate PR by @DoozyX
+- [5a7de06](https://github.com/keshav-k3/watchtower/commit/5a7de06af5e45fbe3daf21f2c7d51115d28b1111) Prevent shell noise from breaking Z.ai auth headers by @KYankee6
+- [7cf7a6f](https://github.com/keshav-k3/watchtower/commit/7cf7a6f68da833893099851a969a458db11100eb) Prevent empty marker output from becoming a fake env value by @KYankee6
+- [96abffb](https://github.com/keshav-k3/watchtower/commit/96abffb517e75b55ed658f53dce25bf5bb894b44) fix(gemini): refresh OAuth tokens on Homebrew-installed gemini-cli by @Rich627
+- [1a91101](https://github.com/keshav-k3/watchtower/commit/1a911019a190bc90180c800a35f94d9caeab34a1) chore(gemini): clarify OAuth candidate warn message by @Rich627
+- [a12292d](https://github.com/keshav-k3/watchtower/commit/a12292d0db436814bad082ddfd12cb28cafc895c) chore(deps): bump uuid from 1.23.0 to 1.23.1 in /src-tauri by @dependabot[bot]
+- [bee03a9](https://github.com/keshav-k3/watchtower/commit/bee03a908fe70f9e6f84b2f20b41115542c7c188) chore(deps): bump tokio from 1.51.1 to 1.52.1 in /src-tauri by @dependabot[bot]
+- [b61116e](https://github.com/keshav-k3/watchtower/commit/b61116e8b18614f8a5b661e8eecec716b84bb5bb) fix(codex): map pro to Pro 20x (closes #408) by @validatedev
+- [951c67b](https://github.com/keshav-k3/watchtower/commit/951c67ba5beb2d47586a2948403e956509adab2d) Merge pull request #411 from robinebers/fix/codex-change-10x-to-20x-for-pro-plan by @validatedev
+- [35b0787](https://github.com/keshav-k3/watchtower/commit/35b0787fc7ad5a5dfb926f9300b4a629324783a5) Merge pull request #405 from robinebers/dependabot/cargo/src-tauri/uuid-1.23.1 by @dependabot[bot]
+- [9a80827](https://github.com/keshav-k3/watchtower/commit/9a80827468eeb3eb3d8db1e58f6516c9eb8b0c01) Merge pull request #406 from robinebers/dependabot/cargo/src-tauri/tokio-1.52.1 by @dependabot[bot]
+- [a6072da](https://github.com/keshav-k3/watchtower/commit/a6072da7f0bb50e72c8223163063d4f8c0494445) Merge pull request #401 from Rich627/fix/gemini-homebrew-bundle-refresh by @Rich627
+- [3970022](https://github.com/keshav-k3/watchtower/commit/3970022b11d098a87533eaada398596e3077f60d) Merge pull request #390 from allensama0403/fix/factory-405-usage-endpoint by @allensama0403
+- [2c03270](https://github.com/keshav-k3/watchtower/commit/2c032702fda2b04d09e5ff7a903d20fba3beea63) Merge pull request #392 from robinebers/fix/antigravity-oauth-local-import-schema-error by @validatedev
+- [a9425ba](https://github.com/keshav-k3/watchtower/commit/a9425ba1a4dbc60f9b3193acd5f53cfeecab07cd) Add agent worktree setup by @robinebers
+- [f894473](https://github.com/keshav-k3/watchtower/commit/f894473c0c80f1ca58223cd3142d63df7e5d4f56) Fix Codex auth fallback by @robinebers
+- [b9e9f30](https://github.com/keshav-k3/watchtower/commit/b9e9f309d86b0f2c01bf6a9e49ad9e2e0d69d36b) Merge pull request #413 from robinebers/cursor/1823929a by @robinebers
+- [de8cf31](https://github.com/keshav-k3/watchtower/commit/de8cf31d0860483309e757d295a84574de193767) Merge pull request #386 from DoozyX/claude/preserve-usage-on-refresh-1pNCN by @DoozyX
+- [77ef460](https://github.com/keshav-k3/watchtower/commit/77ef46033a5ce8a465c74c0eed7b683fb82545a5) Merge pull request #398 from KYankee6/fix/zai-env-header-noise by @KYankee6
+
+## v0.6.15
+
+### New Features
+- feat(claude): add Claude Design weekly detail metric ([#388](https://github.com/keshav-k3/watchtower/pull/388)) by @robinebers
+- Add CLAUDE.md by @robinebers
+- Add Codex environment config by @robinebers
+
+### Bug Fixes
+- fix(codex): map Codex plan labels to Pro 5x and Pro 10x ([#380](https://github.com/keshav-k3/watchtower/pull/380)) by @arrowarcher1
+- fix(claude): graceful 429 rate limit handling with Retry-After support ([#378](https://github.com/keshav-k3/watchtower/pull/378)) by @zergzorg
+- Update AGENTS.md by @robinebers
+- Star history by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.14...v0.6.15](https://github.com/keshav-k3/watchtower/compare/v0.6.14...v0.6.15)
+
+- [cb16571](https://github.com/keshav-k3/watchtower/commit/cb16571d969e7b2de44f9595fe09bcd7f1ed111e) feat(claude): add Claude Design weekly detail metric (#388) by @robinebers
+- [87c45b6](https://github.com/keshav-k3/watchtower/commit/87c45b66663b5d4662cdb6fd8bb46ef4c8ae4c5f) Add CLAUDE.md by @robinebers
+- [455c857](https://github.com/keshav-k3/watchtower/commit/455c857d2a4e2e5543a4295348fca9f70b1a3fcc) Update AGENTS.md by @robinebers
+- [510cbe4](https://github.com/keshav-k3/watchtower/commit/510cbe48651d4c9c58b17a16e3b7c0214244c3f0) fix(codex): map Codex plan labels to Pro 5x and Pro 10x (#380) by @arrowarcher1
+- [0ffe3ad](https://github.com/keshav-k3/watchtower/commit/0ffe3ad85a37b42723c56a494af216ee67978976) fix(claude): graceful 429 rate limit handling with Retry-After support (#378) by @zergzorg
+- [06113d6](https://github.com/keshav-k3/watchtower/commit/06113d6b94c6f8306e67aedf51b42f3f03d8b3e5) Add Codex environment config by @robinebers
+- [abf6cff](https://github.com/keshav-k3/watchtower/commit/abf6cffc3bc110abf306a82d45a67972e725b236) Star history by @robinebers
+
+## v0.6.14
+
+### New Features
+- Clickable provider rows + session/weekly labels by @robinebers
+- Integrate PromoClock peak/off-peak status ([#364](https://github.com/keshav-k3/watchtower/pull/364)) by @validatedev
+- Add cmd-arrow tab navigation by @robinebers
+
+### Bug Fixes
+- Session expired ([#363](https://github.com/keshav-k3/watchtower/pull/363)) by @yhunko
+- Prefer userTier.name over legacy planInfo.planName by @n3wr1ch
+- Show panel before tray reposition by @robinebers
+- Correct tray monitor positioning by @robinebers
+- Position panel under tray icon on all entry paths without flicker by @robinebers
+
+### Refactor
+- Apply Copilot review — add typeof/trim guards, remove duplicate assertion by @n3wr1ch
+- Dedupe panel focus helper by @robinebers
+
+### Chores
+- Bump tauri-plugin-updater in /src-tauri by @dependabot[bot]
+- Bump tokio from 1.51.0 to 1.51.1 in /src-tauri by @dependabot[bot]
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.13...v0.6.14](https://github.com/keshav-k3/watchtower/compare/v0.6.13...v0.6.14)
+
+- [57cc5bd](https://github.com/keshav-k3/watchtower/commit/57cc5bd36bd1a2c189b1f00f3598f6695e1071d7) fix(settings,opencode): clickable provider rows + session/weekly labels by @robinebers
+- [60cc426](https://github.com/keshav-k3/watchtower/commit/60cc426f31f60c845ecb5fa9ba58703a18609314) fix(gemini): session expired (#363) by @yhunko
+- [83551c1](https://github.com/keshav-k3/watchtower/commit/83551c1cadb95ced4596ae846b07dfa51916de03) feat(claude): integrate PromoClock peak/off-peak status (#364) by @validatedev
+- [cb63b20](https://github.com/keshav-k3/watchtower/commit/cb63b20fa59152a4432220d95942c9a610b4e039) refactor: apply Copilot review — add typeof/trim guards, remove duplicate assertion by @n3wr1ch
+- [996c7fe](https://github.com/keshav-k3/watchtower/commit/996c7fee5aed915f50ffce8b498b92e883d87ebd) chore(deps): bump tauri-plugin-updater in /src-tauri by @dependabot[bot]
+- [9479e34](https://github.com/keshav-k3/watchtower/commit/9479e3476755a4ae08d59261ac341b7efd641de1) chore(deps): bump tokio from 1.51.0 to 1.51.1 in /src-tauri by @dependabot[bot]
+- [d7cb0fc](https://github.com/keshav-k3/watchtower/commit/d7cb0fc59885fcddf910b52d34b0d4d8136b02ab) fix(antigravity): prefer userTier.name over legacy planInfo.planName by @n3wr1ch
+- [995a7fd](https://github.com/keshav-k3/watchtower/commit/995a7fd2fbc05963869f6df6cc0079af7259c366) fix(panel): show before tray reposition by @robinebers
+- [ae43e80](https://github.com/keshav-k3/watchtower/commit/ae43e80e9896b833ce3c41b4341d221e09ead9a6) fix(panel): correct tray monitor positioning by @robinebers
+- [d114de5](https://github.com/keshav-k3/watchtower/commit/d114de5a68752f7f6b9a05452c46651a2d7461ed) fix(panel): position panel under tray icon on all entry paths without flicker by @robinebers
+- [0d6e0ed](https://github.com/keshav-k3/watchtower/commit/0d6e0ed70d776bfa3437872e2c40203f14401d6f) refactor: dedupe panel focus helper by @robinebers
+- [8cfe6a9](https://github.com/keshav-k3/watchtower/commit/8cfe6a919d23f3ec8542aa5e52203fa7da3d8ab8) feat: add cmd-arrow tab navigation by @robinebers
+
+## v0.6.13
+
+### New Features
+- Add Kiro plugin for usage tracking and management by @sayuru-akash
+- add Synthetic provider plugin by @ben-vargas
+- add SOCKS5/HTTP proxy support via ~/.watchtower/config.json by @zergzorg
+- Support custom Claude OAuth config and credentials by @robinebers
+
+### Bug Fixes
+- address synthetic plugin review feedback by @ben-vargas
+- scope keychain user lookup by @robinebers
+- address PR 331 review comments by @robinebers
+- use REST fallback for team-inferred accounts missing planUsage.limit by @drewwells
+- skip fallback when percent usage is available by @drewwells
+- prefer enterprise auth and handle missing limits by @drewwells
+- correct proxy redaction output by @robinebers
+- prevent relative config path when home dir is unavailable by @zergzorg
+- load factory auth from droid v2 store ([#298](https://github.com/keshav-k3/watchtower/pull/298)) by @davidarny
+- Harden Windsurf quota parsing for missing and invalid balance data by @prayzey
+- Handle missing Windsurf extra usage balance so quota still loads by @prayzey
+
+### Refactor
+- update release process to push commits and tags before creating GitHub releases by @robinebers
+
+### Chores
+- bump tokio from 1.50.0 to 1.51.0 in /src-tauri by @dependabot[bot]
+- add proxy configuration guide by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.12...v0.6.13](https://github.com/keshav-k3/watchtower/compare/v0.6.12...v0.6.13)
+
+- [96eede6](https://github.com/keshav-k3/watchtower/commit/96eede6a77c08494f23ca07247bf4b629304fe78) feat: Add Kiro plugin for usage tracking and management by @sayuru-akash
+- [2a8f550](https://github.com/keshav-k3/watchtower/commit/2a8f5505e66e305cdc0ba7610e2382f02aaad19e) fix: address synthetic plugin review feedback by @ben-vargas
+- [8031849](https://github.com/keshav-k3/watchtower/commit/8031849b557339e3212a614065e6db7b6385a29b) feat: add Synthetic provider plugin by @ben-vargas
+- [110bee6](https://github.com/keshav-k3/watchtower/commit/110bee64868396840d1f44e8c16f2c97d98bbe01) fix(claude): scope keychain user lookup by @robinebers
+- [25b0029](https://github.com/keshav-k3/watchtower/commit/25b00291fc1ff05fbe74b9de90fa49c493e7e464) fix: address PR 331 review comments by @robinebers
+- [fed094a](https://github.com/keshav-k3/watchtower/commit/fed094ae0413d3c4110e213db27fb1733a023efa) Support custom Claude OAuth config and credentials by @robinebers
+- [b821f34](https://github.com/keshav-k3/watchtower/commit/b821f34bd3a1b09153ec7d33a51399953105c1a3) fix(cursor): use REST fallback for team-inferred accounts missing planUsage.limit by @drewwells
+- [6a5145b](https://github.com/keshav-k3/watchtower/commit/6a5145b2c9b4a37df493f6c8a7a57d2200c402ba) fix(cursor): skip fallback when percent usage is available by @drewwells
+- [64c9840](https://github.com/keshav-k3/watchtower/commit/64c9840a01075e47ff1ae46c8cf899fc704ddc74) fix(cursor): prefer enterprise auth and handle missing limits by @drewwells
+- [7dc38fe](https://github.com/keshav-k3/watchtower/commit/7dc38fe961f393189fc79e87d934a2d0760987c6) docs: add proxy configuration guide by @robinebers
+- [29c9ff0](https://github.com/keshav-k3/watchtower/commit/29c9ff0e79d0eb2913f4ef6b50aa170bca6d3177) fix(config): correct proxy redaction output by @robinebers
+- [2c27806](https://github.com/keshav-k3/watchtower/commit/2c278068cdbfbd03937e232428271bc68208d778) fix: prevent relative config path when home dir is unavailable by @zergzorg
+- [1f48faf](https://github.com/keshav-k3/watchtower/commit/1f48fafe8699f0831ed6e387ea4e99f8be31a375) feat: add SOCKS5/HTTP proxy support via ~/.watchtower/config.json by @zergzorg
+- [bbbb6cc](https://github.com/keshav-k3/watchtower/commit/bbbb6ccc1b29dec5c32bf1224317ebf41f91f9c4) Harden Windsurf quota parsing for missing and invalid balance data by @prayzey
+- [c9ab800](https://github.com/keshav-k3/watchtower/commit/c9ab800333e49793123456f4e72dd17aba44fb42) Handle missing Windsurf extra usage balance so quota still loads by @prayzey
+- [d6ee9c6](https://github.com/keshav-k3/watchtower/commit/d6ee9c68c13dddc650cfc78b4e26b3572489b35f) chore(deps): bump tokio from 1.50.0 to 1.51.0 in /src-tauri by @dependabot[bot]
+- [857f537](https://github.com/keshav-k3/watchtower/commit/857f537a243483acf98ccd9ea32e20b380c63823) fix: load factory auth from droid v2 store (#298) by @davidarny
+- [625ae4e](https://github.com/keshav-k3/watchtower/commit/625ae4e4b63a2b8597773aea94c3b86c8d45885f) refactor: update release process to push commits and tags before creating GitHub releases by @robinebers
+
+## v0.6.12
+
+### New Features
+- Add local HTTP API for usage data ([#319](https://github.com/keshav-k3/watchtower/pull/319)) by @robinebers
+- Dynamic tray tooltip with usage percentages ([#314](https://github.com/keshav-k3/watchtower/pull/314)) by @hearsilent
+- Add release-tag skill for automated versioning and changelog generation by @robinebers
+
+### Bug Fixes
+- Fix new typescript v6 requirement by @robinebers
+- Add runtime macOS version check for WKPreferences.inactiveSchedulingPolicy ([#322](https://github.com/keshav-k3/watchtower/pull/322)) by @beznazwiska
+
+### Chores
+- Bump lucide-react from 0.577.0 to 1.7.0 ([#324](https://github.com/keshav-k3/watchtower/pull/324)) by @dependabot
+- Bump typescript from 5.9.3 to 6.0.2 ([#325](https://github.com/keshav-k3/watchtower/pull/325)) by @dependabot
+- Bump uuid from 1.22.0 to 1.23.0 in /src-tauri ([#323](https://github.com/keshav-k3/watchtower/pull/323)) by @dependabot
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.11...v0.6.12](https://github.com/keshav-k3/watchtower/compare/v0.6.11...v0.6.12)
+
+- [c1e7db8](https://github.com/keshav-k3/watchtower/commit/c1e7db8725ad4d885198aa7c84cc885ae01e4edd) fix new typescript v6 requirement by @robinebers
+- [97dde5b](https://github.com/keshav-k3/watchtower/commit/97dde5bd7189cd95725568a935c3ba98058c2779) feat: add release-tag skill for automated versioning and changelog generation by @robinebers
+- [ff0efa1](https://github.com/keshav-k3/watchtower/commit/ff0efa1086f18f53405771d010fecdd8a8e20ffd) chore(deps): bump lucide-react from 0.577.0 to 1.7.0 by @dependabot
+- [a3f7b7e](https://github.com/keshav-k3/watchtower/commit/a3f7b7e53dbd9995b393ed0fafe36171cd4d876e) chore(deps-dev): bump typescript from 5.9.3 to 6.0.2 by @dependabot
+- [4f7373f](https://github.com/keshav-k3/watchtower/commit/4f7373f368a8d8147299a36c1be87b15873ee5bf) chore(deps): bump uuid from 1.22.0 to 1.23.0 in /src-tauri by @dependabot
+- [4e152f7](https://github.com/keshav-k3/watchtower/commit/4e152f7719f29a0e1936eb058df770138b306338) fix: add runtime macOS version check for WKPreferences.inactiveSchedulingPolicy by @beznazwiska
+- [630e7dd](https://github.com/keshav-k3/watchtower/commit/630e7dd0b3cdfd3d79e922a95286dd3d013d2292) feat: add local HTTP API for usage data by @robinebers
+- [ddf73eb](https://github.com/keshav-k3/watchtower/commit/ddf73eb3d3da8327ff2c22fc57761983039e11c4) feat(tooltip): dynamic tray tooltip with usage percentages by @hearsilent
+
+## 0.6.11
+
+### New Features
+- Add in-app changelog ([#309](https://github.com/keshav-k3/watchtower/pull/309)) by @hearsilent
+- Add drag-to-reorder plugin icons in sidebar by @hearsilent
+
+### Bug Fixes
+- Refresh Windsurf quota cloud plugin ([#313](https://github.com/keshav-k3/watchtower/pull/313)) by @robinebers
+- Send real app version to credits API by @robinebers
+- Fix reset tooltips to mirror display mode ([#297](https://github.com/keshav-k3/watchtower/pull/297)) by @robinebers
+- Preserve leading disabled plugin on reorder by @hearsilent
+- Preserve disabled plugins when reordering by @hearsilent
+- Fix test issue by @hearsilent
+
+### Chores
+- Update bun.lock by @robinebers
+- Bump jsdom from 28.1.0 to 29.0.1 ([#312](https://github.com/keshav-k3/watchtower/pull/312)) by @dependabot
+- Bump tauri-nspanel in /src-tauri ([#311](https://github.com/keshav-k3/watchtower/pull/311)) by @dependabot
+- Update AGENTS.md to version 0.27 by @robinebers
+- Update lucide-react lockfile by @robinebers
+- Use next plist path in cloud mocks by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.10...v0.6.11](https://github.com/keshav-k3/watchtower/compare/v0.6.10...v0.6.11)
+
+- [f5edf2a](https://github.com/keshav-k3/watchtower/commit/f5edf2a) update bun.lock by @robinebers
+- [3a66f32](https://github.com/keshav-k3/watchtower/commit/3a66f32) chore(deps-dev): bump jsdom from 28.1.0 to 29.0.1 (#312) by @dependabot
+- [0ba68d8](https://github.com/keshav-k3/watchtower/commit/0ba68d8) chore(deps): bump tauri-nspanel in /src-tauri (#311) by @dependabot
+- [11ce2d5](https://github.com/keshav-k3/watchtower/commit/11ce2d5) fix: refresh Windsurf quota cloud plugin (#313) by @robinebers
+- [0bfcaa3](https://github.com/keshav-k3/watchtower/commit/0bfcaa3) feat: in-app changelog (#309) by @hearsilent
+- [73fe349](https://github.com/keshav-k3/watchtower/commit/73fe349) Update AGENTS.md to version 0.27 by @robinebers
+- [459647c](https://github.com/keshav-k3/watchtower/commit/459647c) build: update lucide-react lockfile by @robinebers
+- [086ad7d](https://github.com/keshav-k3/watchtower/commit/086ad7d) test(windsurf): use next plist path in cloud mocks by @robinebers
+- [0c716fb](https://github.com/keshav-k3/watchtower/commit/0c716fb) fix(windsurf): send real app version to credits API by @robinebers
+- [0766afc](https://github.com/keshav-k3/watchtower/commit/0766afc) Fix reset tooltips to mirror display mode (#297) by @robinebers
+- [a71a4c1](https://github.com/keshav-k3/watchtower/commit/a71a4c1) fix: preserve leading disabled plugin on reorder by @hearsilent
+- [c84ba87](https://github.com/keshav-k3/watchtower/commit/c84ba87) fix: preserve disabled plugins when reordering by @hearsilent
+- [7ac86fb](https://github.com/keshav-k3/watchtower/commit/7ac86fb) fix: test issue by @hearsilent
+- [b1d290d](https://github.com/keshav-k3/watchtower/commit/b1d290d) feat: add drag-to-reorder plugin icons in sidebar by @hearsilent
+
+## 0.6.10
+
+### New Features
+- Add OpenCode Go plugin with tracking and limits ([#270](https://github.com/keshav-k3/watchtower/pull/270)) by @praveenjuge
+- Show Max 5x/20x tier in plan badge (claude) ([#284](https://github.com/keshav-k3/watchtower/pull/284)) by @DiogoDuart3
+
+### Bug Fixes
+- Bump ccusage to v18.0.10 ([#295](https://github.com/keshav-k3/watchtower/pull/295)) by @robinebers
+- Count daily active usage more accurately ([#294](https://github.com/keshav-k3/watchtower/pull/294)) by @robinebers
+- Accept percent-only free usage payloads (cursor) ([#269](https://github.com/keshav-k3/watchtower/pull/269)) by @davidarny
+- Prefer auth.encrypted over auth.json (factory) ([#268](https://github.com/keshav-k3/watchtower/pull/268)) by @sudoanmol
+
+### Chores
+- Bump lucide-react from 0.575.0 to 0.577.0 ([#276](https://github.com/keshav-k3/watchtower/pull/276)) by @dependabot
+- Bump @vitejs/plugin-react from 5.2.0 to 6.0.1 ([#290](https://github.com/keshav-k3/watchtower/pull/290)) by @dependabot
+- Bump uuid from 1.21.0 to 1.22.0 in /src-tauri ([#275](https://github.com/keshav-k3/watchtower/pull/275)) by @dependabot
+- Bump vite from 7.3.1 to 8.0.0 ([#289](https://github.com/keshav-k3/watchtower/pull/289)) by @dependabot
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.9...v0.6.10](https://github.com/keshav-k3/watchtower/compare/v0.6.9...v0.6.10)
+
+- [50f577f](https://github.com/keshav-k3/watchtower/commit/50f577f) fix(ccusage): bump to v18.0.10 (#295) by @robinebers
+- [78b5270](https://github.com/keshav-k3/watchtower/commit/78b5270) fix(analytics): count daily active usage more accurately (#294) by @robinebers
+- [2aaadf0](https://github.com/keshav-k3/watchtower/commit/2aaadf0) feat(opencode-go): add OpenCode Go plugin with tracking and limits (#270) by @praveenjuge
+- [7bfc51d](https://github.com/keshav-k3/watchtower/commit/7bfc51d) fix(cursor): accept percent-only free usage payloads (#269) by @davidarny
+- [54f7bac](https://github.com/keshav-k3/watchtower/commit/54f7bac) chore(deps): bump lucide-react from 0.575.0 to 0.577.0 (#276) by @dependabot
+- [5a475ab](https://github.com/keshav-k3/watchtower/commit/5a475ab) chore(deps-dev): bump @vitejs/plugin-react from 5.2.0 to 6.0.1 (#290) by @dependabot
+- [3477cdf](https://github.com/keshav-k3/watchtower/commit/3477cdf) chore(deps): bump uuid from 1.21.0 to 1.22.0 in /src-tauri (#275) by @dependabot
+- [b0900bc](https://github.com/keshav-k3/watchtower/commit/b0900bc) chore(deps-dev): bump vite from 7.3.1 to 8.0.0 (#289) by @dependabot
+- [5339e08](https://github.com/keshav-k3/watchtower/commit/5339e08) feat(claude): show Max 5x/20x tier in plan badge (#284) by @DiogoDuart3
+- [a04c8ee](https://github.com/keshav-k3/watchtower/commit/a04c8ee) Merge pull request #268 from sudoanmol/fix/factory-auth-path-order by @sudoanmol
+- [a6c3e30](https://github.com/keshav-k3/watchtower/commit/a6c3e30) test(factory): add regression test for auth.encrypted preference over stale auth.json by @sudoanmol
+- [526d6ca](https://github.com/keshav-k3/watchtower/commit/526d6ca) fix(factory): prefer auth.encrypted over auth.json by @sudoanmol
+
+## 0.6.8
+
+### New Features
+- Auto-detect MiniMax CN/global endpoint and show region label ([#230](https://github.com/keshav-k3/watchtower/pull/230)) by @FrankieeW
+- Add Total usage, Auto usage, API usage metrics for Cursor ([#226](https://github.com/keshav-k3/watchtower/pull/226)) by @robinebers
+- Restore bars mode and simplify menubar options ([#234](https://github.com/keshav-k3/watchtower/pull/234)) by @robinebers
+
+### Bug Fixes
+- Update About dialog with contributor credits and green icon ([#240](https://github.com/keshav-k3/watchtower/pull/240)) by @robinebers
+- Clarify Claude extra usage metric by renaming label to "Extra usage spent" ([#239](https://github.com/keshav-k3/watchtower/pull/239)) by @app/copilot-swe-agent
+- Centralize ccusage version pinning and add bump command ([#238](https://github.com/keshav-k3/watchtower/pull/238)) by @robinebers
+- Compact loading skeleton and dedupe line grouping ([#228](https://github.com/keshav-k3/watchtower/pull/228)) by @davidarny
+- Harden PATH enrichment and add regression tests ([#220](https://github.com/keshav-k3/watchtower/pull/220)) by @robinebers
+
+### Chores
+- Remove outdated note about Windows/Linux testing from README by @robinebers
+- Update .gitignore to include .vscode and .conductor directories by @robinebers
+- Remove deprecated VSCode extensions configuration file by @robinebers
+
+### Changelog
+
+**Full Changelog**: [v0.6.7...v0.6.8](https://github.com/keshav-k3/watchtower/compare/v0.6.7...v0.6.8)
+
+- [10635c6](https://github.com/keshav-k3/watchtower/commit/10635c6) chore: bump version to 0.6.8 by @robinebers
+- [9aa5371](https://github.com/keshav-k3/watchtower/commit/9aa5371) fix(ui): update About dialog with contributor credits and green icon (#240) by @robinebers
+- [903e6b2](https://github.com/keshav-k3/watchtower/commit/903e6b2) feat(minimax): auto-detect CN/global endpoint and region label (#230) by @FrankieeW
+- [7bd1383](https://github.com/keshav-k3/watchtower/commit/7bd1383) Clarify Claude extra usage metric by renaming label to "Extra usage spent" (#239) by @app/copilot-swe-agent
+- [208eb2d](https://github.com/keshav-k3/watchtower/commit/208eb2d) fix(ccusage): centralize version pinning and add bump command (#238) by @robinebers
+- [49b0b59](https://github.com/keshav-k3/watchtower/commit/49b0b59) feat(cursor): add Total usage, Auto usage, API usage metrics (#226) by @robinebers
+- [c768281](https://github.com/keshav-k3/watchtower/commit/c768281) feat(tray): restore bars mode and simplify menubar options (#234) by @robinebers
+- [e58837b](https://github.com/keshav-k3/watchtower/commit/e58837b) test: raise coverage and enforce global 90% thresholds (#219) by @robinebers
+- [28d9014](https://github.com/keshav-k3/watchtower/commit/28d9014) fix(ui): compact loading skeleton and dedupe line grouping (#228) by @davidarny
+- [240df4e](https://github.com/keshav-k3/watchtower/commit/240df4e) chore: remove outdated note about Windows/Linux testing from README by @robinebers
+- [1755ed3](https://github.com/keshav-k3/watchtower/commit/1755ed3) chore: update .gitignore to include .vscode and .conductor directories by @robinebers
+- [d06cdf3](https://github.com/keshav-k3/watchtower/commit/d06cdf3) chore: remove deprecated VSCode extensions configuration file by @robinebers
+- [35a921f](https://github.com/keshav-k3/watchtower/commit/35a921f) fix(ccusage): harden PATH enrichment and add regression tests (#220) by @robinebers
+
+## 0.6.7
+
+### New Features
+- Add right-click context menu to sidebar plugin icons to remove a provider without going to settings ([#197](https://github.com/keshav-k3/watchtower/pull/197)) by @MariosPapadakis
+- Simplify menubar icon to provider + percentage ([#215](https://github.com/keshav-k3/watchtower/pull/215)) by @robinebers
+- Show deficit percentage and runs-out ETA below progress bars ([#212](https://github.com/keshav-k3/watchtower/pull/212)) by @robinebers
+- Add sqlite-first auth with keychain fallback for Cursor ([#210](https://github.com/keshav-k3/watchtower/pull/210)) by @robinebers
+
+### Bug Fixes
+- Bump ccusage to v18.0.6 for GPT 5.3 Codex pricing fix ([#218](https://github.com/keshav-k3/watchtower/pull/218)) by @robinebers
+- Correct MiniMax API endpoint and treat usage_count as remaining prompts ([#217](https://github.com/keshav-k3/watchtower/pull/217)) by @davidarny
+
+### Refactor
+- Split monolithic App into focused hooks and atomic stores ([#209](https://github.com/keshav-k3/watchtower/pull/209)) by @davidarny
+
+### Chores
+- Add test cases for handling tiny deficits in formatting and display ([#216](https://github.com/keshav-k3/watchtower/pull/216)) by @validatedev
+- Compact token usage text lines (Today/Yesterday/Last 30 Days) ([#211](https://github.com/keshav-k3/watchtower/pull/211)) by @davidarny
+- Increase test coverage back to over 90% ([#207](https://github.com/keshav-k3/watchtower/pull/207)) by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.6...v0.6.7](https://github.com/keshav-k3/watchtower/compare/v0.6.6...v0.6.7)
+
+- [3032c24](https://github.com/keshav-k3/watchtower/commit/3032c24) feat: add right-click context menu to sidebar plugin icons order to be able to remove a provider without going to the settings. (#197) by @MariosPapadakis
+- [a10ed10](https://github.com/keshav-k3/watchtower/commit/a10ed10) fix: bump ccusage to v18.0.6 for GPT 5.3 Codex pricing fix (#218) by @robinebers
+- [9cc62e6](https://github.com/keshav-k3/watchtower/commit/9cc62e6) feat(tray): simplify menubar icon to provider + percentage (#215) by @robinebers
+- [51dd686](https://github.com/keshav-k3/watchtower/commit/51dd686) fix(minimax): correct API endpoint and treat usage_count as remaining prompts (#217) by @davidarny
+- [b6754d3](https://github.com/keshav-k3/watchtower/commit/b6754d3) test: add cases for handling tiny deficits in formatting and display (#216) by @validatedev
+- [e28f85c](https://github.com/keshav-k3/watchtower/commit/e28f85c) feat: show deficit percentage and runs-out ETA below progress bars (#212) by @robinebers
+- [9bca9f4](https://github.com/keshav-k3/watchtower/commit/9bca9f4) refactor(app): split monolithic App into focused hooks and atomic stores (#209) by @davidarny
+- [deba467](https://github.com/keshav-k3/watchtower/commit/deba467) feat(cursor): add sqlite-first auth with keychain fallback (#210) by @robinebers
+- [0b63ade](https://github.com/keshav-k3/watchtower/commit/0b63ade) style: compact token usage text lines (Today/Yesterday/Last 30 Days) (#211) by @davidarny
+- [63c4128](https://github.com/keshav-k3/watchtower/commit/63c4128) Increasing test coverage back to over 90% (#207) by @robinebers
+
+## 0.6.6
+
+### New Features
+- Add local Claude/Codex usage tracking (via ccusage) ([#193](https://github.com/keshav-k3/watchtower/pull/193)) by @validatedev
+- Add MiniMax provider support ([#168](https://github.com/keshav-k3/watchtower/pull/168)) by @davidarny
+
+### Bug Fixes
+- Show drained models + consolidate quota pools in antigravity ([#204](https://github.com/keshav-k3/watchtower/pull/204)) by @validatedev
+
+### Chores
+- Bump version to 0.6.6 by @robinebers
+- Add Factory/Droid to supported providers ([#205](https://github.com/keshav-k3/watchtower/pull/205)) by @davidarny
+- Add non-technical log capture guide by @davidarny
+- Bump lucide-react from 0.564.0 to 0.575.0 ([#203](https://github.com/keshav-k3/watchtower/pull/203)) by @app/dependabot
+- Remove worktree setup configuration and update PR review feedback instructions by @robinebers
+- Add worktree setup configuration by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.5...v0.6.6](https://github.com/keshav-k3/watchtower/compare/v0.6.5...v0.6.6)
+
+- [e425fa6](https://github.com/keshav-k3/watchtower/commit/e425fa6) chore: bump version to 0.6.6 by @robinebers
+- [a3f0c0e](https://github.com/keshav-k3/watchtower/commit/a3f0c0e) fix(antigravity): show drained models + consolidate quota pools (#204) by @validatedev
+- [e994d8b](https://github.com/keshav-k3/watchtower/commit/e994d8b) docs: add Factory/Droid to supported providers (#205) by @davidarny
+- [96d0c8b](https://github.com/keshav-k3/watchtower/commit/96d0c8b) feat: add local Claude/Codex usage tracking (via ccusage) (#193) by @validatedev
+- [c735db3](https://github.com/keshav-k3/watchtower/commit/c735db3) chore(deps): bump lucide-react from 0.564.0 to 0.575.0 (#203) by @app/dependabot
+- [cd6d7ac](https://github.com/keshav-k3/watchtower/commit/cd6d7ac) feat: add MiniMax provider support (#168) by @davidarny
+- [ebef705](https://github.com/keshav-k3/watchtower/commit/ebef705) docs: add non-technical log capture guide by @davidarny
+- [d52dc11](https://github.com/keshav-k3/watchtower/commit/d52dc11) chore: remove worktree setup configuration and update PR review feedback instructions by @robinebers
+- [41e50e3](https://github.com/keshav-k3/watchtower/commit/41e50e3) chore: add worktree setup configuration by @robinebers
+
+## 0.6.5
+
+### New Features
+- add Gemini provider plugin (oauth-personal, pro/flash usage) ([#189](https://github.com/keshav-k3/watchtower/pull/189)) by @Rich627
+
+### Bug Fixes
+- improve tray icon positioning logic for macOS ([#154](https://github.com/keshav-k3/watchtower/pull/154)) by @MuhammadAli511
+- Merge pull request #188 from AdamAmr05/fix-panel-active-space by @validatedev
+- Merge branch 'main' into fix-panel-active-space by @validatedev
+- handle team usage without enabled flag ([#190](https://github.com/keshav-k3/watchtower/pull/190)) by @davidarny
+- Fix panel opening on the active macOS Space by @AdamAmr05
+- update model versions and improve filtering logic ([#186](https://github.com/keshav-k3/watchtower/pull/186)) by @validatedev
+
+### Chores
+- bump version to 0.6.5 by @robinebers
+- update README to improve clarity and formatting by @robinebers
+- update release tag management in publish workflow and clarify CONTRIBUTING.md guidelines by @robinebers
+- update CONTRIBUTING.md to include maintainers and approval requirements; modify CODEOWNERS for broader review responsibility by @robinebers
+- bump uuid from 1.20.0 to 1.21.0 in /src-tauri ([#179](https://github.com/keshav-k3/watchtower/pull/179)) by @app/dependabot
+- bump lucide-react from 0.563.0 to 0.564.0 ([#180](https://github.com/keshav-k3/watchtower/pull/180)) by @app/dependabot
+- remove outdated spec for next update label global refresh by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.4...v0.6.5](https://github.com/keshav-k3/watchtower/compare/v0.6.4...v0.6.5)
+
+- [4e35520](https://github.com/keshav-k3/watchtower/commit/4e35520362d1cc6b1ccef57e037431b00f1e29fb) chore: bump version to 0.6.5 by @robinebers
+- [d3fb059](https://github.com/keshav-k3/watchtower/commit/d3fb059fa31bc866f1ee0fabf8fb66ad6795a982) fix(panel): improve tray icon positioning logic for macOS (#154) by @MuhammadAli511
+- [59035da](https://github.com/keshav-k3/watchtower/commit/59035dab9fa1861d28a6c7a1ce2f29b251ea2417) docs: update README to improve clarity and formatting by @robinebers
+- [7dbd489](https://github.com/keshav-k3/watchtower/commit/7dbd489aec34ea8a4054d01587c0b764ce52670e) chore: update release tag management in publish workflow and clarify CONTRIBUTING.md guidelines by @robinebers
+- [1c42015](https://github.com/keshav-k3/watchtower/commit/1c42015d4dc93306684b990e17433392a3825608) feat(gemini): add Gemini provider plugin (oauth-personal, pro/flash usage) (#189) by @Rich627
+- [3997b9a](https://github.com/keshav-k3/watchtower/commit/3997b9af0af890cb059b5f86b60966c68f7e271a) Merge pull request #188 from AdamAmr05/fix-panel-active-space by @validatedev
+- [a782533](https://github.com/keshav-k3/watchtower/commit/a78253365da4c4f411f4899e923c26d1fee3ea90) Merge branch 'main' into fix-panel-active-space by @validatedev
+- [debfcd3](https://github.com/keshav-k3/watchtower/commit/debfcd398606d7905e49dd86c0005f5ad0a3bae7) fix(cursor): handle team usage without enabled flag (#190) by @davidarny
+- [fd86cde](https://github.com/keshav-k3/watchtower/commit/fd86cde4c497f0e797e67bfbc70dfdaa5906ecd4) Fix panel opening on the active macOS Space by @AdamAmr05
+- [c3305c4](https://github.com/keshav-k3/watchtower/commit/c3305c4f7cce180ba0b6da4eb2d013a70db51a35) docs: update CONTRIBUTING.md to include maintainers and approval requirements; modify CODEOWNERS for broader review responsibility by @robinebers
+- [dd0d7a4](https://github.com/keshav-k3/watchtower/commit/dd0d7a4ef61a779e005d2f054acb4304d451ec0c) chore(deps): bump uuid from 1.20.0 to 1.21.0 in /src-tauri (#179) by @app/dependabot
+- [c993fa7](https://github.com/keshav-k3/watchtower/commit/c993fa73a3692972d773ed1f5890cde74919dc1d) chore(deps): bump lucide-react from 0.563.0 to 0.564.0 (#180) by @app/dependabot
+- [12ce55f](https://github.com/keshav-k3/watchtower/commit/12ce55f0de77de7c1eedfa51c516d3cbf5b2906d) fix: update model versions and improve filtering logic (#186) by @validatedev
+- [e0036a5](https://github.com/keshav-k3/watchtower/commit/e0036a5b34298e8583f15f5b4f000a30cccaa2f4) chore: remove outdated spec for next update label global refresh by @robinebers
+
+## 0.6.4
+
+### Bug Fixes
+- Resolve env vars for GUI launches (fish/zsh) ([#183](https://github.com/keshav-k3/watchtower/pull/183)) by @davidarny
+
+### Refactor
+- Remove provider_fetch_error deduplication logic by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.3...v0.6.4](https://github.com/keshav-k3/watchtower/compare/v0.6.3...v0.6.4)
+
+- [a7b230c](https://github.com/keshav-k3/watchtower/commit/a7b230c) fix: resolve env vars for GUI launches (fish/zsh) (#183) by @davidarny
+- [d46ce12](https://github.com/keshav-k3/watchtower/commit/d46ce12) refactor(analytics): remove provider_fetch_error deduplication logic by @robinebers
+
+## v0.6.3
+
+### New Features
+- Surface GPT-5.3-Codex-Spark per-model rate limits in Codex plugin ([#176](https://github.com/keshav-k3/watchtower/pull/176)) by @robinebers
+
+### Bug Fixes
+- Reduce noisy analytics event volume with dedupe guards ([#172](https://github.com/keshav-k3/watchtower/pull/172)) by @robinebers
+- Replace `var` with `const`/`let` in Codex rate-limit loop by @robinebers
+
+### Chores
+- Bump version to 0.6.3 by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.2...v0.6.3](https://github.com/keshav-k3/watchtower/compare/v0.6.2...v0.6.3)
+
+- [b9a595f](https://github.com/keshav-k3/watchtower/commit/b9a595f) fix(analytics): reduce noisy event volume with dedupe guards (#172) by @robinebers
+- [3e8e3b7](https://github.com/keshav-k3/watchtower/commit/3e8e3b7) feat(codex): surface GPT-5.3-Codex-Spark per-model rate limits (#176) by @robinebers
+- [6ca4794](https://github.com/keshav-k3/watchtower/commit/6ca4794) fix(codex): replace var with const/let in rate-limit loop by @robinebers
+- [abe3f24](https://github.com/keshav-k3/watchtower/commit/abe3f24) chore: bump version to 0.6.3 by @robinebers
+
+## v0.6.2
+
+### New Features
+- Implement Tauri runtime check for event tracking by @robinebers
+
+### Bug Fixes
+- Fix whitelisted env vars not being resolved from terminal zsh ([#167](https://github.com/keshav-k3/watchtower/pull/167)) by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.1...v0.6.2](https://github.com/keshav-k3/watchtower/compare/v0.6.1...v0.6.2)
+
+- [824e3da](https://github.com/keshav-k3/watchtower/commit/824e3da) fix(plugin-engine): read whitelisted env vars from terminal zsh (#167) by @robinebers
+- [ffb8883](https://github.com/keshav-k3/watchtower/commit/ffb8883) feat(analytics): implement Tauri runtime check for event tracking by @robinebers
+
+## 0.6.0
+
+### New Features
+- feat: add global shortcut to toggle panel ([#132](https://github.com/keshav-k3/watchtower/pull/132)) by @MuhammadAli511
+- Feat/perplexity plugin ([#138](https://github.com/keshav-k3/watchtower/pull/138)) by @garanda21
+- Add Factory/Droid plugin provider ([#130](https://github.com/keshav-k3/watchtower/pull/130)) by @MuhammadAli511
+
+### Bug Fixes
+- fix(provider-card): update progress marker logic to hide when pace is unavailable by @robinebers
+- fix: improve pace meter tooltip copy, marker logic, and styling ([#147](https://github.com/keshav-k3/watchtower/pull/147)) by @robinebers
+- fix(provider-card): streamline reset label formatting by @robinebers
+- fix(codex): support keychain-backed auth storage ([#146](https://github.com/keshav-k3/watchtower/pull/146)) by @robinebers
+- fix: keep reset labels at "Resets soon" near reset ([#143](https://github.com/keshav-k3/watchtower/pull/143)) by @robinebers
+- Update AGENTS.md to include new guideline for executive summaries by @robinebers
+- Reset timers display mode ([#142](https://github.com/keshav-k3/watchtower/pull/142)) by @robinebers
+- pacing: Add progress-bar pace marker ([#140](https://github.com/keshav-k3/watchtower/pull/140)) by @robinebers
+- Update README.md to add warning about main branch stability before Stack subsection. by @robinebers
+- Next update label refresh ([#141](https://github.com/keshav-k3/watchtower/pull/141)) by @robinebers
+- fix(update): soften transient update check error UX ([#139](https://github.com/keshav-k3/watchtower/pull/139)) by @robinebers
+
+### Refactor
+- Enhance redaction functionality and update AGENTS.md guidelines by @robinebers
+- feat(kimi, mock, perplexity, windsurf): enhance plugin tests and functionality by @robinebers
+
+### Chores
+- chore: bump version to 0.6.0 by @robinebers
+- chore: bump version to 0.5.3 by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.5.2...v0.6.0](https://github.com/keshav-k3/watchtower/compare/v0.5.2...v0.6.0)
+
+- [f99f1d2](https://github.com/keshav-k3/watchtower/commit/f99f1d2) chore: bump version to 0.6.0 by @robinebers
+- [740c3e5](https://github.com/keshav-k3/watchtower/commit/740c3e5) chore: bump version to 0.5.3 by @robinebers
+- [47268fe](https://github.com/keshav-k3/watchtower/commit/47268fe) feat(kimi, mock, perplexity, windsurf): enhance plugin tests and functionality by @robinebers
+- [b4c6934](https://github.com/keshav-k3/watchtower/commit/b4c6934) fix(provider-card): update progress marker logic to hide when pace is unavailable by @robinebers
+- [efba3e4](https://github.com/keshav-k3/watchtower/commit/efba3e4) feat: add global shortcut to toggle panel (#132) by @MuhammadAli511
+- [f86add4](https://github.com/keshav-k3/watchtower/commit/f86add4) fix: improve pace meter tooltip copy, marker logic, and styling (#147) by @robinebers
+- [f6cedf9](https://github.com/keshav-k3/watchtower/commit/f6cedf9) fix(provider-card): streamline reset label formatting by @robinebers
+- [54e5a90](https://github.com/keshav-k3/watchtower/commit/54e5a90) fix(codex): support keychain-backed auth storage (#146) by @robinebers
+- [79a530f](https://github.com/keshav-k3/watchtower/commit/79a530f) Feat/perplexity plugin (#138) by @garanda21
+- [e4bdae2](https://github.com/keshav-k3/watchtower/commit/e4bdae2) fix: keep reset labels at "Resets soon" near reset (#143) by @robinebers
+- [39346b1](https://github.com/keshav-k3/watchtower/commit/39346b1) Update AGENTS.md to include new guideline for executive summaries by @robinebers
+- [4075e47](https://github.com/keshav-k3/watchtower/commit/4075e47) Enhance redaction functionality and update AGENTS.md guidelines by @robinebers
+- [8f7907e](https://github.com/keshav-k3/watchtower/commit/8f7907e) Reset timers display mode (#142) by @robinebers
+- [5ce2d9b](https://github.com/keshav-k3/watchtower/commit/5ce2d9b) pacing: Add progress-bar pace marker (#140) by @robinebers
+- [cdcddde](https://github.com/keshav-k3/watchtower/commit/cdcddde) Update README.md to add warning about main branch stability before Stack subsection. by @robinebers
+- [cf71b2e](https://github.com/keshav-k3/watchtower/commit/cf71b2e) Next update label refresh (#141) by @robinebers
+- [e23091c](https://github.com/keshav-k3/watchtower/commit/e23091c) Add Factory/Droid plugin provider (#130) by @MuhammadAli511
+- [ffdab91](https://github.com/keshav-k3/watchtower/commit/ffdab91) fix(update): soften transient update check error UX (#139) by @robinebers
+
+## v0.5.2
+
+### New Features
+- Add Aptabase analytics events for key user interactions ([#124](https://github.com/keshav-k3/watchtower/pull/124)) by @robinebers
+- Antigravity OAuth fallback ([#128](https://github.com/keshav-k3/watchtower/pull/128)) by @validatedev
+
+### Bug Fixes
+- Added a little `pr-review` command for Cursor that makes reviewing PRs easier by @robinebers
+
+### Chores
+- Update icon assets by replacing the main icon and removing outdated iOS icon exports ([#125](https://github.com/keshav-k3/watchtower/pull/125)) by @robinebers
+- Bump version to 0.5.2 by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.5.1...v0.5.2](https://github.com/keshav-k3/watchtower/compare/v0.5.1...v0.5.2)
+
+- [e80f8a4](https://github.com/keshav-k3/watchtower/commit/e80f8a4) chore: bump version to 0.5.2 by @robinebers
+- [d067b1f](https://github.com/keshav-k3/watchtower/commit/d067b1f) feat: Antigravity OAuth fallback (#128) by @validatedev
+- [9deed51](https://github.com/keshav-k3/watchtower/commit/9deed51) Added a little `pr-review` command for Cursor that makes reviewing PRs easier by @robinebers
+- [7f6a42d](https://github.com/keshav-k3/watchtower/commit/7f6a42d) feat: add Aptabase analytics events for key user interactions (#124) by @robinebers
+- [1386897](https://github.com/keshav-k3/watchtower/commit/1386897) chore: update icon assets by replacing the main icon and removing outdated iOS icon exports (#125) by @robinebers
+
+## v0.5.1
+
+### New Features
+- Add Amp provider plugin ([#111](https://github.com/keshav-k3/watchtower/pull/111)) by @validatedev
+- Add Kimi provider plugin with full-color icon support ([#109](https://github.com/keshav-k3/watchtower/pull/109)) by @Yan-Yu-Lin
+- Add Windsurf Next variant support ([#114](https://github.com/keshav-k3/watchtower/pull/114)) by @robinebers
+- Add Applications drag target layout for macOS DMG ([#113](https://github.com/keshav-k3/watchtower/pull/113)) by @daeshawnballard
+
+### Bug Fixes
+- Stop showing billing cycle pacing for Windsurf flex credits ([#119](https://github.com/keshav-k3/watchtower/pull/119)) by @robinebers
+- Support Cursor Enterprise accounts with request-based usage ([#118](https://github.com/keshav-k3/watchtower/pull/118)) by @iicdii
+
+### Chores
+- Update README.md to encourage community contributions by @robinebers
+- Update README.md to include Amp provider in supported providers list by @robinebers
+- Update AGENTS.md to include PR preparation guidelines by @robinebers
+- Update README.md to highlight AI-generated project features by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.5.0...v0.5.1](https://github.com/keshav-k3/watchtower/compare/v0.5.0...v0.5.1)
+
+- [98e861c](https://github.com/keshav-k3/watchtower/commit/98e861c) fix(windsurf): stop showing billing cycle pacing for flex credits (#119) by @robinebers
+- [f6a8bfc](https://github.com/keshav-k3/watchtower/commit/f6a8bfc) fix(cursor): support Enterprise accounts with request-based usage (#118) by @iicdii
+- [09187ec](https://github.com/keshav-k3/watchtower/commit/09187ec) docs: update README.md to encourage community contributions by @robinebers
+- [30583f4](https://github.com/keshav-k3/watchtower/commit/30583f4) docs: update README.md to include Amp provider in supported providers list by @robinebers
+- [65e7913](https://github.com/keshav-k3/watchtower/commit/65e7913) feat: add Amp provider plugin (#111) by @validatedev
+- [28a92f2](https://github.com/keshav-k3/watchtower/commit/28a92f2) feat(kimi): add Kimi provider plugin with full-color icon support (#109) by @Yan-Yu-Lin
+- [8ad9283](https://github.com/keshav-k3/watchtower/commit/8ad9283) docs: update AGENTS.md to include PR preparation guidelines by @robinebers
+- [fd92d28](https://github.com/keshav-k3/watchtower/commit/fd92d28) windsurf: add Windsurf Next variant support (#114) by @robinebers
+- [d28384d](https://github.com/keshav-k3/watchtower/commit/d28384d) tauri(dmg): add Applications drag target layout (#113) by @daeshawnballard
+- [caa12e5](https://github.com/keshav-k3/watchtower/commit/caa12e5) docs: update README.md to highlight AI-generated project features by @robinebers
+
+## v0.5.0
+
+### New Features
+- Auto-disable new non-default plugins ([#105](https://github.com/keshav-k3/watchtower/pull/105)) by @robinebers
+- Resolve auth path via CODEX_HOME and host env API ([#90](https://github.com/keshav-k3/watchtower/pull/90)) by @igalarzab
+- Add name field to redaction logic and corresponding tests by @robinebers
+- Add Windsurf plugin provider ([#93](https://github.com/keshav-k3/watchtower/pull/93)) by @robinebers
+- Add Antigravity plugin provider ([#91](https://github.com/keshav-k3/watchtower/pull/91)) by @robinebers
+
+### Bug Fixes
+- Updated dark theme, scrollable panel, and sidebar refinements ([#88](https://github.com/keshav-k3/watchtower/pull/88)) by @robinebers
+
+### Refactor
+- Simplify HTTP request handling in probePort function by @robinebers
+
+### Chores
+- Bump reqwest from 0.12.28 to 0.13.2 in /src-tauri ([#104](https://github.com/keshav-k3/watchtower/pull/104)) by @dependabot
+- Bump tauri-plugin-updater in /src-tauri ([#99](https://github.com/keshav-k3/watchtower/pull/99)) by @dependabot
+- Bump rquickjs from 0.10.0 to 0.11.0 in /src-tauri ([#98](https://github.com/keshav-k3/watchtower/pull/98)) by @dependabot
+- Bump @vitejs/plugin-react from 4.7.0 to 5.1.3 ([#100](https://github.com/keshav-k3/watchtower/pull/100)) by @dependabot
+- Bump jsdom from 27.4.0 to 28.0.0 ([#101](https://github.com/keshav-k3/watchtower/pull/101)) by @dependabot
+- Bump typescript from 5.8.3 to 5.9.3 ([#102](https://github.com/keshav-k3/watchtower/pull/102)) by @dependabot
+- Bump time from 0.3.46 to 0.3.47 in /src-tauri ([#103](https://github.com/keshav-k3/watchtower/pull/103)) by @dependabot
+- Add open-source community files and CI workflows ([#95](https://github.com/keshav-k3/watchtower/pull/95)) by @robinebers
+- Update README.md to reflect new provider additions and modify upcoming features section by @robinebers
+- Update package metadata in Cargo.toml by @robinebers
+- Bump version to 0.5.0 by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.4.2...v0.5.0](https://github.com/keshav-k3/watchtower/compare/v0.4.2...v0.5.0)
+
+- [f1cf2bc](https://github.com/keshav-k3/watchtower/commit/f1cf2bc) feat(settings): auto-disable new non-default plugins (#105) by @robinebers
+- [c7bf1cc](https://github.com/keshav-k3/watchtower/commit/c7bf1cc) feat(codex): resolve auth path via CODEX_HOME and host env API (#90) by @igalarzab
+- [c49ce70](https://github.com/keshav-k3/watchtower/commit/c49ce70) chore(deps): bump reqwest from 0.12.28 to 0.13.2 in /src-tauri (#104) by @dependabot
+- [83f8c44](https://github.com/keshav-k3/watchtower/commit/83f8c44) chore(deps): bump tauri-plugin-updater in /src-tauri (#99) by @dependabot
+- [a07abf9](https://github.com/keshav-k3/watchtower/commit/a07abf9) chore(deps): bump rquickjs from 0.10.0 to 0.11.0 in /src-tauri (#98) by @dependabot
+- [c5167b7](https://github.com/keshav-k3/watchtower/commit/c5167b7) chore(deps-dev): bump @vitejs/plugin-react from 4.7.0 to 5.1.3 (#100) by @dependabot
+- [0f14a64](https://github.com/keshav-k3/watchtower/commit/0f14a64) chore(deps-dev): bump jsdom from 27.4.0 to 28.0.0 (#101) by @dependabot
+- [7dfb11e](https://github.com/keshav-k3/watchtower/commit/7dfb11e) chore(deps-dev): bump typescript from 5.8.3 to 5.9.3 (#102) by @dependabot
+- [5c9b948](https://github.com/keshav-k3/watchtower/commit/5c9b948) chore(deps): bump time from 0.3.46 to 0.3.47 in /src-tauri (#103) by @dependabot
+- [b1e52eb](https://github.com/keshav-k3/watchtower/commit/b1e52eb) docs: Update README.md to reflect new provider additions and modify upcoming features section by @robinebers
+- [661ca68](https://github.com/keshav-k3/watchtower/commit/661ca68) chore: Add open-source community files and CI workflows (#95) by @robinebers
+- [bb57cd3](https://github.com/keshav-k3/watchtower/commit/bb57cd3) refactor(antigravity): simplify HTTP request handling in probePort function by @robinebers
+- [463fb0c](https://github.com/keshav-k3/watchtower/commit/463fb0c) feat(redaction): Add name field to redaction logic and corresponding tests by @robinebers
+- [f2d1e9e](https://github.com/keshav-k3/watchtower/commit/f2d1e9e) feat(windsurf): Add Windsurf plugin provider (#93) by @robinebers
+- [01d81ce](https://github.com/keshav-k3/watchtower/commit/01d81ce) feat(antigravity): Add Antigravity plugin provider (#91) by @robinebers
+- [7905417](https://github.com/keshav-k3/watchtower/commit/7905417) ui: Updated dark theme, scrollable panel, and sidebar refinements (#88) by @robinebers
+- [46a452e](https://github.com/keshav-k3/watchtower/commit/46a452e) chore: update package metadata in Cargo.toml by @robinebers
+- [f73192c](https://github.com/keshav-k3/watchtower/commit/f73192c) chore: bump version to 0.5.0 by @robinebers
+
+## v0.4.2
+
+### New Features
+- Add Help button to open GitHub issues page by @robinebers
+- Pacing tooltip projection and limit hit ETA ([#87](https://github.com/keshav-k3/watchtower/pull/87)) by @marcjaner
+- Add provider icon style option to tray ([#81](https://github.com/keshav-k3/watchtower/pull/81)) by @robinebers
+
+### Chores
+- Bump version to 0.4.2
+- Bump version to 0.4.1
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.4.1...v0.4.2](https://github.com/keshav-k3/watchtower/compare/v0.4.1...v0.4.2)
+
+- [0d52efd](https://github.com/keshav-k3/watchtower/commit/0d52efd) chore: bump version to 0.4.2
+- [0d17daa](https://github.com/keshav-k3/watchtower/commit/0d17daa) feat(side-nav): add Help button to open GitHub issues page
+- [0605d4b](https://github.com/keshav-k3/watchtower/commit/0605d4b) Feat/pacing tooltip projection and limit hit eta (#87)
+- [618cca7](https://github.com/keshav-k3/watchtower/commit/618cca7) chore: bump version to 0.4.1
+- [de401e3](https://github.com/keshav-k3/watchtower/commit/de401e3) tray: add provider icon style option (#81)
+
+## v0.4.1
+
+### New Features
+- Add provider icon style and enhance settings functionality by @robinebers
+
+### Bug Fixes
+- Update references from "Claude" to "Provider" for consistency by @robinebers
+
+### Refactor
+- Update section headings and descriptions for clarity by @robinebers
+- Update checkbox component to use new primitive and improve styling by @robinebers
+
+### Chores
+- Update dark theme colors and enhance settings page text by @robinebers
+- Update SVG attributes for improved icon rendering by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.4.0...v0.4.1](https://github.com/keshav-k3/watchtower/compare/v0.4.0...v0.4.1)
+
+- [cd6225e](https://github.com/keshav-k3/watchtower/commit/cd6225e) chore: bump version to 0.4.1
+- [eb6a92a](https://github.com/keshav-k3/watchtower/commit/eb6a92a) style(settings): update SVG attributes for improved icon rendering
+- [c8795f2](https://github.com/keshav-k3/watchtower/commit/c8795f2) fix(provider): update references from "Claude" to "Provider" for consistency
+- [8b0022a](https://github.com/keshav-k3/watchtower/commit/8b0022a) refactor(settings): update section headings and descriptions for clarity
+- [13b5cd2](https://github.com/keshav-k3/watchtower/commit/13b5cd2) refactor(checkbox): update checkbox component to use new primitive and improve styling
+- [8efb8e7](https://github.com/keshav-k3/watchtower/commit/8efb8e7) feat(tray): add provider icon style and enhance settings functionality
+- [2efe6dd](https://github.com/keshav-k3/watchtower/commit/2efe6dd) style: update dark theme colors and enhance settings page text
+
+## v0.4.0
+
+### New Features
+- Customizable tray icon styles and percentage text ([#78](https://github.com/keshav-k3/watchtower/pull/78))
+
+### Bug Fixes
+- Prevent background timer suspension on macOS ([#74](https://github.com/keshav-k3/watchtower/pull/74))
+- Remove emdashes ([8d456f9](https://github.com/keshav-k3/watchtower/commit/8d456f9))
+
+### Chores
+- Update icon assets and icon configuration ([32948c9](https://github.com/keshav-k3/watchtower/commit/32948c9))
+- Update README to enhance clarity and detail ([8e3a7e2](https://github.com/keshav-k3/watchtower/commit/8e3a7e2))
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.3.1...v0.4.0](https://github.com/keshav-k3/watchtower/compare/v0.3.1...v0.4.0)
+
+- [a0b1519](https://github.com/keshav-k3/watchtower/commit/a0b1519) chore: bump version to 0.4.0
+- [168f23b](https://github.com/keshav-k3/watchtower/commit/168f23b) tray: customizable icon styles and percentage text (#78)
+- [8d456f9](https://github.com/keshav-k3/watchtower/commit/8d456f9) remove god damn emdashes
+- [8e3a7e2](https://github.com/keshav-k3/watchtower/commit/8e3a7e2) docs: update README to enhance clarity and detail
+- [32948c9](https://github.com/keshav-k3/watchtower/commit/32948c9) chore: update icon assets and icon configuration
+- [4800e36](https://github.com/keshav-k3/watchtower/commit/4800e36) fix(macos): prevent background timer suspension (#74)
+
+## v0.3.1
+
+### Bug Fixes
+- Prevent background timer suspension on macOS by disabling WebKit's `inactiveSchedulingPolicy` and App Nap at startup
+- Use `NSActivityUserInitiatedAllowingIdleSystemSleep` instead of `NSActivityBackground` to reliably prevent App Nap
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.3.0...v0.3.1](https://github.com/keshav-k3/watchtower/compare/v0.3.0...v0.3.1)
+
+- [19164fa](https://github.com/keshav-k3/watchtower/commit/19164fa) feat(macos): add objc2 dependencies and implement app nap and webview suspension handling
+- [6ff19ba](https://github.com/keshav-k3/watchtower/commit/6ff19ba) fix(macos): use NSActivityUserInitiatedAllowingIdleSystemSleep instead of NSActivityBackground
+- [c532c69](https://github.com/keshav-k3/watchtower/commit/c532c69) chore: bump version to 0.3.1
+
+## v0.3.0
+
+### New Features
+- Add Copilot plugin and tests ([#69](https://github.com/keshav-k3/watchtower/pull/69)) by @tomhhealy
+- Add pace tracking indicator for usage metrics ([#70](https://github.com/keshav-k3/watchtower/pull/70)) by @robinebers
+- Enhance log redaction and add new sensitive keys ([#72](https://github.com/keshav-k3/watchtower/pull/72)) by @robinebers
+
+### Chores
+- Update progress line structure in Copilot plugin.json by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.2.2...v0.3.0](https://github.com/keshav-k3/watchtower/compare/v0.2.2...v0.3.0)
+
+- [819b9bb](https://github.com/keshav-k3/watchtower/commit/819b9bb) chore: bump version to 0.3.0
+- [8d8da67](https://github.com/keshav-k3/watchtower/commit/8d8da67) refactor(copilot): update progress line structure in plugin.json
+- [b86478d](https://github.com/keshav-k3/watchtower/commit/b86478d) feat(logging): enhance log redaction and add new sensitive keys (#72)
+- [c85b3f1](https://github.com/keshav-k3/watchtower/commit/c85b3f1) feat: add Copilot plugin and tests (#69)
+- [acaac92](https://github.com/keshav-k3/watchtower/commit/acaac92) feat: Add pace tracking indicator for usage metrics (#70)
+
+## v0.2.2
+
+### New Features
+- Conditional primary metrics + Cursor credits balance ([#68](https://github.com/keshav-k3/watchtower/pull/68)) by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.2.1...v0.2.2](https://github.com/keshav-k3/watchtower/compare/v0.2.1...v0.2.2)
+
+- [eb99a67](https://github.com/keshav-k3/watchtower/commit/eb99a67) chore: bump version to 0.2.2
+- [c280059](https://github.com/keshav-k3/watchtower/commit/c280059) plugins: Conditional primary metrics + Cursor credits balance (#68)
+
+## v0.2.1
+
+### New Features
+- Add 15-minute auto-check interval for app updates ([#66](https://github.com/keshav-k3/watchtower/pull/66)) by @robinebers
+
+### Bug Fixes
+- Use immutable=1 to prevent WAL false negatives after sleep ([#65](https://github.com/keshav-k3/watchtower/pull/65)) by @robinebers
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.2.0...v0.2.1](https://github.com/keshav-k3/watchtower/compare/v0.2.0...v0.2.1)
+
+- [0aff5a3](https://github.com/keshav-k3/watchtower/commit/0aff5a3) chore: bump version to 0.2.1
+- [46f76ea](https://github.com/keshav-k3/watchtower/commit/46f76ea) feat(update): add 15-minute auto-check interval for app updates (#66)
+- [c4cbdfa](https://github.com/keshav-k3/watchtower/commit/c4cbdfa) fix(sqlite): use immutable=1 to prevent WAL false negatives after sleep (#65)
+
+## v0.2.0
+
+### New Features
+- **Usage display modes**: Show "used" or "left" with configurable default ([#60](https://github.com/keshav-k3/watchtower/pull/60), [#63](https://github.com/keshav-k3/watchtower/pull/63))
+- **Debug logging**: Tray menu option to set log level for troubleshooting ([#64](https://github.com/keshav-k3/watchtower/pull/64))
+- **Escape to dismiss**: Press Escape to hide the panel
+- **Update button animation**: Animated border beam on available updates ([#58](https://github.com/keshav-k3/watchtower/pull/58))
+
+### Bug Fixes
+- Fix a keychain JSON storage causing credential read failures in Claude ([#61](https://github.com/keshav-k3/watchtower/pull/61))
+- Exclude test files from production builds ([#62](https://github.com/keshav-k3/watchtower/pull/62))
+- Adjust panel positioning on macOS ([#59](https://github.com/keshav-k3/watchtower/pull/59))
+
+---
+
+**Full Changelog**: [v0.1.2...v0.2.0](https://github.com/keshav-k3/watchtower/compare/v0.1.2...v0.2.0)
+
+## 0.1.2
+
+### New Features
+- Dynamic tray icon with primary progress bars + about dialog ([#51](https://github.com/keshav-k3/watchtower/pull/51))
+- Add AboutDialog and enhance version display interaction ([#49](https://github.com/keshav-k3/watchtower/pull/49))
+- Add settings button, plugins subtitle, and tray context menu ([#50](https://github.com/keshav-k3/watchtower/pull/50))
+
+### Bug Fixes
+- Update subtitle fallback for session status in Claude and Codex plugins and fix about plugin text, replaced home icon with Watchtower logo ([#57](https://github.com/keshav-k3/watchtower/pull/57))
+- Resolve gray border artifact on macOS transparent windows ([#53](https://github.com/keshav-k3/watchtower/pull/53))
+- Handle hex-encoded keychain credentials ([#48](https://github.com/keshav-k3/watchtower/pull/48))
+
+### Refactor
+- Refactor plugins to use ctx.util helpers ([#54](https://github.com/keshav-k3/watchtower/pull/54))
+- Standardize provider documentation to minimal format ([#52](https://github.com/keshav-k3/watchtower/pull/52))
+
+### Chores
+- Update AGENTS.md with new tauri-action parallel build information
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.1.1...v0.1.2](https://github.com/keshav-k3/watchtower/compare/v0.1.1...v0.1.2)
+
+- [07854d1](https://github.com/keshav-k3/watchtower/commit/07854d1) fix(plugins): update subtitle fallback for session status in Claude and Codex plugins and fix about plugin text, replaced home icon with Watchtower logo (#57)
+- [cfeb157](https://github.com/keshav-k3/watchtower/commit/cfeb157) fix(panel): resolve gray border artifact on macOS transparent windows (#53)
+- [1cf9c68](https://github.com/keshav-k3/watchtower/commit/1cf9c68) Refactor plugins to use ctx.util helpers (#54)
+- [9e276bf](https://github.com/keshav-k3/watchtower/commit/9e276bf) Standardize provider documentation to minimal format (#52)
+- [b2495ad](https://github.com/keshav-k3/watchtower/commit/b2495ad) feat(tray): Dynamic tray icon with primary progress bars + about dialog (#51)
+- [8dc1e99](https://github.com/keshav-k3/watchtower/commit/8dc1e99) Add settings button, plugins subtitle, and tray context menu (#50)
+- [8768474](https://github.com/keshav-k3/watchtower/commit/8768474) feat(panel-footer): add AboutDialog and enhance version display interaction (#49)
+- [5f14123](https://github.com/keshav-k3/watchtower/commit/5f14123) fix(claude): handle hex-encoded keychain credentials (#48)
+- [4808686](https://github.com/keshav-k3/watchtower/commit/4808686) docs: update AGENTS.md with new tauri-action parallel build information
+
+## v0.1.1
+
+### New Features
+- Add line scope API for overview/detail filtering ([#44](https://github.com/keshav-k3/watchtower/pull/44))
+- Add upward-pointing arrow to tray panel ([#43](https://github.com/keshav-k3/watchtower/pull/43))
+- Replace refresh button with countdown timer ([#41](https://github.com/keshav-k3/watchtower/pull/41))
+- fetch and display app version in footer
+
+### Refactor
+- streamline update handling by removing download trigger
+
+### Chores
+- enhance publish workflow and plugin initialization
+- update publish workflow and remove unused bundled_plugins directory
+- update documentation and .gitignore for auto-update interval feature ([#42](https://github.com/keshav-k3/watchtower/pull/42))
+- update screenshot asset
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.0.2...v0.1.1](https://github.com/keshav-k3/watchtower/compare/v0.0.2...v0.1.1)
+
+- [6a72419](https://github.com/keshav-k3/watchtower/commit/6a72419) plugins: Add line scope API for overview/detail filtering (#44)
+- [aa4be14](https://github.com/keshav-k3/watchtower/commit/aa4be14) Add upward-pointing arrow to tray panel (#43)
+- [6c5502c](https://github.com/keshav-k3/watchtower/commit/6c5502c) chore: update documentation and .gitignore for auto-update interval feature (#42)
+- [0b918a8](https://github.com/keshav-k3/watchtower/commit/0b918a8) chore: update screenshot asset
+- [2d1c367](https://github.com/keshav-k3/watchtower/commit/2d1c367) footer: Replace refresh button with countdown timer (#41)
+- [f17ba61](https://github.com/keshav-k3/watchtower/commit/f17ba61) feat: fetch and display app version in footer
+- [55e30f4](https://github.com/keshav-k3/watchtower/commit/55e30f4) refactor: streamline update handling by removing download trigger
+- [b52ec74](https://github.com/keshav-k3/watchtower/commit/b52ec74) chore: enhance publish workflow and plugin initialization
+- [8feca7a](https://github.com/keshav-k3/watchtower/commit/8feca7a) chore: update publish workflow and remove unused bundled_plugins directory
+
+## v0.1.0
+
+### Changelog
+
+**Full Changelog**: [v0.0.2...v0.1.0](https://github.com/keshav-k3/watchtower/compare/v0.0.2...v0.1.0)
+
+- Replace refresh button with countdown timer ([#41](https://github.com/keshav-k3/watchtower/pull/41)) by @robinebers
+- Fix broken links and update outdated refresh references ([#42](https://github.com/keshav-k3/watchtower/pull/42)) by @robinebers
+- Add upward-pointing arrow to tray panel ([#43](https://github.com/keshav-k3/watchtower/pull/43)) by @robinebers
+- Add line scope API for overview/detail filtering ([#44](https://github.com/keshav-k3/watchtower/pull/44)) by @robinebers
+
+## v0.0.2
+
+*No release notes*
+
+## v0.0.1
+
+*No release notes*
