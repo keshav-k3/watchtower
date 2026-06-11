@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: build check docs-list format lint release restart start start-debug start-release stop test test-live test-tty
+.PHONY: build check coverage docs-list format lint release restart start start-debug start-release stop test test-live test-tty
 
 start:
 	./Scripts/compile_and_run.sh
@@ -32,6 +32,9 @@ build:
 
 test:
 	swift test
+
+coverage:
+	./Scripts/check_coverage.sh
 
 test-tty:
 	swift test --filter TTYIntegrationTests
