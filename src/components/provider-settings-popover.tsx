@@ -23,10 +23,10 @@ export function ProviderSettingsPopover({
     .filter((plugin): plugin is PluginMeta => Boolean(plugin))
 
   return (
-    <div className="absolute right-0 top-10 z-30 w-[214px] rounded-xl border border-white/[0.09] bg-[#202020] p-2 shadow-2xl shadow-black/40 ring-1 ring-black/20">
+    <div className="absolute right-0 top-10 z-30 w-[214px] rounded-[12px] border border-line-bright bg-surface-raised p-2 shadow-2xl shadow-black/50">
       <div className="px-2 pb-1.5 pt-1">
         <div className="text-[13px] font-semibold leading-5 text-foreground">Providers</div>
-        <div className="text-[11px] leading-4 text-muted-foreground">Toggle Visibility</div>
+        <div className="label-mono text-[9px] leading-4 text-muted-foreground/70">Toggle Visibility</div>
       </div>
       <div className="space-y-1">
         {providers.map((provider) => {
@@ -35,7 +35,7 @@ export function ProviderSettingsPopover({
             <button
               key={provider.id}
               type="button"
-              className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-white/[0.05]"
+              className="flex h-10 w-full items-center gap-2.5 rounded-[8px] px-2 text-left transition-colors hover:bg-surface"
               onClick={() => onProviderToggle(provider.id)}
             >
               <ProviderIcon
@@ -54,15 +54,15 @@ export function ProviderSettingsPopover({
                 className={cn(
                   "relative h-4 w-7 rounded-full border transition-colors",
                   isEnabled
-                    ? "border-white/20 bg-[#e5e5e5]"
-                    : "border-white/[0.08] bg-white/[0.06]"
+                    ? "border-transparent bg-[var(--display)]"
+                    : "border-line-bright bg-surface"
                 )}
               >
                 <span
                   className={cn(
                     "absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-transform",
                     isEnabled
-                      ? "translate-x-[13px] bg-[#1c1c1c]"
+                      ? "translate-x-[13px] bg-background"
                       : "translate-x-0.5 bg-muted-foreground"
                   )}
                 />

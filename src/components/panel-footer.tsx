@@ -32,7 +32,7 @@ function VersionDisplay({
   switch (updateStatus.status) {
     case "downloading":
       return (
-        <span className="text-xs text-muted-foreground">
+        <span className="label-mono text-[10px] text-muted-foreground">
           {updateStatus.progress >= 0
             ? `Downloading update ${updateStatus.progress}%`
             : "Downloading update..."}
@@ -51,7 +51,7 @@ function VersionDisplay({
       );
     case "installing":
       return (
-        <span className="text-xs text-muted-foreground">Installing...</span>
+        <span className="label-mono text-[10px] text-muted-foreground">Installing...</span>
       );
     case "error":
       if (updateStatus.message === "Update check failed") {
@@ -59,7 +59,7 @@ function VersionDisplay({
           <button
             type="button"
             onClick={onUpdateCheck}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="label-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={updateStatus.message}
           >
             Updates soon
@@ -67,7 +67,7 @@ function VersionDisplay({
         );
       }
       return (
-        <span className="text-xs text-destructive" title={updateStatus.message}>
+        <span className="label-mono text-[10px] text-destructive" title={updateStatus.message}>
           Update failed
         </span>
       );
@@ -76,7 +76,7 @@ function VersionDisplay({
         <button
           type="button"
           onClick={onVersionClick}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="label-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           Watchtower {version}
         </button>
@@ -113,7 +113,7 @@ export function PanelFooter({
 
   return (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-between border-t border-white/[0.08] bg-card/95 pt-1.5">
+      <div className="flex h-8 shrink-0 items-center justify-between border-t border-line bg-card/95 pt-1.5">
         <VersionDisplay
           version={version}
           updateStatus={updateStatus}
@@ -128,13 +128,13 @@ export function PanelFooter({
               event.currentTarget.blur()
               onRefreshAll()
             }}
-            className="text-xs text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
+            className="label-mono text-[10px] text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
             title="Refresh Now"
           >
             {countdownLabel}
           </button>
         ) : (
-          <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="label-mono text-[10px] text-muted-foreground tabular-nums">
             {countdownLabel}
           </span>
         )}

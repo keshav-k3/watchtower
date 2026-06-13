@@ -21,14 +21,14 @@ export function ProviderDetailPage({
 }: ProviderDetailPageProps) {
   if (!plugin) {
     return (
-      <div className="text-center text-muted-foreground py-8">
-        Provider not found
+      <div className="py-16 text-center">
+        <span className="label-mono text-[11px] text-muted-foreground">Provider Not Found</span>
       </div>
     )
   }
 
   return (
-    <div className="pb-5">
+    <div className="wt-enter pb-5">
       <ProviderCard
         id={plugin.meta.id}
         name={plugin.meta.name}

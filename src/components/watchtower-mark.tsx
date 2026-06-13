@@ -1,0 +1,31 @@
+type WatchtowerMarkProps = {
+  className?: string
+}
+
+/** The Watchtower brand mark (matches public/favicon.svg). Inherits currentColor. */
+export function WatchtowerMark({ className }: WatchtowerMarkProps) {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      className={className}
+      fill="currentColor"
+      role="img"
+      aria-hidden="true"
+    >
+      <defs>
+        <mask id="watchtower-mark-cutouts">
+          <rect width="1024" height="1024" fill="white" />
+          <path fill="black" d="M462 493c0-27 22-49 50-49s50 22 50 49v58H462v-58Z" />
+          <path fill="black" d="m512 643 73 104H439l73-104Z" />
+          <path fill="black" d="m407 741 60 84-91 92 31-176Z" />
+          <path fill="black" d="m617 741-60 84 91 92-31-176Z" />
+        </mask>
+      </defs>
+      <g mask="url(#watchtower-mark-cutouts)">
+        <path d="M512 142 226 407h572L512 142Z" />
+        <path d="M310 443h103v93h198v-93h103v127h77v136l-96 31 74 245H636L513 807 390 982H256l74-245-96-31V570h76V443Z" />
+        <path d="M169 474c0-18 15-33 33-33h93c18 0 33 15 33 33s-15 33-33 33h-93c-18 0-33-15-33-33Zm527 0c0-18 15-33 33-33h93c18 0 33 15 33 33s-15 33-33 33h-93c-18 0-33-15-33-33ZM196 340c8-16 28-22 44-14l83 43c16 8 22 28 14 44s-28 22-44 14l-83-43c-16-8-22-28-14-44Zm491 73c-8-16-2-36 14-44l83-43c16-8 36-2 44 14s2 36-14 44l-83 43c-16 8-36 2-44-14ZM196 609c-8-16-2-36 14-44l83-43c16-8 36-2 44 14s2 36-14 44l-83 43c-16 8-36 2-44-14Zm491-73c8-16 28-22 44-14l83 43c16 8 22 28 14 44s-28 22-44 14l-83-43c-16-8-22-28-14-44Z" />
+      </g>
+    </svg>
+  )
+}

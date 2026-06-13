@@ -21,17 +21,18 @@ export function OverviewPage({
 }: OverviewPageProps) {
   if (plugins.length === 0) {
     return (
-      <div className="py-8 text-center text-sm font-medium text-muted-foreground">
-        No Providers Available
+      <div className="flex flex-col items-center gap-2 py-16 text-center">
+        <span className="label-mono text-[11px] text-muted-foreground">No Providers Available</span>
+        <span className="label-mono text-[9px] text-muted-foreground/60">Enable A Provider In Settings</span>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2.5 pb-5">
+    <div className="space-y-3 pb-5">
       {plugins.map((plugin, index) => (
+        <div key={plugin.meta.id} className="wt-enter" style={{ animationDelay: `${index * 55}ms` }}>
         <ProviderCard
-          key={plugin.meta.id}
           id={plugin.meta.id}
           name={plugin.meta.name}
           iconUrl={plugin.meta.iconUrl}
@@ -51,6 +52,7 @@ export function OverviewPage({
           timeFormatMode={timeFormatMode}
           onResetTimerDisplayModeToggle={onResetTimerDisplayModeToggle}
         />
+        </div>
       ))}
     </div>
   )
