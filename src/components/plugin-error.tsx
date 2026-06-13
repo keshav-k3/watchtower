@@ -1,5 +1,5 @@
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { AlertCircleIcon } from "@hugeicons-pro/core-solid-rounded"
 
 type PluginErrorProps = {
   message: string
@@ -23,12 +23,9 @@ function formatMessage(message: string) {
 
 export function PluginError({ message }: PluginErrorProps) {
   return (
-    <Alert
-      variant="destructive"
-      className="flex items-center gap-2 [&>svg]:static [&>svg]:translate-y-0 [&>svg~*]:pl-0 [&>svg+div]:translate-y-0"
-    >
-      <AlertCircle className="h-4 w-4" />
-      <AlertDescription className="select-text cursor-text">{formatMessage(message)}</AlertDescription>
-    </Alert>
+    <div role="alert" className="flex items-center gap-2 text-[13px] font-medium leading-5 text-destructive">
+      <HugeiconsIcon icon={AlertCircleIcon} className="size-3.5 shrink-0" />
+      <div className="cursor-text select-text">{formatMessage(message)}</div>
+    </div>
   )
 }

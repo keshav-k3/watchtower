@@ -1,7 +1,8 @@
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { CheckmarkSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
-import { CheckIcon } from "lucide-react"
 
 function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
   return (
@@ -17,8 +18,7 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
         data-slot="checkbox-indicator"
         className="[&>svg]:size-3.5 grid place-content-center text-current transition-none"
       >
-        <CheckIcon
-        />
+        <HugeiconsIcon icon={CheckmarkSquare02Icon} className="size-3.5" />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   )

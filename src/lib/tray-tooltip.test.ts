@@ -37,7 +37,7 @@ describe("tray-tooltip", () => {
       expect(formatTrayTooltip([], mockMeta)).toBe("Watchtower")
     })
 
-    it("should list enabled plugins with percentages", () => {
+    it("should list visible providers with percentages", () => {
       const bars: TrayPrimaryBar[] = [
         { id: "p1", fraction: 0.45 },
         { id: "p2", fraction: 0.12 },

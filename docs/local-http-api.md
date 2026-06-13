@@ -10,7 +10,7 @@ The server starts automatically with the app. If the port is already in use, the
 
 ### `GET /v1/usage`
 
-Returns an array of cached usage snapshots for all **enabled** providers, ordered by your plugin settings.
+Returns an array of cached usage snapshots for visible bundled providers, using the app's fixed provider order.
 
 - **200 OK** — JSON array (may be empty `[]` if no cached data exists yet).
 
@@ -76,9 +76,9 @@ The `lines` array uses the same metric line types as the internal plugin output:
 
 ## Filtering and Caching Behavior
 
-- The collection endpoint (`/v1/usage`) returns **enabled providers only**, in the order defined by your plugin settings.
+- The collection endpoint (`/v1/usage`) returns visible bundled providers with cached data, using the app's fixed provider order.
 - Only **successful** probe results are cached. A failed probe never overwrites a previous successful snapshot.
-- The single-provider endpoint (`/v1/usage/:providerId`) works for any known provider, including disabled ones.
+- The single-provider endpoint (`/v1/usage/:providerId`) works for any known bundled provider, even if it is hidden from the collection endpoint.
 
 ## CORS
 

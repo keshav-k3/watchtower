@@ -42,7 +42,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        className={cn("relative h-3 w-full overflow-hidden rounded-full bg-muted dark:bg-[#353537]", className)}
+        className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]", className)}
         {...props}
       >
         <div
@@ -53,7 +53,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           <div
             data-slot="progress-marker"
             aria-hidden="true"
-            className="absolute top-0 bottom-0 w-1 z-10 pointer-events-none rounded-sm bg-muted-foreground ring-1 ring-background/50"
+            className="absolute bottom-0 top-0 z-10 w-1 rounded-sm bg-muted-foreground ring-1 ring-background/50 pointer-events-none"
             style={markerStyle}
           />
         )}

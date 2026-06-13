@@ -28,23 +28,28 @@ export function ProviderDetailPage({
   }
 
   return (
-    <ProviderCard
-      name={plugin.meta.name}
-      plan={plugin.data?.plan}
-      links={plugin.meta.links}
-      showSeparator={false}
-      loading={plugin.loading}
-      error={plugin.error}
-      lines={plugin.data?.lines ?? []}
-      skeletonLines={plugin.meta.lines}
-      lastManualRefreshAt={plugin.lastManualRefreshAt}
-      lastUpdatedAt={plugin.lastUpdatedAt}
-      onRetry={onRetry}
-      scopeFilter="all"
-      displayMode={displayMode}
-      resetTimerDisplayMode={resetTimerDisplayMode}
-      timeFormatMode={timeFormatMode}
-      onResetTimerDisplayModeToggle={onResetTimerDisplayModeToggle}
-    />
+    <div className="pb-5">
+      <ProviderCard
+        id={plugin.meta.id}
+        name={plugin.meta.name}
+        iconUrl={plugin.meta.iconUrl}
+        brandColor={plugin.meta.brandColor}
+        plan={plugin.data?.plan}
+        links={plugin.meta.links}
+        showSeparator={false}
+        loading={plugin.loading}
+        error={plugin.error}
+        lines={plugin.data?.lines ?? []}
+        skeletonLines={plugin.meta.lines}
+        lastManualRefreshAt={plugin.lastManualRefreshAt}
+        lastUpdatedAt={plugin.lastUpdatedAt}
+        onRetry={onRetry}
+        scopeFilter="all"
+        displayMode={displayMode}
+        resetTimerDisplayMode={resetTimerDisplayMode}
+        timeFormatMode={timeFormatMode}
+        onResetTimerDisplayModeToggle={onResetTimerDisplayModeToggle}
+      />
+    </div>
   )
 }

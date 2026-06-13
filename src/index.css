@@ -49,38 +49,38 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.13 0.028 261.692);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.028 261.692);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(0.21 0.034 264.665);
-  --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.967 0.003 264.542);
-  --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.003 264.542);
-  --accent-foreground: oklch(0.21 0.034 264.665);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
-  --ring: oklch(0.707 0.022 261.325);
+  --radius: 0.5rem;
+  --background: #1c1c1c;
+  --foreground: #e5e5e5;
+  --card: #1c1c1c;
+  --card-foreground: #e5e5e5;
+  --popover: #242424;
+  --popover-foreground: #e5e5e5;
+  --primary: #e5e5e5;
+  --primary-foreground: #1c1c1c;
+  --secondary: #232323;
+  --secondary-foreground: #e5e5e5;
+  --muted: #2a2a2a;
+  --muted-foreground: #a1a1a1;
+  --accent: #2f2f2f;
+  --accent-foreground: #e5e5e5;
+  --destructive: #ff5167;
+  --border: rgba(229, 229, 229, 0.1);
+  --input: rgba(229, 229, 229, 0.12);
+  --ring: #6f6f6f;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
-  --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
+  --sidebar: #171717;
+  --sidebar-foreground: #e5e5e5;
+  --sidebar-primary: #e5e5e5;
+  --sidebar-primary-foreground: #1c1c1c;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #e5e5e5;
+  --sidebar-border: rgba(229, 229, 229, 0.1);
+  --sidebar-ring: #6f6f6f;
 
   /* Tailwind green/yellow/red-500 (light: stock defaults) */
   --green-500: oklch(0.723 0.219 142.37);
@@ -89,46 +89,43 @@
 }
 
 :root.dark {
-  --background: #1c1c1e;
-  --foreground: #ededed;
-  --card: #1c1c1e;
-  --card-foreground: #ededed;
-  --popover: #2c2c2e;
-  --popover-foreground: #ededed;
-  --primary: #ededed;
-  --primary-foreground: #0a0a0a;
-  --secondary: #252527;
-  --secondary-foreground: #ededed;
-  --muted: #2a2a2c;
-  --muted-foreground: #888888;
-  --accent: #252527;
-  --accent-foreground: #ededed;
-  --destructive: #ef4444;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
+  --background: #1c1c1c;
+  --foreground: #e5e5e5;
+  --card: #1c1c1c;
+  --card-foreground: #e5e5e5;
+  --popover: #242424;
+  --popover-foreground: #e5e5e5;
+  --primary: #e5e5e5;
+  --primary-foreground: #1c1c1c;
+  --secondary: #232323;
+  --secondary-foreground: #e5e5e5;
+  --muted: #2a2a2a;
+  --muted-foreground: #a1a1a1;
+  --accent: #2f2f2f;
+  --accent-foreground: #e5e5e5;
+  --destructive: #ff4d5e;
+  --border: rgba(229, 229, 229, 0.1);
+  --input: rgba(229, 229, 229, 0.12);
   --ring: #555555;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #2a2a2c;
-  --sidebar-foreground: #ededed;
-  --sidebar-primary: #ededed;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: #2a2a2c;
-  --sidebar-accent-foreground: #ededed;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar: #171717;
+  --sidebar-foreground: #e5e5e5;
+  --sidebar-primary: #e5e5e5;
+  --sidebar-primary-foreground: #1c1c1c;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #e5e5e5;
+  --sidebar-border: rgba(229, 229, 229, 0.1);
   --sidebar-ring: #555555;
 
-  /* Accent highlight (lime) */
-  --page-accent: #BFFF00;
+  --page-accent: #a8ff5f;
 
-  /* Tailwind green/yellow/red-500 derived from page-accent lime
-     #BFFF00 ≈ oklch(0.93 0.27 128) — hue-rotate, keep chroma family */
-  --green-500: oklch(0.93 0.27 128);
-  --yellow-500: oklch(0.90 0.21 85);
-  --red-500: oklch(0.70 0.24 29);
+  --green-500: #a8ff5f;
+  --yellow-500: #f0c866;
+  --red-500: #ff5167;
 }
 
 @layer base {
@@ -137,6 +134,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0;
   }
 }
 

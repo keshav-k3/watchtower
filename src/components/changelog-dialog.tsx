@@ -1,5 +1,10 @@
 import { useEffect } from "react"
-import { Loader2, ChevronRight, ExternalLink as ExternalLinkIcon } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  ChevronRightIcon,
+  ExternalLinkIcon,
+  Loader03Icon,
+} from "@hugeicons-pro/core-solid-rounded"
 import { useChangelog } from "@/hooks/use-changelog"
 import { Button } from "@/components/ui/button"
 import { openUrl } from "@tauri-apps/plugin-opener"
@@ -201,7 +206,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
               className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
               title="Back"
             >
-              <ChevronRight className="w-5 h-5 rotate-180" />
+              <HugeiconsIcon icon={ChevronRightIcon} className="size-5 rotate-180" />
             </button>
             <h2 className="font-semibold text-sm tracking-tight">Release Notes</h2>
           </div>
@@ -210,7 +215,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar overflow-x-hidden">
           {loading ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <HugeiconsIcon icon={Loader03Icon} className="size-6 animate-spin" />
               <span className="text-xs">Fetching release info...</span>
             </div>
           ) : error ? (
@@ -242,7 +247,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
                   onClick={() => openUrl(currentRelease.html_url).catch(console.error)}
                   className="text-[10px] text-[#58a6ff] hover:underline flex items-center gap-1"
                 >
-                  GitHub <ExternalLinkIcon className="w-3 h-3" />
+                  GitHub <HugeiconsIcon icon={ExternalLinkIcon} className="size-3" />
                 </button>
               </div>
               

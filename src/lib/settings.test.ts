@@ -5,6 +5,7 @@ import {
   DEFAULT_GLOBAL_SHORTCUT,
   DEFAULT_MENUBAR_ICON_STYLE,
   DEFAULT_MENUBAR_METRIC,
+  DEFAULT_PROVIDER_ORDER,
   DEFAULT_PLUGIN_SETTINGS,
   DEFAULT_RESET_TIMER_DISPLAY_MODE,
   DEFAULT_START_ON_LOGIN,
@@ -86,7 +87,7 @@ describe("settings", () => {
     await expect(loadPluginSettings()).resolves.toEqual(settings)
   })
 
-  it("normalizes order + disabled against known plugins", () => {
+  it("normalizes order against known plugins and preserves disabled providers", () => {
     const plugins: PluginMeta[] = [
       { id: "a", name: "A", iconUrl: "", lines: [] },
       { id: "b", name: "B", iconUrl: "", lines: [] },
@@ -110,15 +111,33 @@ describe("settings", () => {
     })
   })
 
-  it("auto-disables new non-default plugins", () => {
+  it("keeps newly discovered bundled plugins visible", () => {
     const plugins: PluginMeta[] = [
       { id: "claude", name: "Claude", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "gemini", name: "Gemini", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "opencode", name: "OpenCode", iconUrl: "", lines: [], primaryCandidates: [] },
     ]
     const result = normalizePluginSettings({ order: [], disabled: [] }, plugins)
-    expect(result.order).toEqual(["claude", "gemini", "opencode"])
-    expect(result.disabled).toEqual(["gemini", "opencode"])
+    expect(result.order).toEqual(["claude", "opencode", "gemini"])
+    expect(result.disabled).toEqual([])
+  })
+
+  it("uses the fixed provider order and removes dev-only plugins", () => {
+    const plugins: PluginMeta[] = [
+      { id: "gemini", name: "Gemini", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "mock", name: "Mock Chaos", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "claude", name: "Claude", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "cursor", name: "Cursor", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "opencode", name: "OpenCode", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "codex", name: "Codex", iconUrl: "", lines: [], primaryCandidates: [] },
+    ]
+    const result = normalizePluginSettings(
+      { order: ["mock", "gemini", "cursor"], disabled: ["mock", "claude"] },
+      plugins
+    )
+
+    expect(result.order).toEqual(DEFAULT_PROVIDER_ORDER)
+    expect(result.disabled).toEqual(["claude"])
   })
 
   it("compares settings equality", () => {
@@ -129,7 +148,7 @@ describe("settings", () => {
     expect(arePluginSettingsEqual(a, c)).toBe(false)
   })
 
-  it("returns enabled plugin ids", () => {
+  it("returns visible ordered plugin ids", () => {
     expect(getEnabledPluginIds({ order: ["a", "b"], disabled: ["b"] })).toEqual(["a"])
   })
 
@@ -151,14 +170,14 @@ describe("settings", () => {
     await expect(loadThemeMode()).resolves.toBe(DEFAULT_THEME_MODE)
   })
 
-  it("loads stored theme mode", async () => {
+  it("ignores stored theme mode for dark-only UI", async () => {
     storeState.set("themeMode", "dark")
     await expect(loadThemeMode()).resolves.toBe("dark")
   })
 
-  it("saves theme mode", async () => {
+  it("saves theme mode without changing the loaded dark-only default", async () => {
     await saveThemeMode("light")
-    await expect(loadThemeMode()).resolves.toBe("light")
+    await expect(loadThemeMode()).resolves.toBe("dark")
   })
 
   it("falls back to default for invalid theme mode", async () => {
@@ -274,24 +293,15 @@ describe("settings", () => {
     await expect(loadMenubarIconStyle()).resolves.toBe(DEFAULT_MENUBAR_ICON_STYLE)
   })
 
-  it("loads stored menubar icon style", async () => {
+  it("ignores stored menubar icon style for the fixed watchtower icon", async () => {
     storeState.set("menubarIconStyle", "bars")
-    await expect(loadMenubarIconStyle()).resolves.toBe("bars")
+    await expect(loadMenubarIconStyle()).resolves.toBe(DEFAULT_MENUBAR_ICON_STYLE)
   })
 
-  it("saves menubar icon style", async () => {
+  it("saves menubar icon style without changing the loaded fixed default", async () => {
     await saveMenubarIconStyle("bars")
-    await expect(loadMenubarIconStyle()).resolves.toBe("bars")
-  })
-
-  it("loads stored menubar donut icon style", async () => {
-    storeState.set("menubarIconStyle", "donut")
-    await expect(loadMenubarIconStyle()).resolves.toBe("donut")
-  })
-
-  it("saves menubar donut icon style", async () => {
-    await saveMenubarIconStyle("donut")
-    await expect(loadMenubarIconStyle()).resolves.toBe("donut")
+    expect(storeState.get("menubarIconStyle")).toBe("bars")
+    await expect(loadMenubarIconStyle()).resolves.toBe(DEFAULT_MENUBAR_ICON_STYLE)
   })
 
   it("falls back to default for invalid menubar icon style", async () => {

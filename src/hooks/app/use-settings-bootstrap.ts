@@ -18,18 +18,9 @@ import {
   DEFAULT_THEME_MODE,
   DEFAULT_TIME_FORMAT_MODE,
   getEnabledPluginIds,
-  loadAutoUpdateInterval,
-  loadDisplayMode,
-  loadGlobalShortcut,
-  loadMenubarIconStyle,
-  loadMenubarMetric,
   migrateLegacyTraySettings,
   loadPluginSettings,
   migrateRenamedPluginIds,
-  loadResetTimerDisplayMode,
-  loadStartOnLogin,
-  loadThemeMode,
-  loadTimeFormatMode,
   normalizePluginSettings,
   savePluginSettings,
   type AutoUpdateIntervalMinutes,
@@ -105,54 +96,13 @@ export function useSettingsBootstrap({
           await savePluginSettings(normalized)
         }
 
-        let storedInterval = DEFAULT_AUTO_UPDATE_INTERVAL
-        try {
-          storedInterval = await loadAutoUpdateInterval()
-        } catch (error) {
-          console.error("Failed to load auto-update interval:", error)
-        }
-
-        let storedThemeMode = DEFAULT_THEME_MODE
-        try {
-          storedThemeMode = await loadThemeMode()
-        } catch (error) {
-          console.error("Failed to load theme mode:", error)
-        }
-
-        let storedDisplayMode = DEFAULT_DISPLAY_MODE
-        try {
-          storedDisplayMode = await loadDisplayMode()
-        } catch (error) {
-          console.error("Failed to load display mode:", error)
-        }
-
-        let storedResetTimerDisplayMode = DEFAULT_RESET_TIMER_DISPLAY_MODE
-        try {
-          storedResetTimerDisplayMode = await loadResetTimerDisplayMode()
-        } catch (error) {
-          console.error("Failed to load reset timer display mode:", error)
-        }
-
-        let storedTimeFormatMode = DEFAULT_TIME_FORMAT_MODE
-        try {
-          storedTimeFormatMode = await loadTimeFormatMode()
-        } catch (error) {
-          console.error("Failed to load time format mode:", error)
-        }
-
-        let storedGlobalShortcut = DEFAULT_GLOBAL_SHORTCUT
-        try {
-          storedGlobalShortcut = await loadGlobalShortcut()
-        } catch (error) {
-          console.error("Failed to load global shortcut:", error)
-        }
-
-        let storedStartOnLogin = DEFAULT_START_ON_LOGIN
-        try {
-          storedStartOnLogin = await loadStartOnLogin()
-        } catch (error) {
-          console.error("Failed to load start on login:", error)
-        }
+        const storedInterval = DEFAULT_AUTO_UPDATE_INTERVAL
+        const storedThemeMode = DEFAULT_THEME_MODE
+        const storedDisplayMode = DEFAULT_DISPLAY_MODE
+        const storedResetTimerDisplayMode = DEFAULT_RESET_TIMER_DISPLAY_MODE
+        const storedTimeFormatMode = DEFAULT_TIME_FORMAT_MODE
+        const storedGlobalShortcut = DEFAULT_GLOBAL_SHORTCUT
+        const storedStartOnLogin = DEFAULT_START_ON_LOGIN
 
         try {
           await applyStartOnLogin(storedStartOnLogin)
@@ -165,19 +115,8 @@ export function useSettingsBootstrap({
           console.error("Failed to migrate legacy tray settings:", error)
         }
 
-        let storedMenubarIconStyle = DEFAULT_MENUBAR_ICON_STYLE
-        try {
-          storedMenubarIconStyle = await loadMenubarIconStyle()
-        } catch (error) {
-          console.error("Failed to load menubar icon style:", error)
-        }
-
-        let storedMenubarMetric = DEFAULT_MENUBAR_METRIC
-        try {
-          storedMenubarMetric = await loadMenubarMetric()
-        } catch (error) {
-          console.error("Failed to load menubar metric:", error)
-        }
+        const storedMenubarIconStyle = DEFAULT_MENUBAR_ICON_STYLE
+        const storedMenubarMetric = DEFAULT_MENUBAR_METRIC
 
         if (isMounted) {
           setPluginSettings(normalized)

@@ -21,18 +21,21 @@ export function OverviewPage({
 }: OverviewPageProps) {
   if (plugins.length === 0) {
     return (
-      <div className="text-center text-muted-foreground py-8">
-        No providers enabled
+      <div className="py-8 text-center text-sm font-medium text-muted-foreground">
+        No Providers Available
       </div>
     )
   }
 
   return (
-    <div>
+    <div className="space-y-2.5 pb-5">
       {plugins.map((plugin, index) => (
         <ProviderCard
           key={plugin.meta.id}
+          id={plugin.meta.id}
           name={plugin.meta.name}
+          iconUrl={plugin.meta.iconUrl}
+          brandColor={plugin.meta.brandColor}
           plan={plugin.data?.plan}
           showSeparator={index < plugins.length - 1}
           loading={plugin.loading}

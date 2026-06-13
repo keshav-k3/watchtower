@@ -1,34 +1,20 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import { openUrl } from "@tauri-apps/plugin-opener"
-import { invoke } from "@tauri-apps/api/core"
 
 import { SideNav } from "@/components/side-nav"
-
-const darkModeState = vi.hoisted(() => ({
-  useDarkModeMock: vi.fn(() => false),
-}))
-
-vi.mock("@/hooks/use-dark-mode", () => ({
-  useDarkMode: darkModeState.useDarkModeMock,
-}))
-
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: vi.fn(() => Promise.resolve()),
-}))
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(() => Promise.resolve()),
 }))
 
 describe("SideNav", () => {
-  it("calls onViewChange for Home and Settings", async () => {
+  it("calls onViewChange for Home and omits Help and Settings", async () => {
     const onViewChange = vi.fn()
     render(<SideNav activeView="home" onViewChange={onViewChange} plugins={[]} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }))
-    expect(onViewChange).toHaveBeenCalledWith("settings")
+    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Home" }))
     expect(onViewChange).toHaveBeenCalledWith("home")
@@ -53,41 +39,18 @@ describe("SideNav", () => {
     expect(icon).toHaveStyle({ backgroundColor: "#ff0000" })
   })
 
-  it("falls back to currentColor (light) or white (dark) for low-contrast brand colors", () => {
+  it("renders Gemini with the branded gradient provider icon", () => {
     const onViewChange = vi.fn()
-
-    // Light mode + very light color => currentColor
-    darkModeState.useDarkModeMock.mockReturnValueOnce(false)
-    const { rerender } = render(
+    render(
       <SideNav
         activeView="home"
         onViewChange={onViewChange}
-        plugins={[{ id: "p", name: "P", iconUrl: "icon.svg", brandColor: "#ffffff" }]}
+        plugins={[{ id: "gemini", name: "Gemini", iconUrl: "gemini.svg", brandColor: "#4285f4" }]}
       />
     )
-    const pStyle = screen.getByRole("img", { name: "P" }).getAttribute("style") ?? ""
-    expect(pStyle).toMatch(/background-color:\s*currentcolor/i)
 
-    // Dark mode + very dark color => white
-    darkModeState.useDarkModeMock.mockReturnValueOnce(true)
-    rerender(
-      <SideNav
-        activeView="home"
-        onViewChange={onViewChange}
-        plugins={[{ id: "p2", name: "P2", iconUrl: "icon.svg", brandColor: "#000000" }]}
-      />
-    )
-    const p2Style = screen.getByRole("img", { name: "P2" }).getAttribute("style") ?? ""
-    expect(p2Style).toContain("rgb(255, 255, 255)")
-  })
-
-  it("opens the issues page and hides the panel from Help", async () => {
-    const onViewChange = vi.fn()
-    render(<SideNav activeView="home" onViewChange={onViewChange} plugins={[]} />)
-
-    await userEvent.click(screen.getByRole("button", { name: "Help" }))
-
-    expect(openUrl).toHaveBeenCalledWith("https://github.com/keshav-k3/watchtower/issues")
-    expect(invoke).toHaveBeenCalledWith("hide_panel")
+    const icon = screen.getByRole("img", { name: "Gemini" })
+    expect(icon.className).toContain("conic-gradient")
+    expect(icon.getAttribute("style")).toContain("gemini.svg")
   })
 })

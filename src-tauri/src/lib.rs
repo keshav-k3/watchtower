@@ -23,7 +23,7 @@ use uuid::Uuid;
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
-const GLOBAL_SHORTCUT_STORE_KEY: &str = "globalShortcut";
+const DEFAULT_GLOBAL_SHORTCUT: &str = "CommandOrControl+W";
 const DAILY_ACTIVE_TRACKED_DAY_KEY: &str = "analytics.daily_active_day";
 const DAILY_ACTIVE_EVENT_NAME: &str = "app_started";
 const MAX_CONCURRENT_PROBES: usize = 4;
@@ -594,35 +594,22 @@ pub fn run() {
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
-            // Register global shortcut from stored settings
+            // Register the fixed global shortcut.
             #[cfg(desktop)]
             {
-                use tauri_plugin_store::StoreExt;
-
-                if let Ok(store) = app.handle().store("settings.json") {
-                    if let Some(shortcut_value) = store.get(GLOBAL_SHORTCUT_STORE_KEY) {
-                        if let Some(shortcut) = shortcut_value.as_str() {
-                            let shortcut = shortcut.trim();
-                            if !shortcut.is_empty() {
-                                let handle = app.handle().clone();
-                                log::info!("Registering initial global shortcut: {}", shortcut);
-                                if let Err(e) = handle.global_shortcut().on_shortcut(
-                                    shortcut,
-                                    |app, _shortcut, event| {
-                                        handle_global_shortcut(app, event);
-                                    },
-                                ) {
-                                    log::warn!("Failed to register initial global shortcut: {}", e);
-                                } else if let Ok(mut managed_shortcut) =
-                                    managed_shortcut_slot().lock()
-                                {
-                                    *managed_shortcut = Some(shortcut.to_string());
-                                } else {
-                                    log::warn!("Failed to store managed shortcut in memory");
-                                }
-                            }
-                        }
-                    }
+                let handle = app.handle().clone();
+                log::info!("Registering initial global shortcut: {}", DEFAULT_GLOBAL_SHORTCUT);
+                if let Err(e) = handle.global_shortcut().on_shortcut(
+                    DEFAULT_GLOBAL_SHORTCUT,
+                    |app, _shortcut, event| {
+                        handle_global_shortcut(app, event);
+                    },
+                ) {
+                    log::warn!("Failed to register initial global shortcut: {}", e);
+                } else if let Ok(mut managed_shortcut) = managed_shortcut_slot().lock() {
+                    *managed_shortcut = Some(DEFAULT_GLOBAL_SHORTCUT.to_string());
+                } else {
+                    log::warn!("Failed to store managed shortcut in memory");
                 }
             }
 

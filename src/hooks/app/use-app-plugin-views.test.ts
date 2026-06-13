@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { useAppPluginViews } from "@/hooks/app/use-app-plugin-views"
 import type { PluginMeta } from "@/lib/plugin-types"
@@ -58,7 +58,7 @@ describe("useAppPluginViews", () => {
     ])
   })
 
-  it("falls back to home when active provider becomes disabled", async () => {
+  it("returns home when the active provider is hidden", () => {
     const setActiveView = vi.fn()
     const pluginSettings: PluginSettings = {
       order: ["codex"],
@@ -75,12 +75,10 @@ describe("useAppPluginViews", () => {
       })
     )
 
-    await waitFor(() => {
-      expect(setActiveView).toHaveBeenCalledWith("home")
-    })
+    expect(setActiveView).toHaveBeenCalledWith("home")
   })
 
-  it("does not fall back while plugin settings are still loading", async () => {
+  it("does not fall back while plugin settings are still loading", () => {
     const setActiveView = vi.fn()
     const pluginsMeta = [createPluginMeta("codex", "Codex")]
     const { rerender } = renderHook(
@@ -99,14 +97,12 @@ describe("useAppPluginViews", () => {
 
     rerender({
       pluginSettings: {
-        order: ["codex"],
+        order: [],
         disabled: ["codex"],
       },
     })
 
-    await waitFor(() => {
-      expect(setActiveView).toHaveBeenCalledWith("home")
-    })
+    expect(setActiveView).toHaveBeenCalledWith("home")
   })
 
   it("returns selected plugin for active provider view", () => {

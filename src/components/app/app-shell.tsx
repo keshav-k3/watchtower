@@ -1,9 +1,15 @@
+import { useState } from "react"
 import { useShallow } from "zustand/react/shallow"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { RefreshIcon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
 import { AppContent, type AppContentActionProps } from "@/components/app/app-content"
+import { Button } from "@/components/ui/button"
 import { PanelFooter } from "@/components/panel-footer"
+import { ProviderSettingsPopover } from "@/components/provider-settings-popover"
 import { SideNav, type NavPlugin, type PluginContextAction } from "@/components/side-nav"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
-import type { SettingsPluginState } from "@/hooks/app/use-settings-plugin-list"
+import type { PluginMeta } from "@/lib/plugin-types"
+import type { PluginSettings } from "@/lib/settings"
 import { useAppVersion } from "@/hooks/app/use-app-version"
 import { usePanel } from "@/hooks/app/use-panel"
 import { useAppUpdate } from "@/hooks/use-app-update"
@@ -14,28 +20,33 @@ const ARROW_OVERHEAD_PX = 37
 type AppShellProps = {
   onRefreshAll: () => void
   navPlugins: NavPlugin[]
+  pluginsMeta: PluginMeta[]
+  pluginSettings: PluginSettings | null
   displayPlugins: DisplayPluginState[]
-  settingsPlugins: SettingsPluginState[]
   autoUpdateNextAt: number | null
   selectedPlugin: DisplayPluginState | null
   onPluginContextAction: (pluginId: string, action: PluginContextAction) => void
   isPluginRefreshAvailable: (pluginId: string) => boolean
   onNavReorder: (orderedIds: string[]) => void
+  onProviderToggle: (pluginId: string) => void
   appContentProps: AppContentActionProps
 }
 
 export function AppShell({
   onRefreshAll,
   navPlugins,
+  pluginsMeta,
+  pluginSettings,
   displayPlugins,
-  settingsPlugins,
   autoUpdateNextAt,
   selectedPlugin,
   onPluginContextAction,
   isPluginRefreshAvailable,
   onNavReorder,
+  onProviderToggle,
   appContentProps,
 }: AppShellProps) {
+  const [showProviderSettings, setShowProviderSettings] = useState(false)
   const {
     activeView,
     setActiveView,
@@ -70,11 +81,11 @@ export function AppShell({
     <div
       ref={containerRef}
       tabIndex={-1}
-      className="flex flex-col items-center p-6 pt-1.5 bg-transparent outline-none"
+      className="flex flex-col items-center bg-transparent p-5 pt-1.5 outline-none"
     >
       <div className="tray-arrow" />
       <div
-        className="relative bg-card rounded-xl overflow-hidden select-none w-full border shadow-lg flex flex-col"
+        className="relative flex w-full select-none flex-col overflow-hidden rounded-xl border border-white/[0.09] bg-card shadow-2xl shadow-black/35"
         style={maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : undefined}
       >
         <div className="flex flex-1 min-h-0 flex-row">
@@ -86,18 +97,62 @@ export function AppShell({
             isPluginRefreshAvailable={isPluginRefreshAvailable}
             onReorder={onNavReorder}
           />
-          <div className="flex-1 flex flex-col px-3 pt-2 pb-1.5 min-w-0 bg-card dark:bg-muted/50">
+          <div className="flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
+            <header className="flex items-start justify-between gap-3 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035]">
+                  <img src="/icon.png" alt="" className="size-7 object-contain" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[28px] font-semibold leading-8 tracking-normal text-foreground">
+                    Watchtower
+                  </h1>
+                  <p className="text-[13px] font-medium leading-5 text-muted-foreground">
+                    AI Usage Across Providers
+                  </p>
+                </div>
+              </div>
+              <div className="relative flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Refresh"
+                  className="rounded-lg border border-white/[0.08] bg-white/[0.035] text-foreground hover:bg-white/[0.07]"
+                  onClick={onRefreshAll}
+                >
+                  <HugeiconsIcon icon={RefreshIcon} className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Provider Settings"
+                  aria-expanded={showProviderSettings}
+                  className="rounded-lg border border-white/[0.08] bg-white/[0.035] text-foreground hover:bg-white/[0.07]"
+                  onClick={() => setShowProviderSettings((value) => !value)}
+                >
+                  <HugeiconsIcon icon={Settings02Icon} className="size-4" />
+                </Button>
+                {showProviderSettings && (
+                  <ProviderSettingsPopover
+                    pluginsMeta={pluginsMeta}
+                    pluginSettings={pluginSettings}
+                    onProviderToggle={onProviderToggle}
+                  />
+                )}
+              </div>
+            </header>
             <div className="relative flex-1 min-h-0">
               <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-none">
                 <AppContent
                   {...appContentProps}
                   displayPlugins={displayPlugins}
-                  settingsPlugins={settingsPlugins}
                   selectedPlugin={selectedPlugin}
                 />
               </div>
               <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card dark:from-muted/50 to-transparent transition-opacity duration-200 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
+                className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card to-transparent transition-opacity duration-200 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
               />
             </div>
             <PanelFooter

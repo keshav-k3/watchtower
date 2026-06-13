@@ -196,7 +196,7 @@ export function useTrayIcon({
       const sizePx = getTrayIconSizePx(window.devicePixelRatio)
       const nextActiveView = activeViewRef.current
       const activeProviderId =
-        nextActiveView !== "home" && nextActiveView !== "settings" ? nextActiveView : null
+        nextActiveView !== "home" ? nextActiveView : null
 
       let trayProviderId: string | null = null
       if (activeProviderId && enabledPluginIds.includes(activeProviderId)) {
@@ -256,6 +256,34 @@ export function useTrayIcon({
       })
       const tooltip = formatTrayTooltip(tooltipBars, pluginsMetaRef.current, preferWeekly)
       const updateTooltip = () => setTrayTooltip(tooltip)
+
+      if (style === "watchtower") {
+        const gaugePath = trayGaugeIconPathRef.current
+        if (!gaugePath) {
+          updateTooltip()
+            .catch((e) => {
+              console.error("Failed to update tray tooltip:", e)
+            })
+            .finally(() => {
+              finalizeUpdate()
+            })
+          return
+        }
+
+        Promise.all([
+          tray.setIcon(gaugePath),
+          tray.setIconAsTemplate(true),
+          setTrayTitle(""),
+          updateTooltip(),
+        ])
+          .catch((e) => {
+            console.error("Failed to update tray watchtower icon:", e)
+          })
+          .finally(() => {
+            finalizeUpdate()
+          })
+        return
+      }
 
       if (style === "bars") {
         renderTrayBarsIcon({

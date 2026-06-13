@@ -4,10 +4,6 @@ import { AppShell } from "@/components/app/app-shell"
 import { useAppPluginViews } from "@/hooks/app/use-app-plugin-views"
 import { useProbe } from "@/hooks/app/use-probe"
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
-import { useSettingsDisplayActions } from "@/hooks/app/use-settings-display-actions"
-import { useSettingsPluginActions } from "@/hooks/app/use-settings-plugin-actions"
-import { useSettingsPluginList } from "@/hooks/app/use-settings-plugin-list"
-import { useSettingsSystemActions } from "@/hooks/app/use-settings-system-actions"
 import { useSettingsTheme } from "@/hooks/app/use-settings-theme"
 import { useTrayIcon } from "@/hooks/app/use-tray-icon"
 import { REFRESH_COOLDOWN_MS, savePluginSettings } from "@/lib/settings"
@@ -17,7 +13,6 @@ import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
 
 const TRAY_PROBE_DEBOUNCE_MS = 500
-const TRAY_SETTINGS_DEBOUNCE_MS = 2000
 
 function App() {
   const {
@@ -48,14 +43,13 @@ function App() {
     autoUpdateInterval,
     setAutoUpdateInterval,
     themeMode,
-    setThemeMode,
     displayMode,
     setDisplayMode,
     menubarIconStyle,
     setMenubarIconStyle,
     menubarMetric,
     setMenubarMetric,
-    resetTimerDisplayMode,
+    setThemeMode,
     setResetTimerDisplayMode,
     setTimeFormatMode,
     setGlobalShortcut,
@@ -65,9 +59,9 @@ function App() {
       autoUpdateInterval: state.autoUpdateInterval,
       setAutoUpdateInterval: state.setAutoUpdateInterval,
       themeMode: state.themeMode,
-      setThemeMode: state.setThemeMode,
       displayMode: state.displayMode,
       setDisplayMode: state.setDisplayMode,
+      setThemeMode: state.setThemeMode,
       menubarIconStyle: state.menubarIconStyle,
       setMenubarIconStyle: state.setMenubarIconStyle,
       menubarMetric: state.menubarMetric,
@@ -91,7 +85,6 @@ function App() {
     setErrorForPlugins,
     startBatch,
     autoUpdateNextAt,
-    setAutoUpdateNextAt,
     handleRetryPlugin,
     handleRefreshAll,
   } = useProbe({
@@ -100,7 +93,7 @@ function App() {
     onProbeResult: handleProbeResult,
   })
 
-  const { scheduleTrayIconUpdate, traySettingsPreview } = useTrayIcon({
+  const { scheduleTrayIconUpdate } = useTrayIcon({
     pluginsMeta,
     pluginSettings,
     pluginStates,
@@ -116,7 +109,7 @@ function App() {
     }
   }, [scheduleTrayIconUpdate])
 
-  const { applyStartOnLogin } = useSettingsBootstrap({
+  useSettingsBootstrap({
     setPluginSettings,
     setPluginsMeta,
     setAutoUpdateInterval,
@@ -135,55 +128,6 @@ function App() {
 
   useSettingsTheme(themeMode)
 
-  const {
-    handleThemeModeChange,
-    handleDisplayModeChange,
-    handleResetTimerDisplayModeChange,
-    handleResetTimerDisplayModeToggle,
-    handleTimeFormatModeChange,
-    handleMenubarIconStyleChange,
-    handleMenubarMetricChange,
-  } = useSettingsDisplayActions({
-    setThemeMode,
-    setDisplayMode,
-    resetTimerDisplayMode,
-    setResetTimerDisplayMode,
-    setTimeFormatMode,
-    setMenubarIconStyle,
-    setMenubarMetric,
-    scheduleTrayIconUpdate,
-  })
-
-  const {
-    handleAutoUpdateIntervalChange,
-    handleGlobalShortcutChange,
-    handleStartOnLoginChange,
-  } = useSettingsSystemActions({
-    pluginSettings,
-    setAutoUpdateInterval,
-    setAutoUpdateNextAt,
-    setGlobalShortcut,
-    setStartOnLogin,
-    applyStartOnLogin,
-  })
-
-  const {
-    handleReorder,
-    handleToggle,
-  } = useSettingsPluginActions({
-    pluginSettings,
-    setPluginSettings,
-    setLoadingForPlugins,
-    setErrorForPlugins,
-    startBatch,
-    scheduleTrayIconUpdate,
-  })
-
-  const settingsPlugins = useSettingsPluginList({
-    pluginSettings,
-    pluginsMeta,
-  })
-
   const { displayPlugins, navPlugins, selectedPlugin } = useAppPluginViews({
     activeView,
     setActiveView,
@@ -192,38 +136,13 @@ function App() {
     pluginStates,
   })
 
-  const pluginSettingsRef = useRef(pluginSettings)
-  useEffect(() => {
-    pluginSettingsRef.current = pluginSettings
-  }, [pluginSettings])
-
   const handlePluginContextAction = useCallback(
     (pluginId: string, action: PluginContextAction) => {
       if (action === "reload") {
         handleRetryPlugin(pluginId)
-        return
-      }
-
-      const currentSettings = pluginSettingsRef.current
-      if (!currentSettings) return
-      const alreadyDisabled = currentSettings.disabled.includes(pluginId)
-      if (alreadyDisabled) return
-
-      const nextSettings = {
-        ...currentSettings,
-        disabled: [...currentSettings.disabled, pluginId],
-      }
-      setPluginSettings(nextSettings)
-      scheduleTrayIconUpdate("settings", TRAY_SETTINGS_DEBOUNCE_MS)
-      void savePluginSettings(nextSettings).catch((error) => {
-        console.error("Failed to save plugin toggle:", error)
-      })
-
-      if (activeView === pluginId) {
-        setActiveView("home")
       }
     },
-    [activeView, handleRetryPlugin, scheduleTrayIconUpdate, setActiveView, setPluginSettings]
+    [handleRetryPlugin]
   )
 
   const isPluginRefreshAvailable = useCallback(
@@ -237,32 +156,64 @@ function App() {
     [pluginStates]
   )
 
+  const handleProviderToggle = useCallback(
+    (pluginId: string) => {
+      if (!pluginSettings) return
+      const disabled = new Set(pluginSettings.disabled)
+      const wasDisabled = disabled.has(pluginId)
+      if (disabled.has(pluginId)) {
+        disabled.delete(pluginId)
+      } else {
+        disabled.add(pluginId)
+      }
+
+      const nextSettings = {
+        ...pluginSettings,
+        disabled: pluginSettings.order.filter((id) => disabled.has(id)),
+      }
+
+      setPluginSettings(nextSettings)
+      if (activeView === pluginId && disabled.has(pluginId)) {
+        setActiveView("home")
+      }
+      if (wasDisabled) {
+        setLoadingForPlugins([pluginId])
+        void startBatch([pluginId]).catch((error) => {
+          console.error("Failed to refresh visible provider:", error)
+        })
+      }
+      scheduleTrayIconUpdate("settings", 0)
+      void savePluginSettings(nextSettings).catch((error) => {
+        console.error("Failed to save provider visibility:", error)
+      })
+    },
+    [
+      activeView,
+      pluginSettings,
+      scheduleTrayIconUpdate,
+      setActiveView,
+      setLoadingForPlugins,
+      setPluginSettings,
+      startBatch,
+    ]
+  )
+
   return (
     <AppShell
       onRefreshAll={handleRefreshAll}
       navPlugins={navPlugins}
+      pluginsMeta={pluginsMeta}
+      pluginSettings={pluginSettings}
       displayPlugins={displayPlugins}
-      settingsPlugins={settingsPlugins}
       autoUpdateNextAt={autoUpdateNextAt}
       selectedPlugin={selectedPlugin}
       onPluginContextAction={handlePluginContextAction}
       isPluginRefreshAvailable={isPluginRefreshAvailable}
-      onNavReorder={handleReorder}
+      onNavReorder={() => {}}
+      onProviderToggle={handleProviderToggle}
       appContentProps={{
         onRetryPlugin: handleRetryPlugin,
-        onReorder: handleReorder,
-        onToggle: handleToggle,
-        onAutoUpdateIntervalChange: handleAutoUpdateIntervalChange,
-        onThemeModeChange: handleThemeModeChange,
-        onDisplayModeChange: handleDisplayModeChange,
-        onResetTimerDisplayModeChange: handleResetTimerDisplayModeChange,
-        onResetTimerDisplayModeToggle: handleResetTimerDisplayModeToggle,
-        onTimeFormatModeChange: handleTimeFormatModeChange,
-        onMenubarIconStyleChange: handleMenubarIconStyleChange,
-        onMenubarMetricChange: handleMenubarMetricChange,
-        traySettingsPreview,
-        onGlobalShortcutChange: handleGlobalShortcutChange,
-        onStartOnLoginChange: handleStartOnLoginChange,
+        onResetTimerDisplayModeToggle: () => {},
       }}
     />
   )

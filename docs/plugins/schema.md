@@ -9,7 +9,7 @@ Auto-update timer fires (or app loads)
        |
 Tauri command `run_plugin_probes(pluginIds?)`
        |
-For each enabled plugin:
+For each bundled plugin:
   -> Create fresh QuickJS sandbox
   -> Inject host APIs (`ctx.host.*`)
   -> Evaluate plugin.js
@@ -25,7 +25,7 @@ Key points:
 
 - Each probe runs in **isolated QuickJS runtime** (no shared state between plugins or calls)
 - Plugins are **synchronous or Promise-based** (unresolved promises timeout)
-- **Auto-update timer** - runs on app load and on configurable interval (5/15/30/60 min)
+- **Auto-update timer** - runs on app load and every 5 minutes
 
 ## Plugin Directory Layout
 
@@ -108,7 +108,7 @@ Progress lines opt into the system tray icon by setting `primaryOrder` (a number
 Rules:
 - Only `type: "progress"` lines are candidates (`primaryOrder` is ignored on other types)
 - Lower `primaryOrder` wins; the frontend walks the ordered list and uses the first one present in live data
-- Up to 4 enabled plugins are shown in the tray (in plugin order)
+- Up to 4 visible bundled plugins are shown in the tray, using the app's fixed provider order
 - If no data is available yet, the bar shows as a track without fill
 
 Example:
@@ -126,7 +126,7 @@ Example:
 
 ### Weekly Metric (Menubar)
 
-A provider can mark one progress line with `"period": "weekly"`. When the user sets the menubar metric to **Weekly** (Settings → Menubar Icon), the tray icon and tooltip show this line instead of the provider's primary metric.
+A provider can mark one progress line with `"period": "weekly"`. The app uses the provider's primary metric by default; if the menubar metric is changed internally to **Weekly**, the tray icon and tooltip show this line instead of the provider's primary metric.
 
 It is an **override of the primary metric**, not a standalone mode: the provider must still define a primary (`primaryOrder`) line — a provider with *only* a weekly line will not appear in the menubar. Providers without a weekly line keep showing their primary. `period` only recognizes `"weekly"` (other values are ignored), and only the first `"period": "weekly"` line is used.
 
