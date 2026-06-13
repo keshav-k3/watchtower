@@ -1,14 +1,21 @@
 import { Fragment, useMemo } from "react"
-import { AlertCircle, ExternalLink, Hourglass, RefreshCw } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  AlertCircleIcon,
+  ExternalLinkIcon,
+  HourglassIcon,
+  Loader03Icon,
+  RefreshIcon,
+} from "@hugeicons-pro/core-solid-rounded"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { SkeletonLines } from "@/components/skeleton-lines"
 import { UsageSparkline } from "@/components/usage-sparkline"
 import { PluginError } from "@/components/plugin-error"
+import { ProviderIcon } from "@/components/provider-icon"
 import { useNowTicker } from "@/hooks/use-now-ticker"
 import { REFRESH_COOLDOWN_MS, type DisplayMode, type ResetTimerDisplayMode, type TimeFormatMode } from "@/lib/settings"
 import type { ManifestLine, MetricLine, PluginLink } from "@/lib/plugin-types"
@@ -19,7 +26,10 @@ import { buildPaceDetailText, formatDeficitText, formatRunsOutText, getPaceStatu
 import { formatResetAbsoluteLabel, formatResetRelativeLabel, formatResetTooltipText } from "@/lib/reset-tooltip"
 
 interface ProviderCardProps {
+  id: string
   name: string
+  iconUrl: string
+  brandColor?: string
   plan?: string
   links?: PluginLink[]
   showSeparator?: boolean
@@ -94,10 +104,12 @@ function formatRelativeTime(diffMs: number): string {
 }
 
 export function ProviderCard({
+  id,
   name,
+  iconUrl,
+  brandColor,
   plan,
   links = [],
-  showSeparator = true,
   loading = false,
   error = null,
   lines = [],
@@ -129,6 +141,9 @@ export function ProviderCard({
   const filteredLines = scopeFilter === "all"
     ? lines
     : lines.filter(line => overviewLabels.has(line.label))
+  const visibleLines = filteredLines.filter(
+    (line) => !(plan && line.type === "badge" && line.label.toLowerCase() === "plan")
+  )
 
   const hasResetCountdown = filteredLines.some(
     (line) => line.type === "progress" && Boolean(line.resetsAt)
@@ -136,7 +151,7 @@ export function ProviderCard({
 
   // "has ever loaded" — true if either we have a prior success timestamp,
   // or the parent is passing lines directly (tests + legacy state paths).
-  const hasStaleData = lastUpdatedAt != null || filteredLines.length > 0
+  const hasStaleData = lastUpdatedAt != null || visibleLines.length > 0
   const isRefreshingWithData = loading && hasStaleData
 
   const tickerIntervalMs = cooldownRemainingMs > 0 ? 1000 : 30_000
@@ -182,26 +197,54 @@ export function ProviderCard({
   }
 
   return (
-    <div>
-      <div className="py-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="relative flex items-center">
-            <h2 className="text-lg font-semibold" style={{ transform: "translateZ(0)" }}>{name}</h2>
+    <section className="group rounded-xl border border-white/[0.07] bg-[#202020]/80 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition-colors hover:border-white/[0.11]">
+      <div>
+        <div className="mb-2.5 flex items-start justify-between gap-3">
+          <div className="relative flex min-w-0 items-center gap-2.5">
+            <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.04] ring-1 ring-white/[0.07]">
+              <ProviderIcon
+                id={id}
+                name={name}
+                iconUrl={iconUrl}
+                brandColor={brandColor}
+                active
+                className="size-[18px]"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="truncate text-[17px] font-semibold leading-5 tracking-normal text-foreground" style={{ transform: "translateZ(0)" }}>{name}</h2>
+                {plan && (
+                  <Badge
+                    variant="outline"
+                    className="h-5 max-w-28 shrink-0 truncate rounded-md border-white/[0.09] bg-white/[0.035] px-1.5 text-[11px] font-semibold leading-none text-muted-foreground"
+                    title={plan}
+                  >
+                    {plan}
+                  </Badge>
+                )}
+              </div>
+              {lastUpdatedAt != null && (
+                <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                  Updated {formatRelativeTime(Date.now() - lastUpdatedAt)}
+                </p>
+              )}
+            </div>
             {onRetry && (
               loading ? (
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="ml-1 pointer-events-none opacity-50"
+                  className="pointer-events-none ml-0.5 opacity-50"
                   style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
                   tabIndex={-1}
                 >
-                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  <HugeiconsIcon icon={Loader03Icon} className="size-3 animate-spin" />
                 </Button>
               ) : inCooldown ? (
                 <Tooltip>
                   <TooltipTrigger
-                    className="ml-1"
+                    className="ml-0.5"
                     render={(props) => (
                       <span {...props} className={props.className}>
                         <Button
@@ -211,7 +254,7 @@ export function ProviderCard({
                           style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
                           tabIndex={-1}
                         >
-                          <Hourglass className="h-3 w-3" />
+                          <HugeiconsIcon icon={HourglassIcon} className="size-3" />
                         </Button>
                       </span>
                     )}
@@ -223,7 +266,7 @@ export function ProviderCard({
               ) : (
                 <Tooltip>
                   <TooltipTrigger
-                    className="ml-1"
+                    className="ml-0.5"
                     render={(props) => (
                       <Button
                         {...props}
@@ -234,31 +277,20 @@ export function ProviderCard({
                           e.currentTarget.blur()
                           onRetry()
                         }}
-                        className="opacity-0 hover:opacity-100 focus-visible:opacity-100"
+                        className="opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
                         style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        <HugeiconsIcon icon={RefreshIcon} className="size-3" />
                       </Button>
                     )}
                   />
-                  {lastUpdatedAt != null && (
-                    <TooltipContent side="top">
-                      Updated {formatRelativeTime(Date.now() - lastUpdatedAt)}
-                    </TooltipContent>
-                  )}
                 </Tooltip>
               )
             )}
           </div>
-          {plan && (
-            <Badge
-              variant="outline"
-              className="truncate min-w-0 max-w-[50%]"
-              title={plan}
-            >
-              {plan}
-            </Badge>
-          )}
+          <div className="pt-0.5 text-[10px] font-medium uppercase tracking-normal text-muted-foreground">
+            {loading ? "Syncing" : error ? "Attention" : "Live"}
+          </div>
         </div>
         {visibleLinks.length > 0 && (
           <div className="mb-2 -mt-0.5 flex flex-wrap gap-1.5">
@@ -267,18 +299,22 @@ export function ProviderCard({
                 key={`${link.label}-${link.url}`}
                 variant="outline"
                 size="xs"
-                className="h-6 max-w-full text-[11px]"
+                className="h-6 max-w-full rounded-md border-white/[0.08] bg-white/[0.035] text-[11px]"
                 onClick={() => {
                   openUrl(link.url).catch(console.error)
                 }}
               >
                 <span className="truncate">{link.label}</span>
-                <ExternalLink className="size-3 opacity-70" />
+                <HugeiconsIcon icon={ExternalLinkIcon} className="size-3 opacity-70" />
               </Button>
             ))}
           </div>
         )}
-        {error && !hasStaleData && <PluginError message={error} />}
+        {error && !hasStaleData && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+            <PluginError message={error} />
+          </div>
+        )}
 
         {error && hasStaleData && (
           <Tooltip>
@@ -286,9 +322,9 @@ export function ProviderCard({
               render={(props) => (
                 <div
                   {...props}
-                  className="flex items-center gap-1.5 mb-2 text-xs text-destructive"
+                  className="mb-2 flex items-center gap-1.5 rounded-lg border border-destructive/35 bg-destructive/10 px-2 py-1.5 text-xs text-destructive"
                 >
-                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                  <HugeiconsIcon icon={AlertCircleIcon} className="size-3 flex-shrink-0" />
                   <span className="truncate">{error}</span>
                 </div>
               )}
@@ -304,8 +340,8 @@ export function ProviderCard({
         )}
 
         {hasStaleData && (
-          <div className="space-y-4">
-            {groupLinesByType(filteredLines).map((group, gi) =>
+          <div className="space-y-2.5">
+            {groupLinesByType(visibleLines).map((group, gi) =>
               group.kind === "text" ? (
                 <div key={gi} className="space-y-1">
                   {group.lines.map((line, li) => (
@@ -340,10 +376,8 @@ export function ProviderCard({
             )}
           </div>
         )}
-
       </div>
-      {showSeparator && <Separator />}
-    </div>
+    </section>
   )
 }
 
@@ -368,11 +402,11 @@ function MetricLineRenderer({
     return (
       <div>
         <div className="flex justify-between items-center h-[18px] gap-2">
-          <span className="text-xs text-muted-foreground min-w-0 truncate" title={line.label}>
+          <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground" title={line.label}>
             {line.label}
           </span>
           <span
-            className="text-xs text-muted-foreground truncate flex-shrink-0 max-w-[45%] text-right"
+            className="max-w-[45%] flex-shrink-0 truncate text-right text-[11px] font-medium text-muted-foreground"
             style={line.color ? { color: line.color } : undefined}
             title={line.value}
           >
@@ -380,7 +414,7 @@ function MetricLineRenderer({
           </span>
         </div>
         {line.subtitle && (
-          <div className="text-[10px] text-muted-foreground text-right -mt-0.5">{line.subtitle}</div>
+          <div className="-mt-0.5 text-right text-[10px] text-muted-foreground">{line.subtitle}</div>
         )}
       </div>
     )
@@ -390,10 +424,10 @@ function MetricLineRenderer({
     return (
       <div>
         <div className="flex justify-between items-center h-[22px]">
-          <span className="text-sm text-muted-foreground flex-shrink-0">{line.label}</span>
+          <span className="flex-shrink-0 text-xs font-medium text-muted-foreground">{line.label}</span>
           <Badge
             variant="outline"
-            className="truncate min-w-0 max-w-[60%]"
+            className="min-w-0 max-w-[60%] truncate rounded-md border-white/[0.08] bg-white/[0.035]"
             style={
               line.color
                 ? { color: line.color, borderColor: line.color }
@@ -504,11 +538,16 @@ function MetricLineRenderer({
 
     return (
       <div>
-        <div className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
-          {line.label}
-          {paceStatus && (
-            <PaceIndicator status={paceStatus} detailText={paceDetailText} isLimitReached={isLimitReached} />
-          )}
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-[12px] font-semibold leading-4 text-foreground">{line.label}</span>
+            {paceStatus && (
+              <PaceIndicator status={paceStatus} detailText={paceDetailText} isLimitReached={isLimitReached} />
+            )}
+          </div>
+          <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+            {primaryText}
+          </span>
         </div>
         <Progress
           value={percent}
@@ -516,10 +555,7 @@ function MetricLineRenderer({
           markerValue={paceMarkerValue}
           refreshing={refreshing}
         />
-        <div className="flex justify-between items-center mt-1.5">
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {primaryText}
-          </span>
+        <div className="mt-1 flex items-center justify-end">
           {secondaryText && (
             resetTooltipText ? (
               <Tooltip>
@@ -530,12 +566,12 @@ function MetricLineRenderer({
                         {...props}
                         type="button"
                         onClick={onResetTimerDisplayModeToggle}
-                        className="text-xs text-muted-foreground tabular-nums hover:text-foreground transition-colors"
+                        className="text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {secondaryText}
                       </button>
                     ) : (
-                      <span {...props} className="text-xs text-muted-foreground tabular-nums">
+                      <span {...props} className="text-[11px] tabular-nums text-muted-foreground">
                         {secondaryText}
                       </span>
                     )
@@ -547,26 +583,26 @@ function MetricLineRenderer({
               <button
                 type="button"
                 onClick={onResetTimerDisplayModeToggle}
-                className="text-xs text-muted-foreground tabular-nums hover:text-foreground transition-colors"
+                className="text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
               >
                 {secondaryText}
               </button>
             ) : (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground">
                 {secondaryText}
               </span>
             )
           )}
         </div>
         {(deficitText || runsOutText) && (
-          <div className="flex justify-between items-center mt-0.5">
+          <div className="mt-0.5 flex items-center justify-between">
             {deficitText && (
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {deficitText}
               </span>
             )}
             {runsOutText && (
-              <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+              <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
                 {runsOutText}
               </span>
             )}

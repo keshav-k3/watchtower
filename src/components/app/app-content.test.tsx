@@ -1,9 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { overviewPageMock, providerDetailPageMock, settingsPageMock } = vi.hoisted(() => ({
+const { overviewPageMock, providerDetailPageMock } = vi.hoisted(() => ({
   overviewPageMock: vi.fn(),
-  settingsPageMock: vi.fn(),
   providerDetailPageMock: vi.fn(),
 }))
 
@@ -11,13 +10,6 @@ vi.mock("@/pages/overview", () => ({
   OverviewPage: (props: unknown) => {
     overviewPageMock(props)
     return <div data-testid="overview-page" />
-  },
-}))
-
-vi.mock("@/pages/settings", () => ({
-  SettingsPage: (props: unknown) => {
-    settingsPageMock(props)
-    return <div data-testid="settings-page" />
   },
 }))
 
@@ -39,7 +31,6 @@ import { useAppUiStore } from "@/stores/app-ui-store"
 function createProps(): AppContentProps {
   return {
     displayPlugins: [],
-    settingsPlugins: [],
     selectedPlugin: {
       meta: {
         id: "codex",
@@ -56,22 +47,13 @@ function createProps(): AppContentProps {
       lastUpdatedAt: null,
     },
     onRetryPlugin: vi.fn(),
-    onReorder: vi.fn(),
-    onToggle: vi.fn(),
-    onAutoUpdateIntervalChange: vi.fn(),
-    onThemeModeChange: vi.fn(),
-    onDisplayModeChange: vi.fn(),
-    onResetTimerDisplayModeChange: vi.fn(),
     onResetTimerDisplayModeToggle: vi.fn(),
-    onGlobalShortcutChange: vi.fn(),
-    onStartOnLoginChange: vi.fn(),
   }
 }
 
 describe("AppContent", () => {
   beforeEach(() => {
     overviewPageMock.mockReset()
-    settingsPageMock.mockReset()
     providerDetailPageMock.mockReset()
     useAppUiStore.getState().resetState()
     useAppPreferencesStore.getState().resetState()
@@ -85,12 +67,12 @@ describe("AppContent", () => {
     expect(overviewPageMock).toHaveBeenCalledTimes(1)
   })
 
-  it("renders settings page for settings view", () => {
+  it("renders provider detail for non-home views", () => {
     useAppUiStore.getState().setActiveView("settings")
     render(<AppContent {...createProps()} />)
 
-    expect(screen.getByTestId("settings-page")).toBeInTheDocument()
-    expect(settingsPageMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId("provider-detail-page")).toBeInTheDocument()
+    expect(providerDetailPageMock).toHaveBeenCalledTimes(1)
   })
 
   it("passes retry callback for provider detail view", () => {

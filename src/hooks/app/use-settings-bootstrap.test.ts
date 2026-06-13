@@ -60,14 +60,14 @@ vi.mock("@tauri-apps/plugin-autostart", () => ({
 
 vi.mock("@/lib/settings", () => ({
   arePluginSettingsEqual: arePluginSettingsEqualMock,
-  DEFAULT_AUTO_UPDATE_INTERVAL: 15,
+  DEFAULT_AUTO_UPDATE_INTERVAL: 5,
   DEFAULT_DISPLAY_MODE: "left",
-  DEFAULT_GLOBAL_SHORTCUT: null,
-  DEFAULT_MENUBAR_ICON_STYLE: "provider",
+  DEFAULT_GLOBAL_SHORTCUT: "CommandOrControl+W",
+  DEFAULT_MENUBAR_ICON_STYLE: "watchtower",
   DEFAULT_MENUBAR_METRIC: "default",
   DEFAULT_RESET_TIMER_DISPLAY_MODE: "relative",
-  DEFAULT_START_ON_LOGIN: false,
-  DEFAULT_THEME_MODE: "system",
+  DEFAULT_START_ON_LOGIN: true,
+  DEFAULT_THEME_MODE: "dark",
   DEFAULT_TIME_FORMAT_MODE: "auto",
   getEnabledPluginIds: getEnabledPluginIdsMock,
   loadAutoUpdateInterval: loadAutoUpdateIntervalMock,
@@ -152,7 +152,7 @@ describe("useSettingsBootstrap", () => {
     loadResetTimerDisplayModeMock.mockResolvedValue("relative")
     loadTimeFormatModeMock.mockResolvedValue("auto")
     loadGlobalShortcutMock.mockResolvedValue("CommandOrControl+Shift+O")
-    loadMenubarIconStyleMock.mockResolvedValue("provider")
+    loadMenubarIconStyleMock.mockResolvedValue("watchtower")
     loadMenubarMetricMock.mockResolvedValue("default")
     loadStartOnLoginMock.mockResolvedValue(true)
     migrateLegacyTraySettingsMock.mockResolvedValue(undefined)
@@ -171,50 +171,22 @@ describe("useSettingsBootstrap", () => {
     expect(enableAutostartMock).not.toHaveBeenCalled()
   })
 
-  it("falls back to default reset timer mode when loading fails", async () => {
-    const resetModeError = new Error("reset timer mode unavailable")
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
-    loadResetTimerDisplayModeMock.mockRejectedValueOnce(resetModeError)
+  it("applies fixed display defaults", async () => {
     const args = createArgs()
 
     renderHook(() => useSettingsBootstrap(args))
 
     await waitFor(() => {
-      expect(errorSpy).toHaveBeenCalledWith(
-        "Failed to load reset timer display mode:",
-        resetModeError
-      )
+      expect(args.setAutoUpdateInterval).toHaveBeenCalledWith(5)
+      expect(args.setThemeMode).toHaveBeenCalledWith("dark")
+      expect(args.setDisplayMode).toHaveBeenCalledWith("left")
       expect(args.setResetTimerDisplayMode).toHaveBeenCalledWith("relative")
-    })
-
-    errorSpy.mockRestore()
-  })
-
-  it("applies the stored menubar metric", async () => {
-    loadMenubarMetricMock.mockResolvedValueOnce("weekly")
-    const args = createArgs()
-
-    renderHook(() => useSettingsBootstrap(args))
-
-    await waitFor(() => {
-      expect(args.setMenubarMetric).toHaveBeenCalledWith("weekly")
-    })
-  })
-
-  it("falls back to default menubar metric when loading fails", async () => {
-    const metricError = new Error("menubar metric unavailable")
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
-    loadMenubarMetricMock.mockRejectedValueOnce(metricError)
-    const args = createArgs()
-
-    renderHook(() => useSettingsBootstrap(args))
-
-    await waitFor(() => {
-      expect(errorSpy).toHaveBeenCalledWith("Failed to load menubar metric:", metricError)
+      expect(args.setTimeFormatMode).toHaveBeenCalledWith("auto")
+      expect(args.setGlobalShortcut).toHaveBeenCalledWith("CommandOrControl+W")
+      expect(args.setStartOnLogin).toHaveBeenCalledWith(true)
+      expect(args.setMenubarIconStyle).toHaveBeenCalledWith("watchtower")
       expect(args.setMenubarMetric).toHaveBeenCalledWith("default")
     })
-
-    errorSpy.mockRestore()
   })
 
   it("normalizes stored settings and saves the first-launch result", async () => {

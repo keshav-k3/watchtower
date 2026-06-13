@@ -12,7 +12,7 @@ export function formatTrayPercentText(fraction: number | undefined): string {
 
 /**
  * Creates a multi-line tooltip string for the tray icon.
- * Lists the app name followed by enabled plugins and their usage percentages.
+ * Lists the app name followed by visible providers and their usage percentages.
  *
  * In weekly mode, lines are tagged with their metric label only when the list
  * is mixed (at least one provider fell back from weekly). When every provider

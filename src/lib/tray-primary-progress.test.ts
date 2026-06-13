@@ -12,7 +12,7 @@ describe("getTrayPrimaryBars", () => {
     expect(bars).toEqual([])
   })
 
-  it("keeps plugin order, filters disabled, limits to 4", () => {
+  it("keeps visible plugin order, filters disabled state, and limits to 4", () => {
     const pluginsMeta = ["a", "b", "c", "d", "e"].map((id) => ({
       id,
       name: id.toUpperCase(),

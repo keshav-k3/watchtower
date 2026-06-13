@@ -43,7 +43,7 @@ describe("useProbeAutoUpdate", () => {
     expect(result.current.autoUpdateNextAt).toBeNull()
   })
 
-  it("resets the schedule when enabled plugins are present", () => {
+  it("resets the schedule when ordered plugins are present", () => {
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000)
 
     const { result } = renderHook(() =>

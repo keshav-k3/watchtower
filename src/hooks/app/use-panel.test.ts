@@ -263,12 +263,12 @@ describe("usePanel", () => {
     expect(result.current.containerRef.current).toBeNull()
   })
 
-  it("skips settings when navigating with Cmd+Arrow", () => {
+  it("navigates visible provider views with Cmd+Arrow", () => {
     const setActiveView = vi.fn()
 
     renderHook(() =>
       usePanel({
-        activeView: "settings",
+        activeView: "home",
         setActiveView,
         showAbout: false,
         setShowAbout: vi.fn(),
@@ -295,7 +295,7 @@ describe("usePanel", () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", metaKey: true }))
     })
 
-    expect(setActiveView).toHaveBeenCalledWith("home")
+    expect(setActiveView).toHaveBeenCalledWith("a")
 
     setActiveView.mockClear()
 

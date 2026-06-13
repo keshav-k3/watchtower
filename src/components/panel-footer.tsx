@@ -113,7 +113,7 @@ export function PanelFooter({
 
   return (
     <>
-      <div className="flex justify-between items-center h-8 pt-1.5 border-t">
+      <div className="flex h-8 shrink-0 items-center justify-between border-t border-white/[0.08] bg-card/95 pt-1.5">
         <VersionDisplay
           version={version}
           updateStatus={updateStatus}
@@ -129,7 +129,7 @@ export function PanelFooter({
               onRefreshAll()
             }}
             className="text-xs text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
-            title="Refresh now"
+            title="Refresh Now"
           >
             {countdownLabel}
           </button>

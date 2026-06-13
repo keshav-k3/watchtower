@@ -57,13 +57,6 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
     log::set_max_level(current_level);
 
     let show_stats = MenuItem::with_id(app_handle, "show_stats", "Show Stats", true, None::<&str>)?;
-    let go_to_settings = MenuItem::with_id(
-        app_handle,
-        "go_to_settings",
-        "Go to Settings",
-        true,
-        None::<&str>,
-    )?;
 
     // Log level submenu - clone items for use in event handler
     let log_error = CheckMenuItem::with_id(
@@ -146,7 +139,6 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
         app_handle,
         &[
             &show_stats,
-            &go_to_settings,
             &log_level_submenu,
             &separator,
             &about,
@@ -166,10 +158,6 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
                 "show_stats" => {
                     show_panel(app_handle);
                     let _ = app_handle.emit("tray:navigate", "home");
-                }
-                "go_to_settings" => {
-                    show_panel(app_handle);
-                    let _ = app_handle.emit("tray:navigate", "settings");
                 }
                 "about" => {
                     show_panel(app_handle);

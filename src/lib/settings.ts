@@ -4,7 +4,7 @@ import type { PluginMeta } from "@/lib/plugin-types";
 // Refresh cooldown duration in milliseconds (5 minutes)
 export const REFRESH_COOLDOWN_MS = 300_000;
 
-// Spec: persist plugin order + disabled list; new plugins append, default disabled unless in DEFAULT_ENABLED_PLUGINS.
+// Spec: persist plugin order + disabled list; bundled providers default visible.
 export type PluginSettings = {
   order: string[];
   disabled: string[];
@@ -20,7 +20,7 @@ export type ResetTimerDisplayMode = "relative" | "absolute";
 
 export type TimeFormatMode = "auto" | "12h" | "24h";
 
-export type MenubarIconStyle = "provider" | "bars" | "donut";
+export type MenubarIconStyle = "watchtower" | "provider" | "bars" | "donut";
 
 export type MenubarMetric = "default" | "weekly";
 
@@ -40,25 +40,27 @@ const LEGACY_TRAY_SHOW_PERCENTAGE_KEY = "trayShowPercentage";
 const GLOBAL_SHORTCUT_KEY = "globalShortcut";
 const START_ON_LOGIN_KEY = "startOnLogin";
 
-export const DEFAULT_AUTO_UPDATE_INTERVAL: AutoUpdateIntervalMinutes = 15;
-export const DEFAULT_THEME_MODE: ThemeMode = "system";
+export const DEFAULT_AUTO_UPDATE_INTERVAL: AutoUpdateIntervalMinutes = 5;
+export const DEFAULT_THEME_MODE: ThemeMode = "dark";
 export const DEFAULT_DISPLAY_MODE: DisplayMode = "left";
 export const DEFAULT_RESET_TIMER_DISPLAY_MODE: ResetTimerDisplayMode = "relative";
 export const DEFAULT_TIME_FORMAT_MODE: TimeFormatMode = "auto";
-export const DEFAULT_MENUBAR_ICON_STYLE: MenubarIconStyle = "provider";
+export const DEFAULT_MENUBAR_ICON_STYLE: MenubarIconStyle = "watchtower";
 export const DEFAULT_MENUBAR_METRIC: MenubarMetric = "default";
-export const DEFAULT_GLOBAL_SHORTCUT: GlobalShortcut = null;
-export const DEFAULT_START_ON_LOGIN = false;
+export const DEFAULT_GLOBAL_SHORTCUT: GlobalShortcut = "CommandOrControl+W";
+export const DEFAULT_START_ON_LOGIN = true;
+export const DEFAULT_PROVIDER_ORDER = ["cursor", "codex", "claude", "opencode", "gemini"];
+const DEV_ONLY_PLUGIN_IDS = new Set(["mock"]);
 
 const AUTO_UPDATE_INTERVALS: AutoUpdateIntervalMinutes[] = [5, 15, 30, 60];
 const THEME_MODES: ThemeMode[] = ["system", "light", "dark"];
 const DISPLAY_MODES: DisplayMode[] = ["used", "left"];
 const RESET_TIMER_DISPLAY_MODES: ResetTimerDisplayMode[] = ["relative", "absolute"];
 const TIME_FORMAT_MODES: TimeFormatMode[] = ["auto", "12h", "24h"];
-const MENUBAR_ICON_STYLES: MenubarIconStyle[] = ["provider", "donut", "bars"];
 const MENUBAR_METRICS: MenubarMetric[] = ["default", "weekly"];
 
 export const MENUBAR_ICON_STYLE_OPTIONS: { value: MenubarIconStyle; label: string }[] = [
+  { value: "watchtower", label: "Watchtower" },
   { value: "provider", label: "Plugin" },
   { value: "donut", label: "Donut" },
   { value: "bars", label: "Bars" },
@@ -99,10 +101,8 @@ export const TIME_FORMAT_OPTIONS: { value: TimeFormatMode; label: string }[] = [
 
 const store = new LazyStore(SETTINGS_STORE_PATH);
 
-const DEFAULT_ENABLED_PLUGINS = new Set(["claude", "codex", "cursor"]);
-
 export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
-  order: [],
+  order: DEFAULT_PROVIDER_ORDER,
   disabled: [],
 };
 
@@ -157,31 +157,32 @@ export function normalizePluginSettings(
   settings: PluginSettings,
   plugins: PluginMeta[]
 ): PluginSettings {
-  const knownIds = plugins.map((plugin) => plugin.id);
+  const knownIds = plugins
+    .map((plugin) => plugin.id)
+    .filter((id) => !DEV_ONLY_PLUGIN_IDS.has(id));
   const knownSet = new Set(knownIds);
+  const preferredOrder = DEFAULT_PROVIDER_ORDER.filter((id) => knownSet.has(id));
+  const remainingKnownIds = knownIds.filter((id) => !DEFAULT_PROVIDER_ORDER.includes(id));
 
   const order: string[] = [];
   const seen = new Set<string>();
+  for (const id of preferredOrder) {
+    seen.add(id);
+    order.push(id);
+  }
   for (const id of settings.order) {
     if (!knownSet.has(id) || seen.has(id)) continue;
     seen.add(id);
     order.push(id);
   }
-  const newlyAdded: string[] = [];
-  for (const id of knownIds) {
+  for (const id of remainingKnownIds) {
     if (!seen.has(id)) {
       seen.add(id);
       order.push(id);
-      newlyAdded.push(id);
     }
   }
 
-  const disabled = settings.disabled.filter((id) => knownSet.has(id));
-  for (const id of newlyAdded) {
-    if (!DEFAULT_ENABLED_PLUGINS.has(id) && !disabled.includes(id)) {
-      disabled.push(id);
-    }
-  }
+  const disabled = Array.from(new Set(settings.disabled)).filter((id) => knownSet.has(id));
   return { order, disabled };
 }
 
@@ -200,13 +201,7 @@ export function arePluginSettingsEqual(
   return true;
 }
 
-function isThemeMode(value: unknown): value is ThemeMode {
-  return typeof value === "string" && THEME_MODES.includes(value as ThemeMode);
-}
-
 export async function loadThemeMode(): Promise<ThemeMode> {
-  const stored = await store.get<unknown>(THEME_MODE_KEY);
-  if (isThemeMode(stored)) return stored;
   return DEFAULT_THEME_MODE;
 }
 
@@ -266,16 +261,7 @@ export async function saveTimeFormatMode(mode: TimeFormatMode): Promise<void> {
   await store.save();
 }
 
-function isMenubarIconStyle(value: unknown): value is MenubarIconStyle {
-  return (
-    typeof value === "string" &&
-    MENUBAR_ICON_STYLES.includes(value as MenubarIconStyle)
-  );
-}
-
 export async function loadMenubarIconStyle(): Promise<MenubarIconStyle> {
-  const stored = await store.get<unknown>(MENUBAR_ICON_STYLE_KEY);
-  if (isMenubarIconStyle(stored)) return stored;
   return DEFAULT_MENUBAR_ICON_STYLE;
 }
 
@@ -340,8 +326,8 @@ export async function migrateLegacyTraySettings(): Promise<void> {
 }
 
 export function getEnabledPluginIds(settings: PluginSettings): string[] {
-  const disabledSet = new Set(settings.disabled);
-  return settings.order.filter((id) => !disabledSet.has(id));
+  const disabled = new Set(settings.disabled);
+  return settings.order.filter((id) => !disabled.has(id));
 }
 
 function isGlobalShortcut(value: unknown): value is GlobalShortcut {

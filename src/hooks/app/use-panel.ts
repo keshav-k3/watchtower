@@ -130,14 +130,10 @@ export function usePanel({
 
       let nextView: ActiveView | undefined
 
-      if (activeView === "settings") {
-        nextView = event.key === "ArrowUp" ? views[views.length - 1] : views[0]
-      } else {
-        const currentIndex = views.indexOf(activeView)
-        if (currentIndex === -1) return
-        const offset = event.key === "ArrowUp" ? -1 : 1
-        nextView = views[(currentIndex + offset + views.length) % views.length]
-      }
+      const currentIndex = views.indexOf(activeView)
+      if (currentIndex === -1) return
+      const offset = event.key === "ArrowUp" ? -1 : 1
+      nextView = views[(currentIndex + offset + views.length) % views.length]
 
       if (!nextView || nextView === activeView) return
 

@@ -23,11 +23,11 @@ export function useAppPluginViews({
 }: UseAppPluginViewsArgs) {
   const displayPlugins = useMemo<DisplayPluginState[]>(() => {
     if (!pluginSettings) return []
-    const disabledSet = new Set(pluginSettings.disabled)
     const metaById = new Map(pluginsMeta.map((plugin) => [plugin.id, plugin]))
+    const disabled = new Set(pluginSettings.disabled)
 
     return pluginSettings.order
-      .filter((id) => !disabledSet.has(id))
+      .filter((id) => !disabled.has(id))
       .map((id) => {
         const meta = metaById.get(id)
         if (!meta) return null
@@ -40,11 +40,11 @@ export function useAppPluginViews({
 
   const navPlugins = useMemo<NavPlugin[]>(() => {
     if (!pluginSettings) return []
-    const disabledSet = new Set(pluginSettings.disabled)
     const metaById = new Map(pluginsMeta.map((plugin) => [plugin.id, plugin]))
+    const disabled = new Set(pluginSettings.disabled)
 
     return pluginSettings.order
-      .filter((id) => !disabledSet.has(id))
+      .filter((id) => !disabled.has(id))
       .map((id) => metaById.get(id))
       .filter((plugin): plugin is PluginMeta => Boolean(plugin))
       .map((plugin) => ({
@@ -56,7 +56,7 @@ export function useAppPluginViews({
   }, [pluginSettings, pluginsMeta])
 
   useEffect(() => {
-    if (activeView === "home" || activeView === "settings") return
+    if (activeView === "home") return
     if (!pluginSettings) return
     const isKnownPlugin = pluginsMeta.some((plugin) => plugin.id === activeView)
     if (!isKnownPlugin) return
@@ -67,7 +67,7 @@ export function useAppPluginViews({
   }, [activeView, navPlugins, pluginSettings, pluginsMeta, setActiveView])
 
   const selectedPlugin = useMemo(() => {
-    if (activeView === "home" || activeView === "settings") return null
+    if (activeView === "home") return null
     return displayPlugins.find((plugin) => plugin.meta.id === activeView) ?? null
   }, [activeView, displayPlugins])
 
