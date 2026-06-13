@@ -26,12 +26,12 @@ describe("SkeletonLines", () => {
     const usedLabel = screen.getByText("Used")
     const leftLabel = screen.getByText("Left")
 
-    expect(usedLabel).toHaveClass("text-xs")
-    expect(leftLabel).toHaveClass("text-xs")
+    expect(usedLabel).toHaveClass("text-[10px]")
+    expect(leftLabel).toHaveClass("text-[10px]")
     expect(usedLabel.parentElement).toHaveClass("h-[18px]")
     expect(leftLabel.parentElement).toHaveClass("h-[18px]")
 
-    const textGroup = usedLabel.closest(".space-y-1")
+    const textGroup = usedLabel.closest(".space-y-1\\.5")
     expect(textGroup).toBeInTheDocument()
     expect(textGroup).toContainElement(leftLabel.parentElement)
   })

@@ -85,7 +85,7 @@ export function AppShell({
     >
       <div className="tray-arrow" />
       <div
-        className="relative flex w-full select-none flex-col overflow-hidden rounded-xl border border-white/[0.09] bg-card shadow-2xl shadow-black/35"
+        className="relative flex w-full select-none flex-col overflow-hidden rounded-[16px] border border-line-bright bg-card shadow-2xl shadow-black/50"
         style={maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : undefined}
       >
         <div className="flex flex-1 min-h-0 flex-row">
@@ -97,28 +97,28 @@ export function AppShell({
             isPluginRefreshAvailable={isPluginRefreshAvailable}
             onReorder={onNavReorder}
           />
-          <div className="flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
+          <div className="wt-dot-grid flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
             <header className="flex items-start justify-between gap-3 pb-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035]">
-                  <img src="/icon.png" alt="" className="size-7 object-contain" />
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <div className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-line bg-surface-raised">
+                  <img src="/icon.png" alt="" className="size-6 object-contain" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-[28px] font-semibold leading-8 tracking-normal text-foreground">
+                  <h1 className="truncate text-[19px] font-semibold leading-6 tracking-tight text-foreground">
                     Watchtower
                   </h1>
-                  <p className="text-[13px] font-medium leading-5 text-muted-foreground">
-                    AI Usage Across Providers
+                  <p className="label-mono text-[9px] leading-3 text-muted-foreground/70">
+                    AI Usage Monitor
                   </p>
                 </div>
               </div>
-              <div className="relative flex items-center gap-1.5">
+              <div className="relative flex shrink-0 items-center gap-1.5">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Refresh"
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.035] text-foreground hover:bg-white/[0.07]"
+                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
                   onClick={onRefreshAll}
                 >
                   <HugeiconsIcon icon={RefreshIcon} className="size-4" />
@@ -129,7 +129,7 @@ export function AppShell({
                   size="icon-sm"
                   aria-label="Provider Settings"
                   aria-expanded={showProviderSettings}
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.035] text-foreground hover:bg-white/[0.07]"
+                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface"
                   onClick={() => setShowProviderSettings((value) => !value)}
                 >
                   <HugeiconsIcon icon={Settings02Icon} className="size-4" />

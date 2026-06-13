@@ -6,7 +6,7 @@ import { groupLinesByType } from "@/lib/group-lines-by-type"
 function SkeletonText({ label }: { label: string }) {
   return (
     <div className="flex justify-between items-center h-[18px]">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="label-mono text-[10px] text-muted-foreground">{label}</span>
       <Skeleton className="h-3 w-16" />
     </div>
   )
@@ -15,8 +15,8 @@ function SkeletonText({ label }: { label: string }) {
 function SkeletonBadge({ label }: { label: string }) {
   return (
     <div className="flex justify-between items-center h-[22px]">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <Skeleton className="h-5 w-16 rounded-md" />
+      <span className="label-mono text-[10px] text-muted-foreground">{label}</span>
+      <Skeleton className="h-[18px] w-16 rounded-[4px]" />
     </div>
   )
 }
@@ -24,11 +24,17 @@ function SkeletonBadge({ label }: { label: string }) {
 function SkeletonProgress({ label }: { label: string }) {
   return (
     <div>
-      <div className="text-sm font-medium mb-1.5">{label}</div>
-      <Skeleton className="h-3 w-full rounded-full" />
-      <div className="flex justify-between items-center mt-1.5">
-        <Skeleton className="h-4 w-12" />
-        <Skeleton className="h-4 w-24" />
+      <div className="mb-2 flex items-end justify-between">
+        <span className="label-mono pb-1 text-[10px] text-muted-foreground">{label}</span>
+        <Skeleton className="h-6 w-16" />
+      </div>
+      <div className="flex h-2.5 w-full items-stretch gap-[2px]">
+        {Array.from({ length: 28 }).map((_, index) => (
+          <div key={index} className="min-w-px flex-1 rounded-[1px] bg-line" />
+        ))}
+      </div>
+      <div className="mt-2 flex justify-end">
+        <Skeleton className="h-3 w-24" />
       </div>
     </div>
   )
@@ -37,7 +43,7 @@ function SkeletonProgress({ label }: { label: string }) {
 function SkeletonBarChart({ label }: { label: string }) {
   return (
     <div className="flex h-[18px] items-center justify-between gap-2">
-      <span className="text-xs text-muted-foreground min-w-0 truncate">{label}</span>
+      <span className="label-mono min-w-0 truncate text-[10px] text-muted-foreground">{label}</span>
       <div className="flex h-4 w-1/2 max-w-[150px] flex-shrink-0 items-end justify-end gap-px">
         {Array.from({ length: 16 }).map((_, index) => (
           <Skeleton
@@ -68,10 +74,10 @@ export function SkeletonLine({ line }: { line: ManifestLine }) {
 
 export function SkeletonLines({ lines }: { lines: ManifestLine[] }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {groupLinesByType(lines).map((group, groupIndex) => (
         group.kind === "text" ? (
-          <div key={groupIndex} className="space-y-1">
+          <div key={groupIndex} className="space-y-1.5">
             {group.lines.map((line, lineIndex) => (
               <SkeletonLine key={`${line.label}-${groupIndex}-${lineIndex}`} line={line} />
             ))}

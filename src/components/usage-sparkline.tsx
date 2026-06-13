@@ -47,7 +47,7 @@ export function UsageSparkline({ label, points, note, color }: UsageSparklinePro
             aria-label={summary}
             className="flex h-[18px] w-full items-center justify-between gap-2 rounded-sm border-0 bg-transparent p-0 text-left outline-none [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{label}</span>
+            <span className="label-mono min-w-0 truncate text-[10px] text-muted-foreground">{label}</span>
             <span
               aria-hidden
               className="flex h-4 w-1/2 max-w-[150px] flex-shrink-0 items-end justify-end gap-px"

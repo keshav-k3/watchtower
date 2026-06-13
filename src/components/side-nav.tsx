@@ -1,6 +1,4 @@
 import { useCallback } from "react"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSpeed01Icon } from "@hugeicons-pro/core-solid-rounded"
 import { invoke } from "@tauri-apps/api/core"
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu"
 import {
@@ -21,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
+import { WatchtowerMark } from "@/components/watchtower-mark"
 
 type ActiveView = "home" | string
 
@@ -57,15 +56,18 @@ function NavButton({ isActive, onClick, onContextMenu, children, "aria-label": a
       onClick={onClick}
       onContextMenu={onContextMenu}
       aria-label={ariaLabel}
-      className={cn(
-        "relative flex h-12 w-full items-center justify-center transition-colors",
-        "hover:bg-white/[0.05]",
-        isActive
-          ? "text-foreground before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground"
-          : "text-muted-foreground"
-      )}
+      className="group/nav flex h-11 w-full items-center justify-center"
     >
-      {children}
+      <span
+        className={cn(
+          "grid size-9 place-items-center rounded-[10px] transition-colors duration-150",
+          isActive
+            ? "bg-surface-raised text-foreground ring-1 ring-line"
+            : "text-muted-foreground group-hover/nav:bg-surface group-hover/nav:text-foreground"
+        )}
+      >
+        {children}
+      </span>
     </button>
   )
 }
@@ -107,7 +109,7 @@ function SortableNavPlugin({ plugin, isActive, onClick, onContextMenu }: Sortabl
           iconUrl={plugin.iconUrl}
           brandColor={plugin.brandColor}
           active={isActive}
-          className="size-6"
+          className="size-5"
         />
       </NavButton>
     </div>
@@ -182,16 +184,16 @@ export function SideNav({
   )
 
   return (
-    <nav className="flex w-[58px] flex-col border-r border-white/[0.07] bg-[#141414] py-3">
+    <nav className="wt-dot-grid flex w-[52px] flex-col items-center gap-0.5 bg-transparent py-3">
       <NavButton
         isActive={activeView === "home"}
         onClick={() => onViewChange("home")}
         aria-label="Home"
       >
-        <HugeiconsIcon icon={DashboardSpeed01Icon} className="size-6" />
+        <WatchtowerMark className="size-5" />
       </NavButton>
 
-      <div className="flex flex-1 min-h-0 flex-col overflow-y-auto scrollbar-none">
+      <div className="flex flex-1 min-h-0 flex-col items-center gap-0.5 overflow-y-auto scrollbar-none">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

@@ -6,7 +6,7 @@ import { ProviderDetailPage } from "@/pages/provider-detail"
 describe("ProviderDetailPage", () => {
   it("shows not found when plugin missing", () => {
     render(<ProviderDetailPage plugin={null} displayMode="used" resetTimerDisplayMode="relative" />)
-    expect(screen.getByText("Provider not found")).toBeInTheDocument()
+    expect(screen.getByText("Provider Not Found")).toBeInTheDocument()
   })
 
   it("renders ProviderCard with all scope when plugin present", async () => {
