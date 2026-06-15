@@ -97,7 +97,7 @@ export function AppShell({
             isPluginRefreshAvailable={isPluginRefreshAvailable}
             onReorder={onNavReorder}
           />
-          <div className="wt-dot-grid flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
+          <div className="wt-dot-grid relative flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
             <header className="flex items-start justify-between gap-3 pb-4">
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-line bg-surface-raised">
@@ -134,15 +134,15 @@ export function AppShell({
                 >
                   <HugeiconsIcon icon={Settings02Icon} className="size-4" />
                 </Button>
-                {showProviderSettings && (
-                  <ProviderSettingsPopover
-                    pluginsMeta={pluginsMeta}
-                    pluginSettings={pluginSettings}
-                    onProviderToggle={onProviderToggle}
-                  />
-                )}
               </div>
             </header>
+            {showProviderSettings && (
+              <ProviderSettingsPopover
+                pluginsMeta={pluginsMeta}
+                pluginSettings={pluginSettings}
+                onProviderToggle={onProviderToggle}
+              />
+            )}
             <div className="relative flex-1 min-h-0">
               <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-none">
                 <AppContent
