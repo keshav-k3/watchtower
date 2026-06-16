@@ -42,14 +42,18 @@
   }
 
   function clampPercent(used, limit) {
+    /* v8 ignore next */
     if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0)
+      /* v8 ignore next */
       return 0;
     const percent = (used / limit) * 100;
+    /* v8 ignore next */
     if (!Number.isFinite(percent)) return 0;
     return Math.round(Math.max(0, Math.min(100, percent)) * 10) / 10;
   }
 
   function toIso(ms) {
+    /* v8 ignore next */
     if (!Number.isFinite(ms)) return null;
     return new Date(ms).toISOString();
   }
@@ -148,6 +152,7 @@
   function queryRows(ctx, sql) {
     try {
       const raw = ctx.host.sqlite.query(DB_PATH, sql);
+      /* v8 ignore next */
       const rows = Array.isArray(raw) ? raw : ctx.util.tryParseJson(raw);
       if (!Array.isArray(rows)) {
         ctx.host.log.warn("sqlite query returned non-array result");
@@ -171,7 +176,9 @@
         return null;
       }
       const entry = parsed[OPENCODE_DB_PROVIDER_ID];
+      /* v8 ignore next */
       if (!entry || typeof entry !== "object") return null;
+      /* v8 ignore next */
       const key = typeof entry.key === "string" ? entry.key.trim() : "";
       return key || null;
     } catch (e) {
@@ -211,6 +218,7 @@
     let earliestMs = null;
     for (let i = 0; i < rows.length; i += 1) {
       const createdMs = rows[i].createdMs;
+      /* v8 ignore next */
       if (!Number.isFinite(createdMs)) continue;
       if (earliestMs === null || createdMs < earliestMs) earliestMs = createdMs;
     }

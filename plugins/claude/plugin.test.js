@@ -1885,6 +1885,272 @@ describe("claude plugin", () => {
     })
   })
 
+  it("uses local oauth config for ant users", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => false
+    ctx.host.env.get.mockImplementation((name) => {
+      if (name === "USER_TYPE") return "ant"
+      if (name === "USE_LOCAL_OAUTH") return "1"
+      if (name === "CLAUDE_LOCAL_OAUTH_API_BASE") return "http://localhost:9000/"
+      return null
+    })
+    ctx.host.keychain.readGenericPasswordForCurrentUser.mockReturnValue(
+      JSON.stringify({ claudeAiOauth: { accessToken: "token", subscriptionType: "pro" } })
+    )
+
+    let usageUrl = null
+    ctx.host.http.request.mockImplementation((opts) => {
+      usageUrl = opts.url
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(usageUrl).toBe("http://localhost:9000/api/oauth/usage")
+    expect(ctx.host.keychain.readGenericPasswordForCurrentUser).toHaveBeenCalledWith(
+      "Claude Code-local-oauth-credentials"
+    )
+  })
+
+  it("uses custom oauth base url and client id override", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "token",
+          refreshToken: "refresh",
+          expiresAt: Date.now() - 1000,
+          subscriptionType: "pro",
+        },
+      })
+
+    ctx.host.env.get.mockImplementation((name) => {
+      if (name === "CLAUDE_CODE_CUSTOM_OAUTH_URL") return "https://custom.example.com/"
+      if (name === "CLAUDE_CODE_OAUTH_CLIENT_ID") return "custom-client-id"
+      return null
+    })
+
+    let refreshBody = null
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/v1/oauth/token")) {
+        refreshBody = JSON.parse(opts.bodyText)
+        return { status: 200, bodyText: JSON.stringify({ access_token: "new-token", expires_in: 3600 }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    plugin.probe(ctx)
+    expect(refreshBody.client_id).toBe("custom-client-id")
+    expect(String(refreshBody.refresh_token)).toBe("refresh")
+  })
+
+  it("skips live usage when oauth scopes omit user:profile", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "token",
+          subscriptionType: "pro",
+          scopes: ["user:inference"],
+        },
+      })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+    expect(ctx.host.log.info).toHaveBeenCalledWith("skipping live usage fetch for inference-only token")
+    expect(result.lines.find((line) => line.label === "Session")).toBeUndefined()
+  })
+
+  it("falls back to legacy keychain write when current-user write API is missing", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => false
+    ctx.host.keychain.readGenericPasswordForCurrentUser.mockReturnValue(
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "old-token",
+          refreshToken: "refresh",
+          expiresAt: Date.now() - 1000,
+        },
+      })
+    )
+    ctx.host.keychain.writeGenericPasswordForCurrentUser = undefined
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/v1/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: "new-token", expires_in: 3600 }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).not.toThrow()
+    expect(ctx.host.keychain.writeGenericPassword).toHaveBeenCalled()
+  })
+
+  it("treats env.get failures as missing env values", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({ claudeAiOauth: { accessToken: "token", subscriptionType: "pro" } })
+    ctx.host.env.get.mockImplementation(() => {
+      throw new Error("env unavailable")
+    })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+  })
+
+  it("aggregates model usage from per-field token counts", async () => {
+    const todayKey = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+      return year + "-" + month + "-" + day
+    })()
+
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({ claudeAiOauth: { accessToken: "token", subscriptionType: "pro" } })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+      }),
+    })
+    ctx.host.ccusage.query = vi.fn(() => ({
+      status: "ok",
+      data: {
+        daily: [
+          {
+            date: todayKey,
+            totalTokens: 300,
+            totalCost: 1,
+            models: {
+              "claude-sonnet": {
+                inputTokens: 100,
+                outputTokens: 50,
+                cacheReadTokens: 25,
+              },
+            },
+            modelBreakdowns: [
+              { modelName: "claude-opus", inputTokens: 80, outputTokens: 45 },
+            ],
+          },
+        ],
+      },
+    }))
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const sonnetLine = result.lines.find((line) => line.label === "claude-sonnet")
+    const opusLine = result.lines.find((line) => line.label === "claude-opus")
+    expect(sonnetLine).toBeTruthy()
+    expect(opusLine).toBeTruthy()
+    expect(sonnetLine.value).toMatch(/%$/)
+    expect(opusLine.value).toMatch(/%$/)
+  })
+
+  it("returns null retry-after for invalid HTTP-date headers", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.readText = () => JSON.stringify({ claudeAiOauth: { accessToken: "token" } })
+    ctx.host.fs.exists = () => true
+    ctx.host.http.request.mockReturnValue({
+      status: 429,
+      bodyText: "",
+      headers: { "Retry-After": "not-a-date" },
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const statusLine = result.lines.find((line) => line.label === "Status")
+    expect(statusLine.text).toContain("try again later")
+  })
+
+  it("logs when refresh response is missing access_token body fields", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "token",
+          refreshToken: "refresh",
+          expiresAt: Date.now() - 1,
+        },
+      })
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/v1/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ token_type: "bearer" }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith("refresh response missing access_token")
+  })
+
+  it("logs when refresh response is not valid JSON", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "token",
+          refreshToken: "refresh",
+          expiresAt: Date.now() - 1,
+        },
+      })
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/v1/oauth/token")) {
+        return { status: 200, bodyText: "not-json" }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith("refresh response not valid JSON")
+  })
+
   describe("rate limiting (429)", () => {
     it("parses Retry-After HTTP-date header", async () => {
       // Freeze time so HTTP-date parsing is deterministic
@@ -2054,5 +2320,131 @@ describe("claude plugin", () => {
         vi.useRealTimers()
       }
     })
+  })
+
+  it("defaults profile scope when oauth scopes array is empty", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "token",
+          subscriptionType: "pro",
+          scopes: [],
+        },
+      })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(ctx.host.http.request).toHaveBeenCalled()
+  })
+
+  it("skips hashed keychain lookup when crypto sha256 is unavailable", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => false
+    ctx.host.env.get.mockImplementation((name) =>
+      name === "CLAUDE_CONFIG_DIR" ? TEST_CONFIG_DIR : null
+    )
+    ctx.host.crypto = null
+    ctx.host.keychain.readGenericPasswordForCurrentUser.mockImplementation((service) => {
+      if (service === "Claude Code-credentials") {
+        return JSON.stringify({ claudeAiOauth: { accessToken: "tok", subscriptionType: "pro" } })
+      }
+      return null
+    })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(ctx.host.keychain.readGenericPasswordForCurrentUser).toHaveBeenCalledWith(
+      "Claude Code-credentials"
+    )
+  })
+
+  it("logs when current-user keychain write fails during refresh", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => false
+    ctx.host.keychain.readGenericPasswordForCurrentUser.mockReturnValue(
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "old-token",
+          refreshToken: "refresh",
+          expiresAt: Date.now() - 1000,
+        },
+      })
+    )
+    ctx.host.keychain.writeGenericPasswordForCurrentUser.mockImplementation(() => {
+      throw new Error("write fail")
+    })
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/v1/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: "new-token", expires_in: 3600 }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+        }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).not.toThrow()
+    expect(ctx.host.log.error).toHaveBeenCalledWith(expect.stringContaining("Failed to write Claude credentials keychain"))
+  })
+
+  it("formats fractional model usage percentages with one decimal", async () => {
+    const todayKey = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+      return year + "-" + month + "-" + day
+    })()
+
+    const ctx = makeCtx()
+    ctx.host.fs.exists = () => true
+    ctx.host.fs.readText = () =>
+      JSON.stringify({ claudeAiOauth: { accessToken: "token", subscriptionType: "pro" } })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        five_hour: { utilization: 10, resets_at: "2099-01-01T00:00:00.000Z" },
+      }),
+    })
+    ctx.host.ccusage.query = vi.fn(() => ({
+      status: "ok",
+      data: {
+        daily: [
+          {
+            date: todayKey,
+            totalTokens: 300,
+            totalCost: 1,
+            models: {
+              "claude-sonnet": { inputTokens: 100, outputTokens: 50 },
+              "claude-opus": { inputTokens: 100, outputTokens: 50 },
+            },
+          },
+        ],
+      },
+    }))
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const sonnetLine = result.lines.find((line) => line.label === "claude-sonnet")
+    expect(sonnetLine?.value).toMatch(/%$/)
   })
 })

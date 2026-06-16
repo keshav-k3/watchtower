@@ -6,12 +6,114 @@ vi.mock("@tauri-apps/api/image", () => ({
   },
 }))
 
-import { getTrayIconSizePx, makeTrayBarsSvg, renderTrayBarsIcon } from "@/lib/tray-bars-icon"
+import {
+  getBarFillLayout,
+  getTrayIconSizePx,
+  makeTrayBarsSvg,
+  renderTrayBarsIcon,
+} from "@/lib/tray-bars-icon"
 
 describe("tray-bars-icon", () => {
+  it("getBarFillLayout returns empty layout for non-positive fractions", () => {
+    expect(getBarFillLayout(100, 0)).toEqual({
+      fillW: 0,
+      remainderDrawW: 0,
+      dividerX: null,
+    })
+    expect(getBarFillLayout(100, Number.NaN)).toEqual({
+      fillW: 0,
+      remainderDrawW: 0,
+      dividerX: null,
+    })
+  })
+
+  it("getBarFillLayout fills the full track at 100%", () => {
+    expect(getBarFillLayout(100, 1)).toEqual({
+      fillW: 100,
+      remainderDrawW: 0,
+      dividerX: null,
+    })
+  })
+
+  it("renders a full-width bar rect when the fill spans the entire track", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: 1 }],
+      sizePx: 36,
+      style: "bars",
+    })
+    expect(svg).toContain('width="30"')
+    expect(svg).not.toContain("<path ")
+  })
+
   it("getTrayIconSizePx renders 18px at 1x and 36px at 2x", () => {
     expect(getTrayIconSizePx(1)).toBe(18)
     expect(getTrayIconSizePx(2)).toBe(36)
+    expect(getTrayIconSizePx(undefined)).toBe(18)
+    expect(getTrayIconSizePx(0)).toBe(18)
+  })
+
+  it("quantizes high-end bar fractions so near-full bars keep a visible tail", () => {
+    const full = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: 0.99 }],
+      sizePx: 36,
+      style: "bars",
+    })
+    const quantized = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: 0.82 }],
+      sizePx: 36,
+      style: "bars",
+    })
+    expect(full).toContain("<path ")
+    expect(quantized).toContain("<path ")
+    expect(quantized).not.toEqual(full)
+  })
+
+  it("style=donut omits the progress arc when fraction is zero", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: 0 }],
+      sizePx: 36,
+      style: "donut",
+    })
+    expect(svg).not.toContain("stroke-dasharray=")
+    expect(svg).toContain("<circle ")
+  })
+
+  it("style=bars renders only the track when fraction is zero", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: 0 }],
+      sizePx: 36,
+      style: "bars",
+    })
+    expect(svg).toContain("<rect ")
+    expect(svg).not.toContain("<path ")
+  })
+
+  it("style=bars ignores non-finite fractions", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: Number.NaN }],
+      sizePx: 36,
+      style: "bars",
+    })
+    expect(svg).toContain("<rect ")
+    expect(svg).not.toContain("<path ")
+  })
+
+  it("ignores blank percent text", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [],
+      sizePx: 18,
+      percentText: "   ",
+    })
+    expect(svg).not.toContain("<text ")
+  })
+
+  it("style=donut ignores negative fractions", () => {
+    const svg = makeTrayBarsSvg({
+      bars: [{ id: "a", fraction: -0.5 }],
+      sizePx: 36,
+      style: "donut",
+    })
+    expect(svg).not.toContain("stroke-dasharray=")
   })
 
   it("default style is provider", () => {
@@ -135,6 +237,39 @@ describe("tray-bars-icon", () => {
     expect(svg).toContain(">70%</text>")
   })
 
+  it("renderTrayBarsIcon throws when canvas context is unavailable", async () => {
+    const originalImage = window.Image
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, "createElement")
+
+    ;(window as unknown as { Image: typeof Image }).Image = class MockImage {
+      onload: null | (() => void) = null
+      onerror: null | (() => void) = null
+      decoding = "async"
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    } as unknown as typeof Image
+
+    createElementSpy.mockImplementation((tag: string) => {
+      const el = originalCreateElement(tag)
+      if (tag === "canvas") {
+        vi.spyOn(el as HTMLCanvasElement, "getContext").mockReturnValue(null)
+      }
+      return el
+    })
+
+    try {
+      await expect(renderTrayBarsIcon({
+        bars: [],
+        sizePx: 18,
+      })).rejects.toThrow("Canvas 2D context missing")
+    } finally {
+      window.Image = originalImage
+      createElementSpy.mockRestore()
+    }
+  })
+
   it("renderTrayBarsIcon rasterizes SVG to an Image using canvas", async () => {
     const originalImage = window.Image
     const originalCreateElement = document.createElement.bind(document)
@@ -181,5 +316,29 @@ describe("tray-bars-icon", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(document as any).createElement = originalCreateElement
     }
+  })
+
+  it("fails loudly when svg rasterization cannot load the image", async () => {
+    const originalImage = window.Image
+
+    class BrokenImage {
+      decoding = "async"
+      onload: null | (() => void) = null
+      onerror: null | (() => void) = null
+      set src(_value: string) {
+        queueMicrotask(() => this.onerror?.())
+      }
+    }
+
+    window.Image = BrokenImage as typeof Image
+
+    await expect(
+      renderTrayBarsIcon({
+        bars: [{ id: "a", fraction: 0.5 }],
+        sizePx: 18,
+      })
+    ).rejects.toThrow("Failed to load SVG into image")
+
+    window.Image = originalImage
   })
 })

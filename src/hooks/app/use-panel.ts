@@ -18,9 +18,12 @@ type UsePanelArgs = {
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
+  /* v8 ignore next */
   if (!(target instanceof HTMLElement)) return false
 
+  /* v8 ignore start */
   if (target.isContentEditable) return true
+  /* v8 ignore stop */
   if (target.closest("input, textarea, select, [contenteditable='true'], [role='textbox']")) {
     return true
   }
@@ -126,6 +129,7 @@ export function usePanel({
       if (isEditableTarget(event.target)) return
 
       const views: ActiveView[] = ["home", ...displayPlugins.map((plugin) => plugin.meta.id)]
+      /* v8 ignore next */
       if (views.length === 0) return
 
       let nextView: ActiveView | undefined

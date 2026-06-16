@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const state = vi.hoisted(() => ({
   appShellProps: null as any,
+  capturedOnProbeResult: null as (() => void) | null,
   handleRefreshAllMock: vi.fn(),
   handleRetryPluginMock: vi.fn(),
   scheduleTrayIconUpdateMock: vi.fn(),
@@ -11,6 +12,8 @@ const state = vi.hoisted(() => ({
   setLoadingForPluginsMock: vi.fn(),
   setErrorForPluginsMock: vi.fn(),
   applyStartOnLoginMock: vi.fn(),
+  savePluginSettingsMock: vi.fn(async () => undefined),
+  pluginStates: {} as Record<string, any>,
 }))
 
 vi.mock("@/components/app/app-shell", () => ({
@@ -77,29 +80,38 @@ vi.mock("@/hooks/app/use-settings-bootstrap", async () => {
 })
 
 vi.mock("@/hooks/app/use-probe", () => ({
-  useProbe: () => ({
-    pluginStates: {},
-    setLoadingForPlugins: state.setLoadingForPluginsMock,
-    setErrorForPlugins: state.setErrorForPluginsMock,
-    startBatch: state.startBatchMock,
-    autoUpdateNextAt: null,
-    handleRetryPlugin: state.handleRetryPluginMock,
-    handleRefreshAll: state.handleRefreshAllMock,
-  }),
+  useProbe: (args: { onProbeResult?: () => void }) => {
+    state.capturedOnProbeResult = args.onProbeResult ?? null
+    return {
+      pluginStates: state.pluginStates,
+      setLoadingForPlugins: state.setLoadingForPluginsMock,
+      setErrorForPlugins: state.setErrorForPluginsMock,
+      startBatch: state.startBatchMock,
+      autoUpdateNextAt: null,
+      handleRetryPlugin: state.handleRetryPluginMock,
+      handleRefreshAll: state.handleRefreshAllMock,
+    }
+  },
 }))
 
 vi.mock("@/hooks/app/use-tray-icon", () => ({
   useTrayIcon: () => ({
     scheduleTrayIconUpdate: state.scheduleTrayIconUpdateMock,
     traySettingsPreview: {
-      pluginId: null,
-      style: "watchtower",
-      metric: "default",
       bars: [],
-      tooltip: null,
+      providerBars: [],
+      providerPercentText: "--%",
     },
   }),
 }))
+
+vi.mock("@/lib/settings", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/settings")>("@/lib/settings")
+  return {
+    ...actual,
+    savePluginSettings: state.savePluginSettingsMock,
+  }
+})
 
 import { App } from "@/App"
 import { useAppPluginStore } from "@/stores/app-plugin-store"
@@ -109,12 +121,16 @@ import { useAppUiStore } from "@/stores/app-ui-store"
 describe("App", () => {
   beforeEach(() => {
     state.appShellProps = null
+    state.capturedOnProbeResult = null
     state.handleRefreshAllMock.mockReset()
     state.handleRetryPluginMock.mockReset()
     state.scheduleTrayIconUpdateMock.mockReset()
     state.startBatchMock.mockClear()
     state.setLoadingForPluginsMock.mockReset()
     state.setErrorForPluginsMock.mockReset()
+    state.savePluginSettingsMock.mockReset()
+    state.savePluginSettingsMock.mockResolvedValue(undefined)
+    state.pluginStates = {}
     useAppPluginStore.getState().resetState()
     useAppPreferencesStore.getState().resetState()
     useAppUiStore.getState().resetState()
@@ -171,5 +187,198 @@ describe("App", () => {
 
     expect(state.handleRefreshAllMock).toHaveBeenCalledTimes(1)
     expect(state.handleRetryPluginMock).toHaveBeenCalledWith("alpha")
+  })
+
+  it("reloads a provider from the shell context action", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+    act(() => {
+      state.appShellProps.onPluginContextAction("alpha", "reload")
+    })
+
+    expect(state.handleRetryPluginMock).toHaveBeenCalledWith("alpha")
+  })
+
+  it("ignores non-reload plugin context actions", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+    act(() => {
+      state.appShellProps.onPluginContextAction("alpha", "remove")
+    })
+
+    expect(state.handleRetryPluginMock).not.toHaveBeenCalled()
+  })
+
+  it("reports refresh availability based on cooldown and loading state", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000_000)
+    const { rerender } = render(<App />)
+
+    await screen.findByText("Alpha")
+
+    expect(state.appShellProps.isPluginRefreshAvailable("missing")).toBe(true)
+
+    state.pluginStates = {
+      alpha: {
+        data: null,
+        loading: false,
+        error: null,
+        lastManualRefreshAt: null,
+        lastUpdatedAt: null,
+      },
+    }
+    rerender(<App />)
+    expect(state.appShellProps.isPluginRefreshAvailable("alpha")).toBe(true)
+
+    state.pluginStates = {
+      alpha: {
+        data: null,
+        loading: true,
+        error: null,
+        lastManualRefreshAt: null,
+        lastUpdatedAt: null,
+      },
+    }
+    rerender(<App />)
+    expect(state.appShellProps.isPluginRefreshAvailable("alpha")).toBe(false)
+
+    state.pluginStates = {
+      alpha: {
+        data: null,
+        loading: false,
+        error: null,
+        lastManualRefreshAt: 900_001,
+        lastUpdatedAt: null,
+      },
+    }
+    rerender(<App />)
+    expect(state.appShellProps.isPluginRefreshAvailable("alpha")).toBe(false)
+
+    state.pluginStates = {
+      alpha: {
+        data: null,
+        loading: false,
+        error: null,
+        lastManualRefreshAt: 100_000,
+        lastUpdatedAt: null,
+      },
+    }
+    rerender(<App />)
+    expect(state.appShellProps.isPluginRefreshAvailable("alpha")).toBe(true)
+
+    nowSpy.mockRestore()
+  })
+
+  it("no-ops provider toggle when settings are not loaded", async () => {
+    const { rerender } = render(<App />)
+
+    await screen.findByText("Alpha")
+    useAppPluginStore.getState().setPluginSettings(null)
+    state.savePluginSettingsMock.mockClear()
+    rerender(<App />)
+
+    act(() => {
+      state.appShellProps.onProviderToggle("alpha")
+    })
+
+    expect(state.savePluginSettingsMock).not.toHaveBeenCalled()
+  })
+
+  it("exposes no-op nav reorder and reset timer toggle handlers", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+
+    act(() => {
+      state.appShellProps.onNavReorder()
+      state.appShellProps.appContentProps.onResetTimerDisplayModeToggle()
+    })
+  })
+
+  it("toggles provider visibility and refreshes re-enabled providers", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+
+    act(() => {
+      state.appShellProps.onProviderToggle("beta")
+    })
+
+    await waitFor(() => {
+      expect(useAppPluginStore.getState().pluginSettings?.disabled).toEqual([])
+    })
+    expect(state.setLoadingForPluginsMock).toHaveBeenCalledWith(["beta"])
+    expect(state.startBatchMock).toHaveBeenCalledWith(["beta"])
+    expect(state.scheduleTrayIconUpdateMock).toHaveBeenCalledWith("settings", 0)
+    expect(state.savePluginSettingsMock).toHaveBeenCalled()
+  })
+
+  it("returns home when disabling the active provider", async () => {
+    useAppUiStore.getState().setActiveView("alpha")
+    render(<App />)
+
+    await screen.findByText("Alpha")
+
+    act(() => {
+      state.appShellProps.onProviderToggle("alpha")
+    })
+
+    expect(useAppUiStore.getState().activeView).toBe("home")
+  })
+
+  it("debounces tray icon updates after probe results", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+
+    act(() => {
+      state.capturedOnProbeResult?.()
+    })
+
+    expect(state.scheduleTrayIconUpdateMock).toHaveBeenCalledWith("probe", 500)
+  })
+
+  it("logs errors when re-enabling a provider fails to refresh", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    render(<App />)
+    await screen.findByText("Alpha")
+
+    state.startBatchMock.mockRejectedValueOnce(new Error("batch failed"))
+
+    act(() => {
+      state.appShellProps.onProviderToggle("beta")
+    })
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to refresh visible provider:",
+        expect.any(Error)
+      )
+    })
+
+    consoleSpy.mockRestore()
+  })
+
+  it("logs errors when saving provider visibility fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    state.savePluginSettingsMock.mockRejectedValueOnce(new Error("save failed"))
+
+    render(<App />)
+    await screen.findByText("Alpha")
+
+    act(() => {
+      state.appShellProps.onProviderToggle("alpha")
+    })
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to save provider visibility:",
+        expect.any(Error)
+      )
+    })
+
+    consoleSpy.mockRestore()
   })
 })

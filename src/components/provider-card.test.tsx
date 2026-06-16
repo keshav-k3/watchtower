@@ -918,6 +918,34 @@ describe("ProviderCard", () => {
     vi.useRealTimers()
   })
 
+  it("formats hours and days for older last-updated timestamps", () => {
+    vi.useFakeTimers()
+    const now = new Date("2026-02-02T00:05:00.000Z")
+    vi.setSystemTime(now)
+    render(
+      <ProviderCard
+        name="Hours"
+        displayMode="used"
+        onRetry={() => {}}
+        lastUpdatedAt={now.getTime() - 3 * 60 * 60 * 1000}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    expect(screen.getByText(/Updated 3h ago/)).toBeInTheDocument()
+
+    render(
+      <ProviderCard
+        name="Days"
+        displayMode="used"
+        onRetry={() => {}}
+        lastUpdatedAt={now.getTime() - 2 * 24 * 60 * 60 * 1000}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    expect(screen.getByText(/Updated 2d ago/)).toBeInTheDocument()
+    vi.useRealTimers()
+  })
+
   it("shows 'just now' for very recent last-updated timestamps", () => {
     vi.useFakeTimers()
     const now = new Date("2026-02-02T00:05:00.000Z")
@@ -963,6 +991,29 @@ describe("ProviderCard", () => {
     )
     expect(screen.queryByText(/Updated/)).toBeNull()
   })
+
+  it("renders metric subtitles and custom colors", () => {
+    render(
+      <ProviderCard
+        name="Styled"
+        displayMode="used"
+        plan="Pro"
+        lines={[
+          { type: "text", label: "Label", value: "Value", color: "#ff00ff", subtitle: "Text sub" },
+          { type: "badge", label: "Plan", text: "Ignored" },
+          { type: "badge", label: "Status", text: "Active", color: "#00ff00", subtitle: "Badge sub" },
+        ]}
+      />
+    )
+
+    expect(screen.getByText("Text sub")).toBeInTheDocument()
+    expect(screen.getByText("Badge sub")).toBeInTheDocument()
+    expect(screen.getByText("Value")).toHaveStyle({ color: "rgb(255, 0, 255)" })
+    expect(screen.getByText("Active")).toHaveStyle({ color: "rgb(0, 255, 0)" })
+    expect(screen.queryByText("Ignored")).not.toBeInTheDocument()
+    expect(screen.getByText("Pro")).toBeInTheDocument()
+  })
+
 })
 
 describe("groupLinesByType", () => {

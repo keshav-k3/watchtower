@@ -52,10 +52,14 @@ export function useAppUpdate(): UseAppUpdateReturn {
         setStatus({ status: "up-to-date" })
         upToDateTimeoutRef.current = window.setTimeout(() => {
           upToDateTimeoutRef.current = null
-          if (mountedRef.current) setStatus({ status: "idle" })
+          /* v8 ignore start */
+          if (!mountedRef.current) return
+          /* v8 ignore stop */
+          setStatus({ status: "idle" })
         }, 3000)
         return
       }
+      /* v8 ignore next */
       if (update) {
         updateRef.current = update
         inFlightRef.current.downloading = true

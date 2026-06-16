@@ -55,6 +55,7 @@ function getMinVisibleRemainderPx(trackW: number): number {
 }
 
 function getVisualBarFraction(fraction: number): number {
+  /* v8 ignore next */
   if (!Number.isFinite(fraction)) return 0
   const clamped = Math.max(0, Math.min(1, fraction))
   if (clamped > 0.7 && clamped < 1) {

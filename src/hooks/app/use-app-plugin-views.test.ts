@@ -105,6 +105,46 @@ describe("useAppPluginViews", () => {
     expect(setActiveView).toHaveBeenCalledWith("home")
   })
 
+  it("skips plugin ids missing from metadata", () => {
+    const pluginSettings: PluginSettings = {
+      order: ["codex", "ghost"],
+      disabled: [],
+    }
+
+    const { result } = renderHook(() =>
+      useAppPluginViews({
+        activeView: "home",
+        setActiveView: vi.fn(),
+        pluginSettings,
+        pluginsMeta: [createPluginMeta("codex", "Codex")],
+        pluginStates: {},
+      })
+    )
+
+    expect(result.current.displayPlugins).toHaveLength(1)
+    expect(result.current.displayPlugins[0]?.meta.id).toBe("codex")
+  })
+
+  it("keeps active view when it is not a known plugin", () => {
+    const setActiveView = vi.fn()
+    const pluginSettings: PluginSettings = {
+      order: ["codex"],
+      disabled: [],
+    }
+
+    renderHook(() =>
+      useAppPluginViews({
+        activeView: "unknown",
+        setActiveView,
+        pluginSettings,
+        pluginsMeta: [createPluginMeta("codex", "Codex")],
+        pluginStates: {},
+      })
+    )
+
+    expect(setActiveView).not.toHaveBeenCalled()
+  })
+
   it("returns selected plugin for active provider view", () => {
     const pluginSettings: PluginSettings = {
       order: ["codex"],

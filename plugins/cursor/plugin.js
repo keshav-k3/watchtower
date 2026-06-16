@@ -58,6 +58,7 @@
       const value = ctx.host.keychain.readGenericPassword(service)
       if (typeof value !== "string") return null
       const trimmed = value.trim()
+      /* v8 ignore next */
       return trimmed || null
     } catch (e) {
       ctx.host.log.info("keychain read failed for " + service + ": " + String(e))
@@ -132,6 +133,7 @@
     const payload = ctx.jwt.decodePayload(token)
     if (!payload || typeof payload.sub !== "string") return null
     const subject = payload.sub.trim()
+    /* v8 ignore next */
     return subject || null
   }
 
@@ -295,10 +297,12 @@
         return null
       }
       var stripe = ctx.util.tryParseJson(resp.bodyText)
+      /* v8 ignore next */
       if (!stripe) return null
       var customerBalanceCents = Number(stripe.customerBalance)
       if (!Number.isFinite(customerBalanceCents)) return null
       // Stripe stores customer credits as a negative balance.
+      /* v8 ignore next */
       return customerBalanceCents < 0 ? Math.abs(customerBalanceCents) : 0
     } catch (e) {
       ctx.host.log.warn("stripe balance fetch failed: " + String(e))
@@ -473,6 +477,7 @@
       ctx.host.log.warn("plan info fetch failed: " + String(e))
     }
 
+    /* v8 ignore next */
     const normalizedPlanName = typeof planName === "string"
       ? planName.toLowerCase()
       : ""

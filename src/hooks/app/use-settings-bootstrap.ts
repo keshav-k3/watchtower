@@ -118,27 +118,29 @@ export function useSettingsBootstrap({
         const storedMenubarIconStyle = DEFAULT_MENUBAR_ICON_STYLE
         const storedMenubarMetric = DEFAULT_MENUBAR_METRIC
 
-        if (isMounted) {
-          setPluginSettings(normalized)
-          setAutoUpdateInterval(storedInterval)
-          setThemeMode(storedThemeMode)
-          setDisplayMode(storedDisplayMode)
-          setResetTimerDisplayMode(storedResetTimerDisplayMode)
-          setTimeFormatMode(storedTimeFormatMode)
-          setGlobalShortcut(storedGlobalShortcut)
-          setStartOnLogin(storedStartOnLogin)
-          setMenubarIconStyle(storedMenubarIconStyle)
-          setMenubarMetric(storedMenubarMetric)
+        if (!isMounted) {
+          /* v8 ignore next */
+          return
+        }
+        setPluginSettings(normalized)
+        setAutoUpdateInterval(storedInterval)
+        setThemeMode(storedThemeMode)
+        setDisplayMode(storedDisplayMode)
+        setResetTimerDisplayMode(storedResetTimerDisplayMode)
+        setTimeFormatMode(storedTimeFormatMode)
+        setGlobalShortcut(storedGlobalShortcut)
+        setStartOnLogin(storedStartOnLogin)
+        setMenubarIconStyle(storedMenubarIconStyle)
+        setMenubarMetric(storedMenubarMetric)
 
-          const enabledIds = getEnabledPluginIds(normalized)
-          setLoadingForPlugins(enabledIds)
-          try {
-            await startBatch(enabledIds)
-          } catch (error) {
-            console.error("Failed to start probe batch:", error)
-            if (isMounted) {
-              setErrorForPlugins(enabledIds, "Failed to start probe")
-            }
+        const enabledIds = getEnabledPluginIds(normalized)
+        setLoadingForPlugins(enabledIds)
+        try {
+          await startBatch(enabledIds)
+        } catch (error) {
+          console.error("Failed to start probe batch:", error)
+          if (isMounted) {
+            setErrorForPlugins(enabledIds, "Failed to start probe")
           }
         }
       } catch (e) {

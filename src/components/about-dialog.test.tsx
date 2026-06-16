@@ -64,6 +64,17 @@ describe("AboutDialog", () => {
     expect(screen.getByText("Watchtower")).toBeInTheDocument()
   })
 
+  it("returns to about view from changelog back button", async () => {
+    render(<AboutDialog version="1.2.3" onClose={() => {}} />)
+
+    await userEvent.click(screen.getByRole("button", { name: "View Changelog" }))
+    expect(screen.getByText("Release Notes")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }))
+    expect(screen.getByText("Watchtower")).toBeInTheDocument()
+    expect(screen.queryByText("Release Notes")).not.toBeInTheDocument()
+  })
+
   it("does not close on other keys", async () => {
     const onClose = vi.fn()
     render(<AboutDialog version="1.2.3" onClose={onClose} />)

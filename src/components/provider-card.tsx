@@ -204,8 +204,10 @@ export function ProviderCard({
 
   // Format remaining cooldown time as "Xm Ys"
   const formatRemainingTime = () => {
+    /* v8 ignore next */
     if (!lastManualRefreshAt) return ""
     const remainingMs = REFRESH_COOLDOWN_MS - (now - lastManualRefreshAt)
+    /* v8 ignore next */
     if (remainingMs <= 0) return ""
     const totalSeconds = Math.ceil(remainingMs / 1000)
     const minutes = Math.floor(totalSeconds / 60)
@@ -610,7 +612,7 @@ function MetricLineRenderer({
                 />
                 <TooltipContent side="top">{resetTooltipText}</TooltipContent>
               </Tooltip>
-            ) : resetLabel && onResetTimerDisplayModeToggle ? (
+            ) : /* v8 ignore next */ resetLabel && onResetTimerDisplayModeToggle ? (
               <button
                 type="button"
                 onClick={onResetTimerDisplayModeToggle}

@@ -54,6 +54,35 @@ describe("UsageSparkline", () => {
     expect(container).toBeEmptyDOMElement()
   })
 
+  it("filters invalid points and applies custom bar colors", async () => {
+    const user = userEvent.setup()
+    render(
+      <UsageSparkline
+        label="Usage Trend"
+        color="#ff0000"
+        points={[
+          { label: "bad", value: Number.NaN },
+          { label: "5/16", value: 100 },
+          { label: "5/17", value: 0 },
+        ]}
+      />
+    )
+
+    const sparkline = screen.getByRole("button", { name: /Usage Trend/ })
+    const inlineBars = sparkline.querySelectorAll("span[aria-hidden] > span")
+    expect(inlineBars).toHaveLength(2)
+    expect(inlineBars[0]).toHaveStyle({ backgroundColor: "#ff0000" })
+
+    await user.hover(sparkline)
+    fireEvent.mouseEnter(screen.getByTitle("5/16: 100"))
+    expect(await screen.findByText("5/16 · 100")).toBeInTheDocument()
+
+    const tooltipContent = document.querySelector('[data-slot="tooltip-content"]')
+    expect(tooltipContent).toBeTruthy()
+    fireEvent.mouseLeave(tooltipContent!)
+    expect(await screen.findByText("peak 100")).toBeInTheDocument()
+  })
+
   it("renders an inline usage sparkline row inside a ProviderCard", () => {
     render(
       <ProviderCard

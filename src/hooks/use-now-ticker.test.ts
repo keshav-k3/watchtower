@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { useNowTicker } from "./use-now-ticker"
+import { useNowTicker, tickNow } from "./use-now-ticker"
 
 describe("useNowTicker", () => {
   let originalDocumentHiddenDescriptor: PropertyDescriptor | undefined
@@ -15,6 +15,68 @@ describe("useNowTicker", () => {
     } else {
       Reflect.deleteProperty(document, "hidden")
     }
+    vi.useRealTimers()
+  })
+
+  it("ticks on interval when enabled", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-02-03T00:00:00.000Z"))
+
+    const { result } = renderHook(() => useNowTicker({ intervalMs: 1000 }))
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+
+    expect(result.current).toBe(Date.parse("2026-02-03T00:00:01.000Z"))
+  })
+
+  it("updates now through tickNow helper", () => {
+    const setNow = vi.fn()
+    tickNow(setNow)
+    expect(setNow).toHaveBeenCalledWith(Date.now())
+  })
+
+  it("stops ticking after stopAfterMs elapses", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-02-03T00:00:00.000Z"))
+
+    const { result } = renderHook(() =>
+      useNowTicker({ intervalMs: 1000, stopAfterMs: 1500 })
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(result.current).toBe(Date.parse("2026-02-03T00:00:01.000Z"))
+
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+
+    expect(result.current).toBe(Date.parse("2026-02-03T00:00:01.000Z"))
+  })
+
+  it("cleans up interval and timeout on unmount when stopAfterMs is set", () => {
+    vi.useFakeTimers()
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval")
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout")
+
+    const { unmount } = renderHook(() =>
+      useNowTicker({ intervalMs: 1000, stopAfterMs: 5000 })
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+
+    unmount()
+
+    expect(clearIntervalSpy).toHaveBeenCalled()
+    expect(clearTimeoutSpy).toHaveBeenCalled()
+
+    clearIntervalSpy.mockRestore()
+    clearTimeoutSpy.mockRestore()
     vi.useRealTimers()
   })
 

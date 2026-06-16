@@ -41,4 +41,25 @@ describe("SkeletonLines", () => {
     render(<SkeletonLine line={line} />)
     expect(screen.getByText("Fallback")).toBeInTheDocument()
   })
+
+  it("renders bar chart skeleton rows", () => {
+    const lines: ManifestLine[] = [
+      { type: "barChart", label: "Usage Trend", scope: "overview" },
+    ]
+    const { container } = render(<SkeletonLines lines={lines} />)
+
+    expect(screen.getByText("Usage Trend")).toBeInTheDocument()
+    expect(container.querySelectorAll(".animate-pulse")).toHaveLength(16)
+  })
+
+  it("renders non-text groups as separate fragments", () => {
+    const lines: ManifestLine[] = [
+      { type: "progress", label: "Session", scope: "overview" },
+      { type: "badge", label: "Plan", scope: "overview" },
+    ]
+    render(<SkeletonLines lines={lines} />)
+
+    expect(screen.getByText("Session")).toBeInTheDocument()
+    expect(screen.getByText("Plan")).toBeInTheDocument()
+  })
 })

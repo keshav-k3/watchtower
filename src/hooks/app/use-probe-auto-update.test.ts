@@ -96,6 +96,54 @@ describe("useProbeAutoUpdate", () => {
     expect(setErrorForPlugins).not.toHaveBeenCalled()
   })
 
+  it("clears the schedule when every provider is disabled", () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000)
+
+    const { result } = renderHook(() =>
+      useProbeAutoUpdate({
+        pluginSettings: { order: ["codex", "claude"], disabled: ["codex", "claude"] },
+        autoUpdateInterval: 15,
+        setLoadingForPlugins: vi.fn(),
+        setErrorForPlugins: vi.fn(),
+        isPluginLoading: vi.fn(() => false),
+        startBatch: vi.fn(),
+      })
+    )
+
+    expect(result.current.autoUpdateNextAt).toBeNull()
+    nowSpy.mockRestore()
+  })
+
+  it("logs and sets errors when auto-update batch start fails", async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(10_000)
+
+    const failure = new Error("batch failed")
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const setLoadingForPlugins = vi.fn()
+    const setErrorForPlugins = vi.fn()
+    const startBatch = vi.fn().mockRejectedValue(failure)
+
+    renderHook(() =>
+      useProbeAutoUpdate({
+        pluginSettings: { order: ["codex"], disabled: [] },
+        autoUpdateInterval: 15,
+        setLoadingForPlugins,
+        setErrorForPlugins,
+        isPluginLoading: vi.fn(() => false),
+        startBatch,
+      })
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15 * 60_000)
+    })
+
+    expect(setErrorForPlugins).toHaveBeenCalledWith(["codex"], "Failed to start probe")
+    expect(errorSpy).toHaveBeenCalledWith("Failed to start auto-update batch:", failure)
+    errorSpy.mockRestore()
+  })
+
   it("does not start an auto-update batch when every provider is still loading", async () => {
     vi.useFakeTimers()
     vi.setSystemTime(10_000)

@@ -166,6 +166,7 @@ function encodeField(fieldNum, wireType, data) {
   var tag = encodeVarint(fieldNum * 8 + wireType)
   if (wireType === 2) return tag + encodeVarint(data.length) + data
   if (wireType === 0) return tag + encodeVarint(data)
+  if (wireType === 5) return tag + (data || "\0\0\0\0")
   return ""
 }
 
@@ -178,6 +179,7 @@ function makeOAuthSentinelB64(ctx, opts) {
     var tsMsg = encodeField(1, 0, opts.expirySeconds)
     inner += encodeField(4, 2, tsMsg)
   }
+  if (opts.extraInnerFields) inner += opts.extraInnerFields
   var innerB64 = ctx.base64.encode(inner)
   var payload = encodeField(1, 2, innerB64)
   var wrapper = encodeField(1, 2, OAUTH_TOKEN_SENTINEL) + encodeField(2, 2, payload)
@@ -1690,6 +1692,317 @@ describe("gemini plugin", () => {
     expect(refreshCalls).toBe(0)
   })
 
+  it("continues when cached token read throws", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    const cachePath = ctx.app.pluginDataDir + "/auth.json"
+    ctx.host.fs.writeText(cachePath, "{bad")
+    ctx.host.fs.readText = vi.fn((path) => {
+      if (path === cachePath) throw new Error("cache read failed")
+      throw new Error("unexpected read: " + path)
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+    expect(ctx.host.log.warn).toHaveBeenCalled()
+  })
+
+  it("logs when caching a refreshed token fails", async () => {
+    const ctx = makeCtx()
+    const futureExpiry = Math.floor(Date.now() / 1000) + 3600
+    setupSqliteMock(ctx, makeOAuthSentinelB64(ctx, { accessToken: "ya29.expired", refreshToken: "1//refresh", expirySeconds: futureExpiry }))
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    const cachePath = ctx.app.pluginDataDir + "/auth.json"
+    ctx.host.fs.writeText.mockImplementation((path) => {
+      if (path === cachePath) throw new Error("disk full")
+    })
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("oauth2.googleapis.com")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: "ya29.refreshed" }) }
+      }
+      if (url.includes("fetchAvailableModels")) {
+        if (opts.headers.Authorization === "Bearer ya29.refreshed") {
+          return { status: 200, bodyText: JSON.stringify(makeCloudCodeResponse()) }
+        }
+        return { status: 401, bodyText: '{"error":"unauthorized"}' }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.length).toBeGreaterThan(0)
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("failed to cache refreshed token"))
+  })
+
+  it("reads agy keychain bearer and plain-text tokens", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    const cases = [
+      "Bearer agy-bearer-token",
+      "plain-agy-token",
+    ]
+
+    for (const tokenValue of cases) {
+      delete globalThis.__watchtower_plugin
+      vi.resetModules()
+      const caseCtx = makeCtx()
+      setupSqliteMock(caseCtx, null)
+      caseCtx.host.ls.discover.mockReturnValue(null)
+      caseCtx.host.keychain.readGenericPassword.mockImplementation((service, account) => {
+        if (service === "gemini" && account === "antigravity") return tokenValue
+        return null
+      })
+      caseCtx.host.http.request.mockImplementation((opts) => {
+        const url = String(opts.url)
+        if (url.includes("loadCodeAssist")) {
+          return { status: 200, bodyText: JSON.stringify(makeAgyLoadResponse()) }
+        }
+        if (url.includes("retrieveUserQuota")) {
+          return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+        }
+        return { status: 500, bodyText: "" }
+      })
+
+      const plugin = await loadPlugin()
+      const result = plugin.probe(caseCtx)
+      expect(result.lines.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("returns null when agy keychain is unavailable or read fails", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain = null
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+
+    delete globalThis.__watchtower_plugin
+    vi.resetModules()
+    const failCtx = makeCtx()
+    setupSqliteMock(failCtx, null)
+    failCtx.host.ls.discover.mockReturnValue(null)
+    failCtx.host.keychain.readGenericPassword.mockImplementation(() => {
+      throw new Error("keychain locked")
+    })
+    const plugin2 = await loadPlugin()
+    expect(() => plugin2.probe(failCtx)).toThrow(LOGIN_MESSAGE)
+    expect(failCtx.host.log.info).toHaveBeenCalled()
+  })
+
+  it("uses agy currentTier when paidTier name is missing", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("agy-plain-token")
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("loadCodeAssist")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify(makeAgyLoadResponse({
+            paidTier: { name: "" },
+            currentTier: { name: "Google AI Ultra" },
+          })),
+        }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.plan).toBe("Google AI Ultra")
+  })
+
+  it("retries agy quota without project when project-scoped request fails", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("agy-plain-token")
+
+    const quotaCalls = []
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("loadCodeAssist")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify(makeAgyLoadResponse({ cloudaicompanionProject: "projects/test" })),
+        }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        quotaCalls.push(JSON.parse(opts.bodyText || "{}"))
+        if (quotaCalls.length <= 2) return { status: 500, bodyText: "" }
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(quotaCalls[0]).toEqual({ project: "projects/test" })
+    expect(quotaCalls[quotaCalls.length - 1]).toEqual({})
+    expect(result.lines.length).toBeGreaterThan(0)
+  })
+
+  it("falls back when GetUserStatus throws", async () => {
+    const ctx = makeCtx()
+    ctx.host.ls.discover.mockReturnValue(makeDiscovery())
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("GetUnleashData")) return { status: 200, bodyText: "{}" }
+      if (url.includes("GetUserStatus")) throw new Error("ls exploded")
+      if (url.includes("GetCommandModelConfigs")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify({
+            clientModelConfigs: [
+              {
+                label: "Gemini 3 Pro (High)",
+                modelOrAlias: { model: "M7" },
+                quotaInfo: { remainingFraction: 0.5, resetTime: "2026-02-08T09:10:56Z" },
+              },
+            ],
+          }),
+        }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Gemini Pro")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("GetUserStatus threw"))
+  })
+
+  it("stores auth-failed cloud code response when refreshed token is still unauthorized", async () => {
+    const ctx = makeCtx()
+    const futureExpiry = Math.floor(Date.now() / 1000) + 3600
+    setupSqliteMock(ctx, makeOAuthSentinelB64(ctx, { accessToken: "ya29.bad", refreshToken: "1//refresh", expirySeconds: futureExpiry }))
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("oauth2.googleapis.com")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: "ya29.still-bad" }) }
+      }
+      if (url.includes("fetchAvailableModels")) {
+        return { status: 401, bodyText: '{"error":"unauthorized"}' }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+  })
+
+  it("tries agy keychain after cloud code auth failure", async () => {
+    const ctx = makeCtx()
+    const futureExpiry = Math.floor(Date.now() / 1000) + 3600
+    setupSqliteMock(ctx, makeOAuthSentinelB64(ctx, { accessToken: "ya29.bad", refreshToken: "1//refresh", expirySeconds: futureExpiry }))
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockImplementation((service, account) => {
+      if (service === "gemini" && account === "antigravity") return "agy-fallback-token"
+      return null
+    })
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("fetchAvailableModels")) return { status: 401, bodyText: "" }
+      if (url.includes("loadCodeAssist")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyLoadResponse()) }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.plan).toBe("Google AI Pro")
+    expect(result.lines.length).toBeGreaterThan(0)
+  })
+
+  it("skips cloud code URL when response has invalid shape", async () => {
+    const ctx = makeCtx()
+    const futureExpiry = Math.floor(Date.now() / 1000) + 3600
+    setupSqliteMock(ctx, makeOAuthSentinelB64(ctx, { accessToken: "ya29.test", refreshToken: "1//refresh", expirySeconds: futureExpiry }))
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("fetchAvailableModels")) {
+        return { status: undefined, bodyText: "{}" }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("invalid response shape"))
+  })
+
+  it("logs when sqlite oauth read throws", async () => {
+    const ctx = makeCtx()
+    ctx.host.sqlite.query.mockImplementation(() => {
+      throw new Error("db locked")
+    })
+    ctx.host.ls.discover.mockReturnValue(null)
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("failed to read unified oauth token"))
+  })
+
+  it("records agy auth failure when agy cloud code returns unauthorized", async () => {
+    const ctx = makeCtx()
+    const futureExpiry = Math.floor(Date.now() / 1000) + 3600
+    setupSqliteMock(ctx, makeOAuthSentinelB64(ctx, { accessToken: "ya29.bad", refreshToken: "1//refresh", expirySeconds: futureExpiry }))
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("agy-fallback-token")
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("fetchAvailableModels")) return { status: 401, bodyText: "" }
+      if (url.includes("loadCodeAssist")) return { status: 401, bodyText: "" }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+  })
+
+  it("groups non-gemini non-claude models into the shared Claude pool", async () => {
+    const ctx = makeCtx()
+    const discovery = makeDiscovery()
+    const response = makeUserStatusResponse({
+      configs: [
+        {
+          label: "GPT-OSS 120B (Medium)",
+          modelOrAlias: { model: "MODEL_OPENAI_GPT_OSS_120B_MEDIUM" },
+          quotaInfo: { remainingFraction: 0.4, resetTime: "2026-02-08T09:10:56Z" },
+        },
+      ],
+    })
+    setupLsMock(ctx, discovery, response)
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.map((line) => line.label)).toEqual(["Claude"])
+    expect(result.lines[0].used).toBe(60)
+  })
+
   it("does not refresh when Cloud Code calls all throw (timeouts)", async () => {
     const ctx = makeCtx()
     const futureExpiry = Math.floor(Date.now() / 1000) + 3600
@@ -1718,5 +2031,156 @@ describe("gemini plugin", () => {
     const plugin = await loadPlugin()
     expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
     expect(refreshCalls).toBe(0)
+  })
+
+  it("extracts nested oauth tokens from keychain json", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue(JSON.stringify({
+      oauth: { access_token: "nested-token" },
+    }))
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("loadCodeAssist")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyLoadResponse()) }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.length).toBeGreaterThan(0)
+  })
+
+  it("uses agy currentTier when paidTier is absent", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("agy-plain-token")
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("loadCodeAssist")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify({
+            currentTier: { name: "Google AI Ultra" },
+            cloudaicompanionProject: "projects/watchtower-agy",
+          }),
+        }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.plan).toBe("Google AI Ultra")
+  })
+
+  it("sorts equal-priority model pools deterministically", async () => {
+    const ctx = makeCtx()
+    const discovery = makeDiscovery()
+    const response = makeUserStatusResponse({
+      configs: [
+        {
+          label: "Alpha Model",
+          modelOrAlias: { model: "MODEL_ALPHA" },
+          quotaInfo: { remainingFraction: 0.5, resetTime: "2026-02-08T09:10:56Z" },
+        },
+        {
+          label: "Beta Model",
+          modelOrAlias: { model: "MODEL_BETA" },
+          quotaInfo: { remainingFraction: 0.4, resetTime: "2026-02-08T09:10:56Z" },
+        },
+      ],
+    })
+    setupLsMock(ctx, discovery, response)
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.map((line) => line.label)).toEqual(["Claude"])
+    expect(result.lines[0].used).toBe(60)
+  })
+
+  it("ignores invalid go-keyring-base64 payloads", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("go-keyring-base64:%%%")
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+  })
+
+  it("ignores keychain json objects without token fields", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue(JSON.stringify({ foo: "bar" }))
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+  })
+
+  it("skips fixed32 protobuf fields while reading oauth envelopes", async () => {
+    const ctx = makeCtx()
+    const envelope = makeOAuthSentinelB64(ctx, {
+      accessToken: "ya29.access",
+      extraInnerFields: encodeField(5, 5, "\0\0\0\0"),
+    })
+    setupSqliteMock(ctx, envelope)
+    ctx.host.ls.discover.mockReturnValue(makeDiscovery())
+    setupLsMock(ctx, makeDiscovery(), makeUserStatusResponse())
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.length).toBeGreaterThan(0)
+  })
+
+  it("treats go-keyring decode failures as missing credentials", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("go-keyring-base64:YQ==")
+    ctx.base64.decode = () => {
+      throw new Error("decode failed")
+    }
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow(LOGIN_MESSAGE)
+  })
+
+  it("returns null agy plan when tier names are blank", async () => {
+    const ctx = makeCtx()
+    setupSqliteMock(ctx, null)
+    ctx.host.ls.discover.mockReturnValue(null)
+    ctx.host.keychain.readGenericPassword.mockReturnValue("agy-plain-token")
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("loadCodeAssist")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify(makeAgyLoadResponse({
+            paidTier: { name: "   " },
+            currentTier: { name: "" },
+          })),
+        }
+      }
+      if (url.includes("retrieveUserQuota")) {
+        return { status: 200, bodyText: JSON.stringify(makeAgyQuotaResponse()) }
+      }
+      return { status: 500, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.plan).toBeNull()
+    expect(result.lines.length).toBeGreaterThan(0)
   })
 })

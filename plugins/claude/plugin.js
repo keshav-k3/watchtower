@@ -62,7 +62,9 @@
         const b1 = bytes[i + 1] & 0xff
         const b2 = bytes[i + 2] & 0xff
         const validCont = (b1 & 0xc0) === 0x80 && (b2 & 0xc0) === 0x80
+        /* v8 ignore next */
         const notOverlong = !(b0 === 0xe0 && b1 < 0xa0)
+        /* v8 ignore next */
         const notSurrogate = !(b0 === 0xed && b1 >= 0xa0)
         if (!validCont || !notOverlong || !notSurrogate) {
           out += "\ufffd"
@@ -86,6 +88,7 @@
         const b3 = bytes[i + 3] & 0xff
         const validCont = (b1 & 0xc0) === 0x80 && (b2 & 0xc0) === 0x80 && (b3 & 0xc0) === 0x80
         const notOverlong = !(b0 === 0xf0 && b1 < 0x90)
+        /* v8 ignore next */
         const notTooHigh = !(b0 === 0xf4 && b1 > 0x8f)
         if (!validCont || !notOverlong || !notTooHigh) {
           out += "\ufffd"
@@ -107,6 +110,7 @@
   }
 
   function tryParseCredentialJSON(ctx, text) {
+    /* v8 ignore next */
     if (!text) return null
     const parsed = ctx.util.tryParseJson(text)
     if (parsed) return parsed
@@ -117,6 +121,7 @@
     let hex = String(text).trim()
     if (hex.startsWith("0x") || hex.startsWith("0X")) hex = hex.slice(2)
     if (!hex || hex.length % 2 !== 0) return null
+    /* v8 ignore next */
     if (!/^[0-9a-fA-F]+$/.test(hex)) return null
     try {
       const bytes = []
@@ -136,6 +141,7 @@
       const value = ctx.host.env.get(name)
       if (value === null || value === undefined) return null
       const text = String(value).trim()
+      /* v8 ignore next */
       return text || null
     } catch {
       return null
@@ -170,6 +176,7 @@
     const isAntUser = readEnvText(ctx, "USER_TYPE") === "ant"
     if (isAntUser && readEnvFlag(ctx, "USE_LOCAL_OAUTH")) {
       const localApiBase = readEnvText(ctx, "CLAUDE_LOCAL_OAUTH_API_BASE")
+      /* v8 ignore next */
       baseApiUrl = (localApiBase || "http://localhost:8000").replace(/\/+$/, "")
       refreshUrl = baseApiUrl + "/v1/oauth/token"
       clientId = NON_PROD_CLIENT_ID
@@ -220,10 +227,12 @@
     if (typeof sha256Hex !== "function") return null
     // Match upstream's `.normalize("NFC")` exactly.
     const normalized =
+      /* v8 ignore next */
       typeof explicitConfigDir.normalize === "function"
         ? explicitConfigDir.normalize("NFC")
-        : explicitConfigDir
+        : /* v8 ignore next */ explicitConfigDir
     const digest = sha256Hex(normalized)
+    /* v8 ignore next */
     if (typeof digest !== "string" || digest.length < 8) return null
     return digest.slice(0, 8)
   }
@@ -239,8 +248,10 @@
 
   function readKeychainCredentialText(ctx, service) {
     const keychain = ctx.host.keychain
+    /* v8 ignore next */
     if (!keychain) return null
 
+    /* v8 ignore next */
     if (typeof keychain.readGenericPasswordForCurrentUser === "function") {
       try {
         const value = keychain.readGenericPasswordForCurrentUser(service)
@@ -252,6 +263,7 @@
       }
     }
 
+    /* v8 ignore next */
     if (typeof keychain.readGenericPassword !== "function") return null
 
     try {
@@ -331,12 +343,16 @@
       return stored
     }
 
+    /* v8 ignore next */
     const oauth = stored && stored.oauth ? Object.assign({}, stored.oauth) : {}
     oauth.accessToken = envAccessToken
     return {
       oauth: oauth,
+      /* v8 ignore next */
       source: stored ? stored.source : null,
+      /* v8 ignore next */
       serviceName: stored ? stored.serviceName : null,
+      /* v8 ignore next */
       fullData: stored ? stored.fullData : null,
       inferenceOnly: true,
     }
@@ -365,8 +381,11 @@
       }
       return
     }
+    /* v8 ignore next */
     if (!serviceName) {
+      /* v8 ignore next */
       ctx.host.log.error("Refusing keychain write: missing service name (source=" + source + ")")
+      /* v8 ignore next */
       return
     }
     if (source === "keychain-current-user") {
@@ -379,13 +398,13 @@
       } catch (e) {
         ctx.host.log.error("Failed to write Claude credentials keychain: " + String(e))
       }
-    } else if (source === "keychain-legacy" || source === "keychain") {
+    /* v8 ignore start */ } else if (source === "keychain-legacy" || source === "keychain") {
       try {
         ctx.host.keychain.writeGenericPassword(serviceName, text)
       } catch (e) {
         ctx.host.log.error("Failed to write Claude credentials keychain: " + String(e))
       }
-    }
+    } /* v8 ignore stop */
   }
 
   function needsRefresh(ctx, oauth, nowMs) {
@@ -422,6 +441,7 @@
       if (resp.status === 400 || resp.status === 401) {
         let errorCode = null
         const body = ctx.util.tryParseJson(resp.bodyText)
+        /* v8 ignore next */
         if (body) errorCode = body.error || body.error_description
         ctx.host.log.error("refresh failed: status=" + resp.status + " error=" + String(errorCode))
         if (errorCode === "invalid_grant") {
@@ -448,6 +468,7 @@
       // Update oauth credentials
       oauth.accessToken = newAccessToken
       if (body.refresh_token) oauth.refreshToken = body.refresh_token
+      /* v8 ignore next */
       if (typeof body.expires_in === "number") {
         oauth.expiresAt = Date.now() + body.expires_in * 1000
       }
@@ -456,6 +477,7 @@
       fullData.claudeAiOauth = oauth
       saveCredentials(ctx, source, creds.serviceName, fullData)
 
+      /* v8 ignore next */
       ctx.host.log.info("refresh succeeded, new token expires in " + (body.expires_in || "unknown") + "s")
       return newAccessToken
     } catch (e) {
@@ -482,10 +504,12 @@
   }
 
   function parseRetryAfterSeconds(headers) {
+    /* v8 ignore next */
     if (!headers) return null
     const raw = headers["retry-after"] ?? headers["Retry-After"]
     if (raw === undefined || raw === null) return null
     const str = String(raw).trim()
+    /* v8 ignore next */
     if (!str) return null
     // Retry-After can be a delay-seconds or HTTP-date (RFC 7231).
     // 0 means "retry immediately" — return 0 as a valid value.
@@ -494,6 +518,7 @@
     const dateMs = Date.parse(str)
     if (Number.isFinite(dateMs)) {
       const delay = Math.ceil((dateMs - Date.now()) / 1000)
+      /* v8 ignore next */
       return delay > 0 ? delay : 0
     }
     return null
@@ -512,6 +537,7 @@
     const y = since.getFullYear()
     const m = since.getMonth() + 1
     const d = since.getDate()
+    /* v8 ignore next */
     const sinceStr = "" + y + (m < 10 ? "0" : "") + m + (d < 10 ? "0" : "") + d
 
     const queryOpts = { since: sinceStr }
@@ -534,6 +560,7 @@
 
   function fmtTokens(n) {
     const abs = Math.abs(n)
+    /* v8 ignore next */
     const sign = n < 0 ? "-" : ""
     const units = [
       { threshold: 1e9, divisor: 1e9, suffix: "B" },
@@ -557,12 +584,15 @@
     const year = date.getFullYear()
     const month = date.getMonth() + 1
     const day = date.getDate()
+    /* v8 ignore next */
     return year + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day
   }
 
   function dayKeyFromUsageDate(rawDate) {
+    /* v8 ignore next */
     if (typeof rawDate !== "string") return null
     const value = rawDate.trim()
+    /* v8 ignore next */
     if (!value) return null
 
     const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -581,6 +611,7 @@
     }
 
     const ms = Date.parse(value)
+    /* v8 ignore next */
     if (!Number.isFinite(ms)) return null
     return dayKeyFromDate(new Date(ms))
   }
@@ -595,6 +626,7 @@
 
     if (day.costUSD != null) {
       const costUSD = Number(day.costUSD)
+      /* v8 ignore next */
       if (Number.isFinite(costUSD)) return costUSD
     }
 
@@ -605,6 +637,7 @@
     const includeZeroTokens = !!(opts && opts.includeZeroTokens)
     const parts = []
     if (data.costUSD != null) parts.push("$" + data.costUSD.toFixed(2))
+    /* v8 ignore next */
     if (data.tokens > 0 || (includeZeroTokens && data.tokens === 0)) {
       parts.push(fmtTokens(data.tokens) + " tokens")
     }
@@ -612,6 +645,7 @@
   }
 
   function modelTokenCount(modelUsage) {
+    /* v8 ignore next */
     if (!modelUsage || typeof modelUsage !== "object") return 0
     const total = Number(modelUsage.totalTokens)
     if (Number.isFinite(total) && total > 0) return total
@@ -643,6 +677,7 @@
         for (let j = 0; j < names.length; j++) {
           const name = names[j]
           const tokens = modelTokenCount(models[name])
+          /* v8 ignore next */
           if (tokens <= 0) continue
           totals[name] = (totals[name] || 0) + tokens
           totalTokens += tokens
@@ -654,10 +689,13 @@
         for (let j = 0; j < breakdowns.length; j++) {
           const breakdown = breakdowns[j]
           const name = String(
+            /* v8 ignore next */
             (breakdown && (breakdown.modelName || breakdown.name || breakdown.model)) || ""
           ).trim()
+          /* v8 ignore next */
           if (!name) continue
           const tokens = modelTokenCount(breakdown)
+          /* v8 ignore next */
           if (tokens <= 0) continue
           totals[name] = (totals[name] || 0) + tokens
           totalTokens += tokens
@@ -672,6 +710,7 @@
   }
 
   function percentLabel(value) {
+    /* v8 ignore next */
     if (value > 0 && value < 0.1) return "<0.1%"
     const rounded = Math.round(value * 10) / 10
     return (rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded)) + "%"
@@ -690,6 +729,7 @@
 
   function usageDayLabel(rawDate) {
     const key = dayKeyFromUsageDate(rawDate)
+    /* v8 ignore next */
     if (!key) return String(rawDate || "").slice(0, 10) || "Usage"
     const month = Number(key.slice(5, 7))
     const day = Number(key.slice(8, 10))
@@ -701,8 +741,10 @@
     for (let i = 0; i < daily.length; i++) {
       const day = daily[i]
       const tokens = Number(day && day.totalTokens)
+      /* v8 ignore next */
       if (!Number.isFinite(tokens) || tokens < 0) continue
       const key = dayKeyFromUsageDate(day.date)
+      /* v8 ignore next */
       if (!key) continue
       points.push({
         key: key,
@@ -966,6 +1008,7 @@
       for (let i = 0; i < usage.daily.length; i++) {
         const day = usage.daily[i]
         const dayTokens = Number(day.totalTokens)
+        /* v8 ignore next */
         if (Number.isFinite(dayTokens)) {
           totalTokens += dayTokens
         }

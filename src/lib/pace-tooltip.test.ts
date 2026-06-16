@@ -236,6 +236,18 @@ describe("formatRunsOutText", () => {
     })).toBeNull()
   })
 
+  it("returns null when behind pace has zero projected rate", () => {
+    const paceResult: PaceResult = { status: "behind", projectedUsage: 0 }
+    expect(formatRunsOutText({
+      paceResult,
+      used: 60,
+      limit: 100,
+      periodDurationMs: ONE_DAY_MS,
+      resetsAtMs,
+      nowMs,
+    })).toBeNull()
+  })
+
   it("returns null when pace result is null", () => {
     expect(formatRunsOutText({
       paceResult: null,
@@ -271,6 +283,12 @@ describe("formatDeficitText", () => {
 
   it("rounds percent deficit", () => {
     expect(formatDeficitText(4.7, { kind: "percent" }, "used")).toBe("5% in deficit")
+  })
+
+  it("returns null for non-finite or non-positive deficits", () => {
+    expect(formatDeficitText(Number.NaN, { kind: "percent" }, "used")).toBeNull()
+    expect(formatDeficitText(0, { kind: "percent" }, "used")).toBeNull()
+    expect(formatDeficitText(-2, { kind: "dollars" }, "used")).toBeNull()
   })
 
   it("returns null for tiny percent deficits that round to zero", () => {

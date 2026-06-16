@@ -1,11 +1,27 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
 import { OverviewPage } from "@/pages/overview"
 
 describe("OverviewPage", () => {
   it("renders empty state", () => {
     render(<OverviewPage plugins={[]} displayMode="used" resetTimerDisplayMode="relative" />)
     expect(screen.getByText("No Providers Available")).toBeInTheDocument()
+  })
+
+  it("renders provider cards with empty lines when data is missing", () => {
+    const plugins = [
+      {
+        meta: { id: "a", name: "Alpha", iconUrl: "icon", lines: [] },
+        data: null,
+        loading: false,
+        error: null,
+        lastManualRefreshAt: null,
+        lastUpdatedAt: null,
+      },
+    ]
+    render(<OverviewPage plugins={plugins} displayMode="used" resetTimerDisplayMode="relative" />)
+    expect(screen.getByText("Alpha")).toBeInTheDocument()
   })
 
   it("renders provider cards", () => {
@@ -77,5 +93,36 @@ describe("OverviewPage", () => {
 
     render(<OverviewPage plugins={plugins} displayMode="used" resetTimerDisplayMode="relative" />)
     expect(screen.queryByRole("button", { name: /status/i })).toBeNull()
+  })
+
+  it("forwards retry clicks to onRetryPlugin with the provider id", async () => {
+    const onRetryPlugin = vi.fn()
+    const plugins = [
+      {
+        meta: { id: "alpha", name: "Alpha", iconUrl: "icon", lines: [] },
+        data: {
+          providerId: "alpha",
+          displayName: "Alpha",
+          lines: [{ type: "text" as const, label: "Usage", value: "42%" }],
+          iconUrl: "icon",
+        },
+        loading: false,
+        error: "Failed",
+        lastManualRefreshAt: null,
+        lastUpdatedAt: null,
+      },
+    ]
+
+    render(
+      <OverviewPage
+        plugins={plugins}
+        displayMode="used"
+        resetTimerDisplayMode="relative"
+        onRetryPlugin={onRetryPlugin}
+      />
+    )
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }))
+    expect(onRetryPlugin).toHaveBeenCalledWith("alpha")
   })
 })

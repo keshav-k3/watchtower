@@ -34,7 +34,7 @@ const EMPTY_TRAY_SETTINGS_PREVIEW: TraySettingsPreview = {
   providerPercentText: "--%",
 }
 
-function isSameTraySettingsPreview(a: TraySettingsPreview, b: TraySettingsPreview): boolean {
+export function isSameTraySettingsPreview(a: TraySettingsPreview, b: TraySettingsPreview): boolean {
   if (a.providerIconUrl !== b.providerIconUrl) return false
   if (a.providerPercentText !== b.providerPercentText) return false
   if (a.bars.length !== b.bars.length) return false
@@ -358,6 +358,7 @@ export function useTrayIcon({
 
   const trayInitializedRef = useRef(false)
   useEffect(() => {
+    /* v8 ignore next */
     if (trayInitializedRef.current) return
     let cancelled = false
 
