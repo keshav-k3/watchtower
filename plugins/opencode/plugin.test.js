@@ -245,6 +245,126 @@ describe("opencode plugin", () => {
     });
   });
 
+  it("ignores auth file when JSON is not an object", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-06T12:00:00.000Z"));
+
+    const ctx = makeCtx();
+    ctx.host.fs.writeText(AUTH_PATH, JSON.stringify("not-an-object"));
+    setHistoryQuery(ctx, [
+      { createdMs: Date.parse("2026-03-06T11:00:00.000Z"), cost: 1 },
+    ]);
+
+    const plugin = await loadPlugin();
+    const result = plugin.probe(ctx);
+
+    expect(ctx.host.log.warn).toHaveBeenCalled();
+    expect(result.plan).toBe("Go");
+    expect(result.lines[0].used).toBe(8.3);
+  });
+
+  it("ignores auth file when read throws", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-06T12:00:00.000Z"));
+
+    const ctx = makeCtx();
+    ctx.host.fs.writeText(AUTH_PATH, "{}");
+    ctx.host.fs.readText = vi.fn((path) => {
+      if (path === AUTH_PATH) throw new Error("permission denied");
+      throw new Error("unexpected read: " + path);
+    });
+    setHistoryQuery(ctx, [
+      { createdMs: Date.parse("2026-03-06T11:00:00.000Z"), cost: 2 },
+    ]);
+
+    const plugin = await loadPlugin();
+    const result = plugin.probe(ctx);
+
+    expect(ctx.host.log.warn).toHaveBeenCalled();
+    expect(result.lines[0].used).toBe(16.7);
+  });
+
+  it("returns soft empty when history exists check passes but row load fails", async () => {
+    const ctx = makeCtx();
+    setAuth(ctx);
+    ctx.host.sqlite.query.mockImplementation((dbPath, sql) => {
+      expect(dbPath).toBe("~/.local/share/opencode/opencode.db");
+      if (String(sql).includes("SELECT 1 AS present")) {
+        return JSON.stringify([{ present: 1 }]);
+      }
+      throw new Error("history query failed");
+    });
+
+    const plugin = await loadPlugin();
+    expect(plugin.probe(ctx)).toEqual({
+      plan: "Go",
+      lines: [
+        {
+          type: "badge",
+          label: "Status",
+          text: "No usage data",
+          color: "#a3a3a3",
+        },
+      ],
+    });
+  });
+
+  it("filters invalid history rows before aggregating usage", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-06T12:00:00.000Z"));
+
+    const ctx = makeCtx();
+    setHistoryQuery(ctx, [
+      null,
+      { createdMs: "bad", cost: 5 },
+      { createdMs: Date.parse("2026-03-06T11:00:00.000Z"), cost: -1 },
+      { createdMs: 0, cost: 3 },
+      { createdMs: Date.parse("2026-03-06T11:30:00.000Z"), cost: 3 },
+    ]);
+
+    const plugin = await loadPlugin();
+    const result = plugin.probe(ctx);
+
+    expect(result.lines[0].used).toBe(25);
+  });
+
+  it("uses anchored monthly window when earliest usage is later in the month", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-20T12:00:00.000Z"));
+
+    const ctx = makeCtx();
+    setHistoryQuery(ctx, [
+      { createdMs: Date.parse("2026-03-15T08:00:00.000Z"), cost: 4 },
+      { createdMs: Date.parse("2026-03-18T10:00:00.000Z"), cost: 2 },
+    ]);
+
+    const plugin = await loadPlugin();
+    const monthlyLine = plugin.probe(ctx).lines.find((line) => line.label === "Monthly");
+
+    expect(monthlyLine.resetsAt).toBe("2026-04-15T08:00:00.000Z");
+    expect(monthlyLine.used).toBe(10);
+  });
+
+  it("ignores auth entries without a usable key", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-06T12:00:00.000Z"));
+
+    const ctx = makeCtx();
+    ctx.host.fs.writeText(
+      AUTH_PATH,
+      JSON.stringify({
+        "opencode-go": { type: "api-key", key: "   " },
+      }),
+    );
+    setHistoryQuery(ctx, [
+      { createdMs: Date.parse("2026-03-06T11:00:00.000Z"), cost: 1.2 },
+    ]);
+
+    const plugin = await loadPlugin();
+    const result = plugin.probe(ctx);
+    expect(result.lines[0].used).toBe(10);
+  });
+
   it("returns a soft empty state when sqlite returns malformed JSON and auth exists", async () => {
     const ctx = makeCtx();
     setAuth(ctx);

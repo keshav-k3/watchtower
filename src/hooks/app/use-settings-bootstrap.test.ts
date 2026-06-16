@@ -161,6 +161,18 @@ describe("useSettingsBootstrap", () => {
     getEnabledPluginIdsMock.mockReturnValue(["codex"])
   })
 
+  it("skips autostart changes when not running in Tauri", async () => {
+    isTauriMock.mockReturnValue(false)
+    const args = createArgs()
+    const { result } = renderHook(() => useSettingsBootstrap(args))
+
+    await result.current.applyStartOnLogin(true)
+
+    expect(isAutostartEnabledMock).not.toHaveBeenCalled()
+    expect(enableAutostartMock).not.toHaveBeenCalled()
+    expect(disableAutostartMock).not.toHaveBeenCalled()
+  })
+
   it("disables autostart when applyStartOnLogin receives false", async () => {
     const args = createArgs()
     const { result } = renderHook(() => useSettingsBootstrap(args))
@@ -169,6 +181,17 @@ describe("useSettingsBootstrap", () => {
 
     expect(disableAutostartMock).toHaveBeenCalledTimes(1)
     expect(enableAutostartMock).not.toHaveBeenCalled()
+  })
+
+  it("enables autostart when applyStartOnLogin receives true and autostart is off", async () => {
+    const args = createArgs()
+    isAutostartEnabledMock.mockResolvedValueOnce(false)
+    const { result } = renderHook(() => useSettingsBootstrap(args))
+
+    await result.current.applyStartOnLogin(true)
+
+    expect(enableAutostartMock).toHaveBeenCalledTimes(1)
+    expect(disableAutostartMock).not.toHaveBeenCalled()
   })
 
   it("applies fixed display defaults", async () => {
@@ -230,5 +253,153 @@ describe("useSettingsBootstrap", () => {
       expect(args.setPluginSettings).toHaveBeenCalledWith(normalizedSettings)
       expect(args.startBatch).toHaveBeenCalledWith(["codex"])
     })
+  })
+
+  it("logs start-on-login failures without aborting bootstrap", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    enableAutostartMock.mockRejectedValueOnce(new Error("autostart failed"))
+    isAutostartEnabledMock.mockResolvedValueOnce(false)
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setPluginSettings).toHaveBeenCalled()
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to apply start on login setting:",
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it("logs legacy tray migration failures without aborting bootstrap", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    migrateLegacyTraySettingsMock.mockRejectedValueOnce(new Error("migration failed"))
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setPluginSettings).toHaveBeenCalled()
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to migrate legacy tray settings:",
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it("marks plugins errored when the initial probe batch fails to start", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    args.startBatch.mockRejectedValueOnce(new Error("batch failed"))
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setErrorForPlugins).toHaveBeenCalledWith(["codex"], "Failed to start probe")
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to start probe batch:",
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it("ignores bootstrap results after unmount", async () => {
+    let resolvePlugins: ((value: unknown) => void) | undefined
+    invokeMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePlugins = resolve
+      })
+    )
+    const args = createArgs()
+    const { unmount } = renderHook(() => useSettingsBootstrap(args))
+
+    unmount()
+    resolvePlugins?.([
+      {
+        id: "codex",
+        name: "Codex",
+        iconUrl: "/codex.svg",
+        brandColor: "#000000",
+        lines: [],
+        primaryCandidates: [],
+      },
+    ])
+    await waitFor(() => {
+      expect(args.setPluginsMeta).not.toHaveBeenCalled()
+      expect(args.setPluginSettings).not.toHaveBeenCalled()
+    })
+  })
+
+  it("skips probe error state when unmounted before the initial batch fails", async () => {
+    let rejectBatch: ((error: Error) => void) | undefined
+    const args = createArgs()
+    args.startBatch.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectBatch = reject
+      })
+    )
+    const { unmount } = renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setLoadingForPlugins).toHaveBeenCalledWith(["codex"])
+    })
+
+    unmount()
+    rejectBatch?.(new Error("batch failed"))
+    await waitFor(() => {
+      expect(args.setErrorForPlugins).not.toHaveBeenCalled()
+    })
+  })
+
+  it("stops applying settings after unmount", async () => {
+    let resolveAutostart: (() => void) | undefined
+    enableAutostartMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAutostart = resolve
+        })
+    )
+    isAutostartEnabledMock.mockResolvedValueOnce(false)
+
+    const args = createArgs()
+    const { unmount } = renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalled()
+      expect(enableAutostartMock).toHaveBeenCalled()
+    })
+
+    unmount()
+    resolveAutostart?.()
+    await waitFor(() => {
+      expect(migrateLegacyTraySettingsMock).toHaveBeenCalled()
+    })
+
+    expect(args.setPluginSettings).not.toHaveBeenCalled()
+    expect(args.startBatch).not.toHaveBeenCalled()
+  })
+
+  it("logs plugin settings load failures", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    invokeMock.mockRejectedValueOnce(new Error("list plugins failed"))
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to load plugin settings:",
+        expect.any(Error)
+      )
+    })
+
+    consoleSpy.mockRestore()
   })
 })

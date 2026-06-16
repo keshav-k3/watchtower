@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen, act } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -97,6 +97,33 @@ describe("ui components", () => {
     rerender(<Progress value={25} markerValue={Number.NaN} />)
     marker = container.querySelector<HTMLElement>('[data-slot="progress-marker"]')
     expect(marker).toBeNull()
+  })
+
+  it("animates segment fill after mount and applies staggered transitions", async () => {
+    const matchMedia = vi.fn().mockReturnValue({ matches: false })
+    vi.stubGlobal("matchMedia", matchMedia)
+
+    const rafCallbacks: FrameRequestCallback[] = []
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      rafCallbacks.push(callback)
+      return rafCallbacks.length
+    })
+
+    const { container } = render(<Progress value={50} segments={4} />)
+    const segments = container.querySelectorAll(".wt-seg")
+    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--line)" })
+
+    act(() => {
+      rafCallbacks.forEach((callback) => {
+        callback(0)
+      })
+    })
+    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--display)" })
+    expect(segments[0]?.getAttribute("style")).toContain("transition-delay: 0ms")
+    expect(segments[1]?.getAttribute("style")).toContain("transition-delay: 11ms")
+
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it("renders shimmer overlay only when refreshing", () => {

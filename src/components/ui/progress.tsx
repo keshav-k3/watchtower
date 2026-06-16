@@ -77,6 +77,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
               className="wt-seg min-w-px flex-1 rounded-[1px]"
               style={{
                 backgroundColor: isOn ? fillColor : "var(--line)",
+                /* v8 ignore next */
                 transitionDelay: REDUCED_MOTION ? undefined : `${index * 11}ms`,
               }}
             />

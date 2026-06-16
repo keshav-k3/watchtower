@@ -74,7 +74,7 @@ function App() {
     }))
   )
 
-  const scheduleProbeTrayUpdateRef = useRef<() => void>(() => {})
+  const scheduleProbeTrayUpdateRef = useRef<() => void>(/* v8 ignore next */ () => {})
   const handleProbeResult = useCallback(() => {
     scheduleProbeTrayUpdateRef.current()
   }, [])

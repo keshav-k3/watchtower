@@ -47,6 +47,13 @@ describe("ChangelogDialog", () => {
   it("renders error state and shows retry button", async () => {
     changelogState.error = "something went wrong"
 
+    const reloadMock = vi.fn()
+    const originalLocation = window.location
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, reload: reloadMock },
+    })
+
     render(
       <ChangelogDialog
         currentVersion="1.0.0"
@@ -60,6 +67,13 @@ describe("ChangelogDialog", () => {
 
     const retryButton = screen.getByRole("button", { name: "Try again" })
     expect(retryButton).toBeInTheDocument()
+    await userEvent.click(retryButton)
+    expect(reloadMock).toHaveBeenCalledTimes(1)
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    })
   })
 
   it("renders current release with markdown content and GitHub link", async () => {
@@ -130,6 +144,57 @@ describe("ChangelogDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "https://example.com/plain" }))
     expect(openerState.openUrlMock).toHaveBeenCalledWith("https://example.com/plain")
+  })
+
+  it("renders markdown separators, headings, and emphasis", () => {
+    changelogState.releases = [
+      {
+        id: 1,
+        tag_name: "v1.2.3",
+        name: "v1.2.3",
+        body: "### Subheading\n---\n**bold text** and _italic text_",
+        published_at: "2024-01-02T00:00:00Z",
+        html_url: "https://github.com/keshav-k3/watchtower/releases/tag/v1.2.3",
+      },
+    ]
+
+    const { container } = render(
+      <ChangelogDialog
+        currentVersion="1.2.3"
+        onBack={() => {}}
+        onClose={() => {}}
+      />,
+    )
+
+    expect(screen.getByText("Subheading")).toBeInTheDocument()
+    expect(screen.getByText("bold text")).toBeInTheDocument()
+    expect(screen.getByText("italic text")).toBeInTheDocument()
+    expect(container.querySelector("hr")).toBeInTheDocument()
+    expect(container.querySelector("strong")).toBeInTheDocument()
+    expect(container.querySelector("em")).toBeInTheDocument()
+  })
+
+  it("renders seven-character non-hex tokens as plain text", () => {
+    changelogState.releases = [
+      {
+        id: 1,
+        tag_name: "v1.2.3",
+        name: "v1.2.3",
+        body: "See also abcdefg in release notes",
+        published_at: "2024-01-02T00:00:00Z",
+        html_url: "https://github.com/keshav-k3/watchtower/releases/tag/v1.2.3",
+      },
+    ]
+
+    render(
+      <ChangelogDialog
+        currentVersion="1.2.3"
+        onBack={() => {}}
+        onClose={() => {}}
+      />,
+    )
+
+    expect(screen.queryByRole("button", { name: "abcdefg" })).not.toBeInTheDocument()
   })
 
   it("handles null body without crashing", () => {
@@ -247,6 +312,46 @@ describe("ChangelogDialog", () => {
     expect(openerState.openUrlMock).toHaveBeenCalledWith(
       "https://github.com/keshav-k3/watchtower/releases",
     )
+  })
+
+  it("ignores non-escape keys", async () => {
+    const onClose = vi.fn()
+    changelogState.releases = [
+      {
+        id: 1,
+        tag_name: "v1.0.0",
+        name: "v1.0.0",
+        body: "body",
+        published_at: "2024-01-02T00:00:00Z",
+        html_url: "https://github.com/keshav-k3/watchtower/releases/tag/v1.0.0",
+      },
+    ]
+
+    render(
+      <ChangelogDialog currentVersion="1.0.0" onBack={() => {}} onClose={onClose} />,
+    )
+
+    await userEvent.keyboard("{Enter}")
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it("renders release tag when name is missing", () => {
+    changelogState.releases = [
+      {
+        id: 1,
+        tag_name: "v9.9.9",
+        name: "",
+        body: "body",
+        published_at: "2024-01-02T00:00:00Z",
+        html_url: "https://github.com/keshav-k3/watchtower/releases/tag/v9.9.9",
+      },
+    ]
+
+    render(
+      <ChangelogDialog currentVersion="9.9.9" onBack={() => {}} onClose={() => {}} />,
+    )
+
+    expect(screen.getByText("v9.9.9")).toBeInTheDocument()
   })
 
   it("invokes navigation callbacks and closes on Escape", async () => {

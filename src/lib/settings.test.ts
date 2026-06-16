@@ -144,8 +144,30 @@ describe("settings", () => {
     const a = { order: ["a"], disabled: [] }
     const b = { order: ["a"], disabled: [] }
     const c = { order: ["b"], disabled: [] }
+    const d = { order: ["a"], disabled: ["x"] }
     expect(arePluginSettingsEqual(a, b)).toBe(true)
     expect(arePluginSettingsEqual(a, c)).toBe(false)
+    expect(arePluginSettingsEqual(a, d)).toBe(false)
+
+    const e = { order: ["a"], disabled: ["x"] }
+    const f = { order: ["a"], disabled: ["y"] }
+    expect(arePluginSettingsEqual(e, f)).toBe(false)
+
+    const g = { order: ["a", "b"], disabled: [] }
+    const h = { order: ["a"], disabled: [] }
+    expect(arePluginSettingsEqual(g, h)).toBe(false)
+
+    const i = { order: ["a"], disabled: ["x", "y"] }
+    const j = { order: ["a"], disabled: ["x", "z"] }
+    expect(arePluginSettingsEqual(i, j)).toBe(false)
+  })
+
+  it("sanitizes stored settings when order is not an array", async () => {
+    storeState.set("plugins", { order: "invalid", disabled: ["a"] })
+    await expect(loadPluginSettings()).resolves.toEqual({
+      order: [],
+      disabled: ["a"],
+    })
   })
 
   it("returns visible ordered plugin ids", () => {

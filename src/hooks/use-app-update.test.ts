@@ -79,6 +79,22 @@ describe("useAppUpdate", () => {
     await act(() => Promise.resolve())
   })
 
+  it("re-checks for updates every 15 minutes", async () => {
+    vi.useFakeTimers()
+    checkMock.mockResolvedValue(null)
+
+    renderHook(() => useAppUpdate())
+    await act(() => Promise.resolve())
+    expect(checkMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15 * 60 * 1000)
+    })
+    expect(checkMock).toHaveBeenCalledTimes(2)
+
+    vi.useRealTimers()
+  })
+
   it("clears a pending up-to-date timeout on re-check", async () => {
     vi.useFakeTimers()
     const clearTimeoutSpy = vi.spyOn(window, "clearTimeout")
@@ -138,6 +154,71 @@ describe("useAppUpdate", () => {
     checkMock.mockClear()
     await act(() => result.current.checkForUpdates())
     expect(checkMock).not.toHaveBeenCalled()
+  })
+
+  it("does not return to idle after unmount when up-to-date timeout elapses", async () => {
+    vi.useFakeTimers()
+    checkMock.mockResolvedValue(null)
+
+    const { result, unmount } = renderHook(() => useAppUpdate())
+    await act(() => Promise.resolve())
+    await act(() => Promise.resolve())
+    expect(result.current.updateStatus).toEqual({ status: "up-to-date" })
+
+    const statusAtUnmount = result.current.updateStatus
+    unmount()
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(result.current.updateStatus).toEqual(statusAtUnmount)
+
+    vi.useRealTimers()
+  })
+
+  it("marks ready when download emits finished before the promise settles", async () => {
+    let emitEvent: ((event: { event: string; data: Record<string, unknown> }) => void) | null = null
+    let resolveDownload: (() => void) | null = null
+    const downloadMock = vi.fn((onEvent: (event: { event: string; data: Record<string, unknown> }) => void) => {
+      emitEvent = onEvent
+      return new Promise<void>((resolve) => {
+        resolveDownload = resolve
+      })
+    })
+    checkMock.mockResolvedValue({ version: "1.0.0", download: downloadMock, install: vi.fn() })
+
+    const { result } = renderHook(() => useAppUpdate())
+    await act(() => Promise.resolve())
+
+    act(() => {
+      emitEvent?.({ event: "Finished", data: {} })
+    })
+    expect(result.current.updateStatus).toEqual({ status: "ready" })
+
+    await act(async () => {
+      resolveDownload?.()
+    })
+  })
+
+  it("blocks install while finished event marked ready but download is still in flight", async () => {
+    let emitEvent: ((event: { event: string; data: Record<string, unknown> }) => void) | null = null
+    const installMock = vi.fn().mockResolvedValue(undefined)
+    const downloadMock = vi.fn((onEvent: (event: { event: string; data: Record<string, unknown> }) => void) => {
+      emitEvent = onEvent
+      return new Promise<void>(() => {})
+    })
+    checkMock.mockResolvedValue({ version: "1.0.0", download: downloadMock, install: installMock })
+
+    const { result } = renderHook(() => useAppUpdate())
+    await act(() => Promise.resolve())
+
+    act(() => {
+      emitEvent?.({ event: "Finished", data: {} })
+    })
+    expect(result.current.updateStatus).toEqual({ status: "ready" })
+
+    await act(() => result.current.triggerInstall())
+    expect(installMock).not.toHaveBeenCalled()
   })
 
   it("shows up-to-date then returns to idle when check returns null", async () => {

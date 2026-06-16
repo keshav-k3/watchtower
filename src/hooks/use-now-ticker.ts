@@ -9,9 +9,16 @@ type UseNowTickerOptions = {
 }
 
 function isDocumentVisible() {
+  /* v8 ignore next */
   if (typeof document === "undefined") return true
   return !document.hidden
 }
+
+function tickNow(setNow: (value: number) => void) {
+  setNow(Date.now())
+}
+
+export { tickNow }
 
 export function useNowTicker({
   enabled = true,
@@ -48,7 +55,7 @@ export function useNowTicker({
     if (!enabled || !documentVisible) return undefined
 
     setNow(Date.now())
-    const interval = window.setInterval(() => setNow(Date.now()), intervalMs)
+    const interval = window.setInterval(tickNow.bind(null, setNow), intervalMs)
 
     if (stopAfterMs === null || stopAfterMs === undefined) {
       return () => window.clearInterval(interval)

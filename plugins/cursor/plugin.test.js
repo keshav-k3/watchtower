@@ -1803,6 +1803,196 @@ describe("cursor plugin", () => {
     expect(result.lines.find((line) => line.label === "Requests")).toBeTruthy()
   })
 
+  it("logs when sqlite token write fails during refresh", async () => {
+    const ctx = makeCtx()
+    const expiredToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 1 })
+    ctx.host.sqlite.query.mockImplementation((db, sql) => {
+      if (String(sql).includes("cursorAuth/accessToken")) {
+        return JSON.stringify([{ value: expiredToken }])
+      }
+      if (String(sql).includes("cursorAuth/refreshToken")) {
+        return JSON.stringify([{ value: "refresh" }])
+      }
+      return JSON.stringify([])
+    })
+    ctx.host.sqlite.exec.mockImplementation(() => {
+      throw new Error("sqlite write failed")
+    })
+
+    const refreshedToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 9999999999 })
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: refreshedToken }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({ enabled: true, planUsage: { totalSpend: 0, limit: 100 } }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("sqlite write failed"))
+  })
+
+  it("falls back to sqlite when keychain read throws", async () => {
+    const ctx = makeCtx()
+    const sqliteToken = makeJwt({ sub: "google-oauth2|sqlite-user", exp: 9999999999 })
+    ctx.host.sqlite.query.mockImplementation((db, sql) => {
+      if (String(sql).includes("cursorAuth/accessToken")) {
+        return JSON.stringify([{ value: sqliteToken }])
+      }
+      return JSON.stringify([])
+    })
+    ctx.host.keychain.readGenericPassword.mockImplementation(() => {
+      throw new Error("keychain locked")
+    })
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({ enabled: true, planUsage: { totalSpend: 0, limit: 100 } }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.info).toHaveBeenCalled()
+  })
+
+  it("warns when keychain write is unsupported during refresh", async () => {
+    const ctx = makeCtx()
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([]))
+    const expiredToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 1 })
+    const refreshedToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 9999999999 })
+
+    ctx.host.keychain.readGenericPassword.mockImplementation((service) => {
+      if (service === "cursor-access-token") return expiredToken
+      if (service === "cursor-refresh-token") return "refresh"
+      return null
+    })
+    ctx.host.keychain.writeGenericPassword = undefined
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: refreshedToken }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({ enabled: true, planUsage: { totalSpend: 0, limit: 100 } }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith("keychain write unsupported")
+  })
+
+  it("continues when stripe balance request fails", async () => {
+    const ctx = makeCtx()
+    const accessToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 9999999999 })
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([{ value: accessToken }]))
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("GetCurrentPeriodUsage")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify({
+            enabled: true,
+            planUsage: { totalSpend: 1200, limit: 2400 },
+          }),
+        }
+      }
+      if (url.includes("/api/auth/stripe")) {
+        return { status: 503, bodyText: "" }
+      }
+      return { status: 200, bodyText: "{}" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("stripe balance returned status"))
+  })
+
+  it("continues when stripe balance fetch throws", async () => {
+    const ctx = makeCtx()
+    const accessToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 9999999999 })
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([{ value: accessToken }]))
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("GetCurrentPeriodUsage")) {
+        return {
+          status: 200,
+          bodyText: JSON.stringify({
+            enabled: true,
+            planUsage: { totalSpend: 1200, limit: 2400 },
+          }),
+        }
+      }
+      if (url.includes("/api/auth/stripe")) {
+        throw new Error("stripe offline")
+      }
+      return { status: 200, bodyText: "{}" }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("stripe balance fetch failed"))
+  })
+
+  it("returns null when keychain read API is missing", async () => {
+    const ctx = makeCtx()
+    const sqliteToken = makeJwt({ sub: "google-oauth2|sqlite-user", exp: 9999999999 })
+    ctx.host.sqlite.query.mockImplementation((db, sql) => {
+      if (String(sql).includes("cursorAuth/accessToken")) {
+        return JSON.stringify([{ value: sqliteToken }])
+      }
+      return JSON.stringify([])
+    })
+    ctx.host.keychain = {}
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({ enabled: true, planUsage: { totalSpend: 0, limit: 100 } }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+  })
+
+  it("logs when keychain token write fails during refresh", async () => {
+    const ctx = makeCtx()
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([]))
+    const expiredToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 1 })
+    const refreshedToken = makeJwt({ sub: "google-oauth2|user_abc123", exp: 9999999999 })
+
+    ctx.host.keychain.readGenericPassword.mockImplementation((service) => {
+      if (service === "cursor-access-token") return expiredToken
+      if (service === "cursor-refresh-token") return "refresh"
+      return null
+    })
+    ctx.host.keychain.writeGenericPassword.mockImplementation(() => {
+      throw new Error("keychain write failed")
+    })
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: refreshedToken }) }
+      }
+      return {
+        status: 200,
+        bodyText: JSON.stringify({ enabled: true, planUsage: { totalSpend: 0, limit: 100 } }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Total usage")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("keychain write failed"))
+  })
+
   it("wraps non-string retry wrapper errors as usage request failure", async () => {
     const ctx = makeCtx()
     ctx.host.sqlite.query.mockReturnValue(JSON.stringify([{ value: "token" }]))

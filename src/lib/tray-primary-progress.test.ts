@@ -3,6 +3,24 @@ import { describe, expect, it } from "vitest"
 import { getTrayPrimaryBars } from "@/lib/tray-primary-progress"
 
 describe("getTrayPrimaryBars", () => {
+  it("skips unknown plugin ids in tray primary bars", () => {
+    const bars = getTrayPrimaryBars({
+      pluginsMeta: [
+        {
+          id: "a",
+          name: "A",
+          iconUrl: "",
+          primaryCandidates: ["Usage"],
+          lines: [],
+        },
+      ],
+      pluginSettings: { order: ["a", "ghost"], disabled: [] },
+      pluginStates: {},
+    })
+
+    expect(bars.map((bar) => bar.id)).toEqual(["a"])
+  })
+
   it("returns empty when settings missing", () => {
     const bars = getTrayPrimaryBars({
       pluginsMeta: [],

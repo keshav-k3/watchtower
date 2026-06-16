@@ -1,13 +1,36 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const panelState = vi.hoisted(() => ({
+  canScrollDown: false,
+  maxPanelHeightPx: 320 as number | null,
+}))
 
 vi.mock("@/components/app/app-content", () => ({
   AppContent: () => <div data-testid="app-content" />,
 }))
 
 vi.mock("@/components/panel-footer", () => ({
-  PanelFooter: () => <div data-testid="panel-footer" />,
+  PanelFooter: ({
+    onShowAbout,
+    onCloseAbout,
+    showAbout,
+  }: {
+    onShowAbout: () => void
+    onCloseAbout: () => void
+    showAbout: boolean
+  }) => (
+    <div data-testid="panel-footer">
+      <button type="button" onClick={onShowAbout}>
+        Show About
+      </button>
+      <button type="button" onClick={onCloseAbout}>
+        Close About
+      </button>
+      {showAbout ? <div>About Open</div> : null}
+    </div>
+  ),
 }))
 
 vi.mock("@/components/side-nav", () => ({
@@ -18,8 +41,8 @@ vi.mock("@/hooks/app/use-panel", () => ({
   usePanel: () => ({
     containerRef: { current: null },
     scrollRef: { current: null },
-    canScrollDown: false,
-    maxPanelHeightPx: 320,
+    canScrollDown: panelState.canScrollDown,
+    maxPanelHeightPx: panelState.maxPanelHeightPx,
   }),
 }))
 
@@ -38,6 +61,7 @@ vi.mock("@/hooks/use-app-update", () => ({
 import { AppShell } from "@/components/app/app-shell"
 import type { AppContentActionProps } from "@/components/app/app-content"
 import type { PluginMeta } from "@/lib/plugin-types"
+import { useAppUiStore } from "@/stores/app-ui-store"
 
 function createPlugin(id: string, name: string): PluginMeta {
   return {
@@ -82,6 +106,12 @@ function createProps() {
 }
 
 describe("AppShell", () => {
+  beforeEach(() => {
+    panelState.canScrollDown = false
+    panelState.maxPanelHeightPx = 320
+    useAppUiStore.getState().resetState()
+  })
+
   it("keeps provider settings usable when the panel height is capped", async () => {
     render(<AppShell {...createProps()} />)
 
@@ -91,5 +121,50 @@ describe("AppShell", () => {
 
     expect(popover).toHaveClass("max-h-[calc(100%-4rem)]")
     expect(popover).toHaveClass("overflow-y-auto")
+  })
+
+  it("toggles provider settings from the header button", async () => {
+    render(<AppShell {...createProps()} />)
+
+    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
+    expect(screen.getByText("Providers")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
+    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
+  })
+
+  it("wires about dialog open and close through the footer", async () => {
+    render(<AppShell {...createProps()} />)
+
+    expect(screen.queryByText("About Open")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Show About" }))
+    expect(screen.getByText("About Open")).toBeInTheDocument()
+    expect(useAppUiStore.getState().showAbout).toBe(true)
+
+    await userEvent.click(screen.getByRole("button", { name: "Close About" }))
+    expect(screen.queryByText("About Open")).not.toBeInTheDocument()
+    expect(useAppUiStore.getState().showAbout).toBe(false)
+  })
+
+  it("calls refresh all from the header button", async () => {
+    const props = createProps()
+    render(<AppShell {...props} />)
+
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    expect(props.onRefreshAll).toHaveBeenCalledTimes(1)
+  })
+
+  it("omits the max-height style when panel height is unavailable", () => {
+    panelState.maxPanelHeightPx = null
+    const { container } = render(<AppShell {...createProps()} />)
+
+    expect(container.querySelector("[style*='max-height']")).toBeNull()
+  })
+
+  it("shows the scroll fade when more content is available below", () => {
+    panelState.canScrollDown = true
+    const { container } = render(<AppShell {...createProps()} />)
+
+    expect(container.querySelector(".opacity-100")).toBeTruthy()
   })
 })
