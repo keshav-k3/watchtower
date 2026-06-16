@@ -224,6 +224,32 @@ describe("useTrayIcon", () => {
     })
   })
 
+  it("finalizes tray restore when the gauge asset is unavailable", async () => {
+    resolveResourceMock.mockRejectedValueOnce(new Error("missing gauge"))
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const { result } = renderTrayHook({ pluginSettings: null })
+
+    await waitForTrayReady()
+
+    trayMock.setIcon.mockClear()
+
+    act(() => {
+      result.current.scheduleTrayIconUpdate("settings", 0)
+    })
+
+    await waitFor(() => {
+      expect(result.current.traySettingsPreview).toEqual({
+        bars: [],
+        providerBars: [],
+        providerPercentText: "--%",
+      })
+    })
+
+    expect(trayMock.setIcon).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
   it("restores the gauge icon when no providers are enabled", async () => {
     const { result } = renderTrayHook({
       pluginSettings: { order: ["codex", "cursor"], disabled: ["codex", "cursor"] },
