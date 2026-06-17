@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.6.28
+
+### Bug Fixes
+- Reposition provider settings popover by @keshav-k3
+
+### Chores
+- Stabilize frontend smoke tests by @keshav-k3
+- Reach 100% coverage across src and plugins ([#10](https://github.com/keshav-k3/watchtower/pull/10)) by @keshav-k3
+- Run test:coverage to enforce 100% thresholds by @cursoragent
+- Cover tray restore path when gauge asset is missing by @cursoragent
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.27...v0.6.28](https://github.com/keshav-k3/watchtower/compare/v0.6.27...v0.6.28)
+
+- [9e24abd](https://github.com/keshav-k3/watchtower/commit/9e24abd95629c50ba47db736ace47d15b1743c89) [Test] Stabilize frontend smoke tests by @keshav-k3
+- [3d9bfd5](https://github.com/keshav-k3/watchtower/commit/3d9bfd52b870d300809d5363aefe1966356486c6) Merge pull request #10 from keshav-k3/cursor/100-percent-test-coverage-8c0f by @keshav-k3
+- [1dca0f8](https://github.com/keshav-k3/watchtower/commit/1dca0f844742f5de829f2bda8db10d7a948752d6) ci: run test:coverage to enforce 100% thresholds by @cursoragent
+- [de3e968](https://github.com/keshav-k3/watchtower/commit/de3e9682339d3b8978f28a095e086b98204a85b8) test: cover tray restore path when gauge asset is missing by @cursoragent
+- [c9540bc](https://github.com/keshav-k3/watchtower/commit/c9540bc14e1cedf10a180f93ea3c9478d61c8bc5) test: reach 100% coverage across src and plugins by @cursoragent
+- [29eb977](https://github.com/keshav-k3/watchtower/commit/29eb977d96b18692e2e6abfd8a8270dfeab13e06) [Fix] Reposition provider settings popover by @keshav-k3
+
 ## v0.6.27
 
 ### Bug Fixes
