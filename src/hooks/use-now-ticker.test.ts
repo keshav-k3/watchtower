@@ -32,6 +32,9 @@ describe("useNowTicker", () => {
   })
 
   it("updates now through tickNow helper", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-02-03T00:00:00.000Z"))
+
     const setNow = vi.fn()
     tickNow(setNow)
     expect(setNow).toHaveBeenCalledWith(Date.now())

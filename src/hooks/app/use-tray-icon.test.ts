@@ -231,6 +231,12 @@ describe("useTrayIcon", () => {
     const { result } = renderTrayHook({ pluginSettings: null })
 
     await waitForTrayReady()
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to resolve tray gauge icon resource:",
+        expect.any(Error)
+      )
+    })
 
     trayMock.setIcon.mockClear()
 
