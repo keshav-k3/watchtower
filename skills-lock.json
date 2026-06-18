@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "skills": {
+    "app-store-changelog": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "app-store-changelog/SKILL.md",
+      "computedHash": "51fb0879570cbb60b5e59f922a30a966ac33d7cad39baffc64c4d5b9d17ebfcc"
+    },
+    "bug-hunt-swarm": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "bug-hunt-swarm/SKILL.md",
+      "computedHash": "7a4b4e7fd6590e9ee4d8b8540cf214aeb1d9d875c23a0382cd0f61980b89169f"
+    },
+    "core-data-expert": {
+      "source": "AvdLee/Core-Data-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "core-data-expert/SKILL.md",
+      "computedHash": "b8d2829005b1f2fefbaa8af2ea7d7d64e2fbeca2f2172033176ad0780edc3970"
+    },
+    "github": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "github/SKILL.md",
+      "computedHash": "339dd13ebe4fd3f72273bd12eec49356cdf235866ad2c7b75588eeddb3e993d2"
+    },
+    "ios-debugger-agent": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "ios-debugger-agent/SKILL.md",
+      "computedHash": "cc28bb00c138bf1d8c841c5a137185a63d05a4b3197f5d360de0534b5e492c1a"
+    },
+    "macos-menubar-tuist-app": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "macos-menubar-tuist-app/SKILL.md",
+      "computedHash": "8724ada68cf08a1a965321a688969825bf33be8d344ba2ce67207c6ce604e76a"
+    },
+    "macos-spm-app-packaging": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "macos-spm-app-packaging/SKILL.md",
+      "computedHash": "dd9fba9ca23b45f1c12db08470da9726b294bd6fb334f63d3447872efdf392c3"
+    },
+    "orchestrate-batch-refactor": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "orchestrate-batch-refactor/SKILL.md",
+      "computedHash": "1c585aac66e9eb6200316be826cd2c8fe384722c9e30775029a7fc9e5f17dd2f"
+    },
+    "project-skill-audit": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "project-skill-audit/SKILL.md",
+      "computedHash": "29d50ebe7302acf46580a42df68739b192a7e8ab913c3125f9c65350ffe7c29d"
+    },
+    "react-component-performance": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "react-component-performance/SKILL.md",
+      "computedHash": "8eb290f593f272bc305e204f23eeb414140d6417022613970d5435189c084623"
+    },
+    "review-and-simplify-changes": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "review-and-simplify-changes/SKILL.md",
+      "computedHash": "eadd2aaf9e6526e7ff807b0ee1eeb20a4f317f6b2a9111cfea39e288c1d5a696"
+    },
+    "review-swarm": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "review-swarm/SKILL.md",
+      "computedHash": "bbba1b61ca2817847089ad1cf794b2dde2d2b4215540f441105ac4d186f28d51"
+    },
+    "spm-build-analysis": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/spm-build-analysis/SKILL.md",
+      "computedHash": "9785f2113e45cd29aedc4c1e7e5763735157ff1e4c99a4ca4a65d4f625814c55"
+    },
+    "swift-concurrency": {
+      "source": "AvdLee/Swift-Concurrency-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swift-concurrency/SKILL.md",
+      "computedHash": "5e1f6433159038c49135028eeeea3a7b9a0a6001c8a4cc8227e391caf35cd985"
+    },
+    "swift-concurrency-expert": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "swift-concurrency-expert/SKILL.md",
+      "computedHash": "638744d687dfc9fdde7a14f5496b053f409c7bc1b26c13a4a3c39cb0afb398f9"
+    },
+    "swift-concurrency-pro": {
+      "source": "twostraws/Swift-Concurrency-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swift-concurrency-pro/SKILL.md",
+      "computedHash": "db6c88d8da1a264188a2ad826a0ed73d227384315b27e47f3bb6b78ca1a3df40"
+    },
+    "swift-testing-expert": {
+      "source": "AvdLee/Swift-Testing-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swift-testing-expert/SKILL.md",
+      "computedHash": "ee2a73c7148264cb7e0a0819d3063225541e57162353d97707d9fab830d27ba6"
+    },
+    "swift-testing-pro": {
+      "source": "twostraws/Swift-Testing-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swift-testing-pro/SKILL.md",
+      "computedHash": "576d9b4705c76262095e2470e99bb9a89324ac4467e7ee54b7032697a8789b3d"
+    },
+    "swiftdata-pro": {
+      "source": "twostraws/SwiftData-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swiftdata-pro/SKILL.md",
+      "computedHash": "2f979bad98ea3a6744084c5f93e27897f02e8d0ffe15dd03042e88aaae4da14c"
+    },
+    "swiftui-expert-skill": {
+      "source": "AvdLee/SwiftUI-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swiftui-expert-skill/SKILL.md",
+      "computedHash": "12a318304d7cdc6ec40e981f02865d098caf6eab1b992051e3322ebeecf287b1"
+    },
+    "swiftui-liquid-glass": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "swiftui-liquid-glass/SKILL.md",
+      "computedHash": "e4d3634171bc6caa7cc8d15f58cd2fb848dab4744493edc56ec14f4b2c8521a0"
+    },
+    "swiftui-performance-audit": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "swiftui-performance-audit/SKILL.md",
+      "computedHash": "4c153a7401d4d878fad3b7b83ca3d29f43245f8404dd34b7beb400cdfcab46f7"
+    },
+    "swiftui-pro": {
+      "source": "twostraws/SwiftUI-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swiftui-pro/SKILL.md",
+      "computedHash": "07033426e384295a4b49cf0b2ffdefd4098cae4af53fef16bc1f2d9281118c41"
+    },
+    "swiftui-ui-patterns": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "swiftui-ui-patterns/SKILL.md",
+      "computedHash": "f58d51fe4569f9eff10c45a4ed6859c9f5e3eefca7827e819de840141da67995"
+    },
+    "swiftui-view-refactor": {
+      "source": "Dimillian/Skills",
+      "sourceType": "github",
+      "skillPath": "swiftui-view-refactor/SKILL.md",
+      "computedHash": "eefd3e1e72a17ca627f8e50fce173efafaa23eb66515f562f4b5fca88325cb33"
+    },
+    "xcode-build-benchmark": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/xcode-build-benchmark/SKILL.md",
+      "computedHash": "e132c38adbb8a74e3e0474c0e34566b209fa3bf29532604af97d715b8c721ec8"
+    },
+    "xcode-build-fixer": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/xcode-build-fixer/SKILL.md",
+      "computedHash": "7d1c68154af030a24b7420c9f9c7805e6009e0012da34b9a16c0cfef3396b608"
+    },
+    "xcode-build-orchestrator": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/xcode-build-orchestrator/SKILL.md",
+      "computedHash": "d03e65e314a8fbe0ae0cf7469fa1a4280b5d335a7f163fdc7a7a91dbb0fd1b2b"
+    },
+    "xcode-compilation-analyzer": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/xcode-compilation-analyzer/SKILL.md",
+      "computedHash": "9857f081cf044a06f93f382ea1a53c3fe9699ac0d0686abbabea67696c2eff6a"
+    },
+    "xcode-project-analyzer": {
+      "source": "AvdLee/Xcode-Build-Optimization-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "skills/xcode-project-analyzer/SKILL.md",
+      "computedHash": "dfe1901df149b68d8869a48143508444605ed8ba20b448d1faec1d6218d58859"
+    }
+  }
+}
