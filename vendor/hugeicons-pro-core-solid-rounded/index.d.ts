@@ -1,5 +1,6 @@
 import type { IconSvgElement } from "@hugeicons/react"
 
+export declare const DashboardSquare02Icon: IconSvgElement
 export declare const DashboardSpeed01Icon: IconSvgElement
 export declare const RefreshIcon: IconSvgElement
 export declare const Settings02Icon: IconSvgElement

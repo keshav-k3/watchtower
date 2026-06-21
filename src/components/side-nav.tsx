@@ -16,10 +16,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { DashboardSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
-import { WatchtowerMark } from "@/components/watchtower-mark"
 
 type ActiveView = "home" | string
 
@@ -190,7 +191,7 @@ export function SideNav({
         onClick={() => onViewChange("home")}
         aria-label="Home"
       >
-        <WatchtowerMark className="size-5" />
+        <HugeiconsIcon icon={DashboardSquare02Icon} className="size-5" />
       </NavButton>
 
       <div className="flex flex-1 min-h-0 flex-col items-center gap-0.5 overflow-y-auto scrollbar-none">

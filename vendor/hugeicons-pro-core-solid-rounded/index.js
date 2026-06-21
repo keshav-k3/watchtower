@@ -7,6 +7,13 @@ const path = (d, attrs = {}) => ["path", { key: key(), d, fill: "currentColor", 
 const circle = (attrs) => ["circle", { key: key(), fill: "currentColor", ...attrs }]
 const rect = (attrs) => ["rect", { key: key(), fill: "currentColor", ...attrs }]
 
+export const DashboardSquare02Icon = [
+  rect({ x: 3, y: 3, width: 8, height: 8, rx: 2 }),
+  rect({ x: 13, y: 3, width: 8, height: 8, rx: 2 }),
+  rect({ x: 3, y: 13, width: 8, height: 8, rx: 2 }),
+  rect({ x: 13, y: 13, width: 8, height: 8, rx: 2 }),
+]
+
 export const DashboardSpeed01Icon = [
   path("M12 3a9 9 0 0 0-9 9c0 2.2.78 4.22 2.08 5.8.35.43.99.47 1.39.09.4-.37.43-.99.09-1.42A6.95 6.95 0 0 1 5 12a7 7 0 1 1 12.44 4.47c-.34.43-.31 1.05.09 1.42.4.38 1.04.34 1.39-.09A8.96 8.96 0 0 0 21 12a9 9 0 0 0-9-9Z"),
   path("M16.7 7.3a1 1 0 0 1 .08 1.33l-3.2 4.07a2 2 0 1 1-1.57-1.25l3.36-4.07a1 1 0 0 1 1.33-.08Z"),
