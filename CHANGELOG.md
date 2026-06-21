@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.6.29
+
+### Bug Fixes
+- Update the dashboard overview icon by @keshav-k3
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.28...v0.6.29](https://github.com/keshav-k3/watchtower/compare/v0.6.28...v0.6.29)
+
+- [9fd3d16](https://github.com/keshav-k3/watchtower/commit/9fd3d1601fa00116b3b76e0a01b255145b317eaf) [Update] Dashboard overview icon by @keshav-k3
+
 ## v0.6.28
 
 ### Bug Fixes
