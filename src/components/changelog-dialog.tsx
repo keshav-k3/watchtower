@@ -201,7 +201,10 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
   )
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-xl">
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] rounded-xl"
+      style={{ backgroundColor: "var(--overlay-scrim)" }}
+    >
       <div className="bg-card rounded-lg border shadow-2xl flex flex-col w-[92%] h-[88%] animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-3.5 border-b bg-muted/20">
           <div className="flex items-center gap-2">

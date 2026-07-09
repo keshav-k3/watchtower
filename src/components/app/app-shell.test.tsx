@@ -94,6 +94,8 @@ function createProps() {
     displayPlugins: [],
     autoUpdateNextAt: null,
     selectedPlugin: null,
+    themeMode: "dark" as const,
+    onThemeModeChange: vi.fn(),
     onPluginContextAction: vi.fn(),
     isPluginRefreshAvailable: vi.fn(() => true),
     onNavReorder: vi.fn(),
@@ -152,6 +154,14 @@ describe("AppShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }))
     expect(props.onRefreshAll).toHaveBeenCalledTimes(1)
+  })
+
+  it("toggles theme from the header button", async () => {
+    const props = createProps()
+    render(<AppShell {...props} />)
+
+    await userEvent.click(screen.getByRole("button", { name: "Switch To Light Theme" }))
+    expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
   })
 
   it("omits the max-height style when panel height is unavailable", () => {

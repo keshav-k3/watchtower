@@ -194,14 +194,15 @@ describe("useSettingsBootstrap", () => {
     expect(disableAutostartMock).not.toHaveBeenCalled()
   })
 
-  it("applies fixed display defaults", async () => {
+  it("applies fixed display defaults and the stored theme mode", async () => {
     const args = createArgs()
+    loadThemeModeMock.mockResolvedValueOnce("light")
 
     renderHook(() => useSettingsBootstrap(args))
 
     await waitFor(() => {
       expect(args.setAutoUpdateInterval).toHaveBeenCalledWith(5)
-      expect(args.setThemeMode).toHaveBeenCalledWith("dark")
+      expect(args.setThemeMode).toHaveBeenCalledWith("light")
       expect(args.setDisplayMode).toHaveBeenCalledWith("left")
       expect(args.setResetTimerDisplayMode).toHaveBeenCalledWith("relative")
       expect(args.setTimeFormatMode).toHaveBeenCalledWith("auto")

@@ -23,7 +23,10 @@ export function ProviderSettingsPopover({
     .filter((plugin): plugin is PluginMeta => Boolean(plugin))
 
   return (
-    <div className="absolute right-4 top-14 z-30 max-h-[calc(100%-4rem)] w-[214px] overflow-y-auto rounded-[12px] border border-line-bright bg-surface-raised p-2 shadow-2xl shadow-black/50 scrollbar-none">
+    <div
+      className="absolute right-4 top-14 z-30 max-h-[calc(100%-4rem)] w-[214px] overflow-y-auto rounded-[12px] border border-line-bright bg-surface-raised p-2 scrollbar-none"
+      style={{ boxShadow: "var(--panel-shadow)" }}
+    >
       <div className="px-2 pb-1.5 pt-1">
         <div className="text-[13px] font-semibold leading-5 text-foreground">Providers</div>
         <div className="label-mono text-[9px] leading-4 text-muted-foreground/70">Toggle Visibility</div>

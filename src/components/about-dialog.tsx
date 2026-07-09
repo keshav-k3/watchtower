@@ -81,7 +81,8 @@ export function AboutDialog({ version, onClose }: AboutDialogProps) {
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-xl"
+      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm rounded-xl"
+      style={{ backgroundColor: "var(--overlay-scrim)" }}
       onClick={handleBackdropClick}
     >
       <div className="bg-card rounded-lg border shadow-xl p-6 max-w-xs w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">

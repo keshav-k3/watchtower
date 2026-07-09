@@ -18,6 +18,7 @@ import {
   DEFAULT_THEME_MODE,
   DEFAULT_TIME_FORMAT_MODE,
   getEnabledPluginIds,
+  loadThemeMode,
   migrateLegacyTraySettings,
   loadPluginSettings,
   migrateRenamedPluginIds,
@@ -97,7 +98,7 @@ export function useSettingsBootstrap({
         }
 
         const storedInterval = DEFAULT_AUTO_UPDATE_INTERVAL
-        const storedThemeMode = DEFAULT_THEME_MODE
+        const storedThemeMode = await loadThemeMode()
         const storedDisplayMode = DEFAULT_DISPLAY_MODE
         const storedResetTimerDisplayMode = DEFAULT_RESET_TIMER_DISPLAY_MODE
         const storedTimeFormatMode = DEFAULT_TIME_FORMAT_MODE

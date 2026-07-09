@@ -13,6 +13,7 @@ const state = vi.hoisted(() => ({
   setErrorForPluginsMock: vi.fn(),
   applyStartOnLoginMock: vi.fn(),
   savePluginSettingsMock: vi.fn(async () => undefined),
+  saveThemeModeMock: vi.fn(async () => undefined),
   pluginStates: {} as Record<string, any>,
 }))
 
@@ -110,6 +111,7 @@ vi.mock("@/lib/settings", async () => {
   return {
     ...actual,
     savePluginSettings: state.savePluginSettingsMock,
+    saveThemeMode: state.saveThemeModeMock,
   }
 })
 
@@ -130,6 +132,8 @@ describe("App", () => {
     state.setErrorForPluginsMock.mockReset()
     state.savePluginSettingsMock.mockReset()
     state.savePluginSettingsMock.mockResolvedValue(undefined)
+    state.saveThemeModeMock.mockReset()
+    state.saveThemeModeMock.mockResolvedValue(undefined)
     state.pluginStates = {}
     useAppPluginStore.getState().resetState()
     useAppPreferencesStore.getState().resetState()
@@ -176,6 +180,19 @@ describe("App", () => {
     expect(document.documentElement.classList.contains("dark")).toBe(true)
     expect(state.setLoadingForPluginsMock).toHaveBeenCalledWith(["alpha", "beta"])
     expect(state.startBatchMock).toHaveBeenCalledWith(["alpha", "beta"])
+  })
+
+  it("persists theme mode changes from the shell", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+    await act(async () => {
+      state.appShellProps.onThemeModeChange("light")
+    })
+
+    expect(useAppPreferencesStore.getState().themeMode).toBe("light")
+    expect(document.documentElement.classList.contains("dark")).toBe(false)
+    expect(state.saveThemeModeMock).toHaveBeenCalledWith("light")
   })
 
   it("wires refresh and provider retry through the shell", async () => {
