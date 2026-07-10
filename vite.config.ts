@@ -61,7 +61,9 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    // Bind IPv4 explicitly so the Tauri webview (and local tooling) can reach
+    // the Vite server on Linux environments where localhost resolves to ::1.
+    host: host || "127.0.0.1",
     hmr: host
       ? {
           protocol: "ws",

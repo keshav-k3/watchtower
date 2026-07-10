@@ -27,7 +27,7 @@ Watchtower currently runs with fixed defaults instead of a user-facing Settings 
 - Time format: Auto
 - Menubar icon style: Watchtower
 - Menubar metric: Default
-- Theme: Dark by default, with a header toggle for Light
+- Theme: Dark by default, with a header toggle for Light (Refresh → Theme → Settings)
 - Global shortcut: `CommandOrControl+W`
 - Start on login: enabled
 - Providers: bundled providers use a fixed order: Cursor, Codex, Claude, OpenCode, Gemini

@@ -156,11 +156,31 @@ describe("AppShell", () => {
     expect(props.onRefreshAll).toHaveBeenCalledTimes(1)
   })
 
-  it("toggles theme from the header button", async () => {
+  it("places the theme toggle between refresh and settings", async () => {
     const props = createProps()
     render(<AppShell {...props} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Switch To Light Theme" }))
+    const refresh = screen.getByRole("button", { name: "Refresh" })
+    const theme = screen.getByRole("button", { name: "Switch To Light Theme" })
+    const settings = screen.getByRole("button", { name: "Provider Settings" })
+    const buttons = screen.getAllByRole("button")
+    const headerButtons = buttons.filter((button) =>
+      ["Refresh", "Switch To Light Theme", "Provider Settings"].includes(
+        button.getAttribute("aria-label") ?? ""
+      )
+    )
+
+    expect(headerButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Refresh",
+      "Switch To Light Theme",
+      "Provider Settings",
+    ])
+    expect(theme.className).toContain("size-8")
+    expect(settings.className).toContain("size-8")
+    expect(refresh.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(theme.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
   })
 

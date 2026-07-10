@@ -121,6 +121,16 @@ export function AppShell({
                 </div>
               </div>
               <div className="relative flex shrink-0 items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Refresh"
+                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
+                  onClick={onRefreshAll}
+                >
+                  <HugeiconsIcon icon={RefreshIcon} className="size-4" />
+                </Button>
                 <ThemeToggleButton
                   themeMode={themeMode}
                   onThemeModeChange={onThemeModeChange}
@@ -129,19 +139,9 @@ export function AppShell({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Refresh"
-                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
-                  onClick={onRefreshAll}
-                >
-                  <HugeiconsIcon icon={RefreshIcon} className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
                   aria-label="Provider Settings"
                   aria-expanded={showProviderSettings}
-                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface"
+                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised"
                   onClick={() => setShowProviderSettings((value) => !value)}
                 >
                   <HugeiconsIcon icon={Settings02Icon} className="size-4" />
