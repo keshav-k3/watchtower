@@ -211,6 +211,28 @@ describe("App", () => {
     expect(state.saveThemeModeMock).toHaveBeenLastCalledWith("dark")
   })
 
+  it("logs errors when saving theme mode fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    state.saveThemeModeMock.mockRejectedValueOnce(new Error("theme save failed"))
+
+    render(<App />)
+    await screen.findByText("Alpha")
+
+    await act(async () => {
+      state.appShellProps.onThemeModeChange("light")
+    })
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to save theme mode:",
+        expect.any(Error)
+      )
+    })
+    expect(useAppPreferencesStore.getState().themeMode).toBe("light")
+
+    consoleSpy.mockRestore()
+  })
+
   it("wires refresh and provider retry through the shell", async () => {
     render(<App />)
 
