@@ -6,7 +6,7 @@ import { useProbe } from "@/hooks/app/use-probe"
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
 import { useSettingsTheme } from "@/hooks/app/use-settings-theme"
 import { useTrayIcon } from "@/hooks/app/use-tray-icon"
-import { REFRESH_COOLDOWN_MS, savePluginSettings } from "@/lib/settings"
+import { REFRESH_COOLDOWN_MS, savePluginSettings, saveThemeMode, type ThemeMode } from "@/lib/settings"
 import { type PluginContextAction } from "@/components/side-nav"
 import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
@@ -156,6 +156,16 @@ function App() {
     [pluginStates]
   )
 
+  const handleThemeModeChange = useCallback(
+    (mode: ThemeMode) => {
+      setThemeMode(mode)
+      void saveThemeMode(mode).catch((error) => {
+        console.error("Failed to save theme mode:", error)
+      })
+    },
+    [setThemeMode]
+  )
+
   const handleProviderToggle = useCallback(
     (pluginId: string) => {
       if (!pluginSettings) return
@@ -207,6 +217,8 @@ function App() {
       displayPlugins={displayPlugins}
       autoUpdateNextAt={autoUpdateNextAt}
       selectedPlugin={selectedPlugin}
+      themeMode={themeMode}
+      onThemeModeChange={handleThemeModeChange}
       onPluginContextAction={handlePluginContextAction}
       isPluginRefreshAvailable={isPluginRefreshAvailable}
       onNavReorder={() => {}}

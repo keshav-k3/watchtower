@@ -13,3 +13,5 @@ export declare const Loader03Icon: IconSvgElement
 export declare const ChevronRightIcon: IconSvgElement
 export declare const DragDropVerticalIcon: IconSvgElement
 export declare const ArrowRight01Icon: IconSvgElement
+export declare const Sun01Icon: IconSvgElement
+export declare const Moon02Icon: IconSvgElement

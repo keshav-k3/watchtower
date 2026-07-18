@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { PanelFooter } from "@/components/panel-footer"
 import { ProviderSettingsPopover } from "@/components/provider-settings-popover"
 import { SideNav, type NavPlugin, type PluginContextAction } from "@/components/side-nav"
+import { ThemeToggleButton } from "@/components/theme-toggle-button"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
 import type { PluginMeta } from "@/lib/plugin-types"
-import type { PluginSettings } from "@/lib/settings"
+import type { PluginSettings, ThemeMode } from "@/lib/settings"
 import { useAppVersion } from "@/hooks/app/use-app-version"
 import { usePanel } from "@/hooks/app/use-panel"
 import { useAppUpdate } from "@/hooks/use-app-update"
@@ -25,6 +26,8 @@ type AppShellProps = {
   displayPlugins: DisplayPluginState[]
   autoUpdateNextAt: number | null
   selectedPlugin: DisplayPluginState | null
+  themeMode: ThemeMode
+  onThemeModeChange: (mode: ThemeMode) => void
   onPluginContextAction: (pluginId: string, action: PluginContextAction) => void
   isPluginRefreshAvailable: (pluginId: string) => boolean
   onNavReorder: (orderedIds: string[]) => void
@@ -40,6 +43,8 @@ export function AppShell({
   displayPlugins,
   autoUpdateNextAt,
   selectedPlugin,
+  themeMode,
+  onThemeModeChange,
   onPluginContextAction,
   isPluginRefreshAvailable,
   onNavReorder,
@@ -85,8 +90,11 @@ export function AppShell({
     >
       <div className="tray-arrow" />
       <div
-        className="relative flex w-full select-none flex-col overflow-hidden rounded-[16px] border border-line-bright bg-card shadow-2xl shadow-black/50"
-        style={maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : undefined}
+        className="relative flex w-full select-none flex-col overflow-hidden rounded-[16px] border border-line-bright bg-card"
+        style={{
+          boxShadow: "var(--panel-shadow)",
+          ...(maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
+        }}
       >
         <div className="flex flex-1 min-h-0 flex-row">
           <SideNav
@@ -118,18 +126,22 @@ export function AppShell({
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Refresh"
-                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
+                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
                   onClick={onRefreshAll}
                 >
                   <HugeiconsIcon icon={RefreshIcon} className="size-4" />
                 </Button>
+                <ThemeToggleButton
+                  themeMode={themeMode}
+                  onThemeModeChange={onThemeModeChange}
+                />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Provider Settings"
                   aria-expanded={showProviderSettings}
-                  className="rounded-[10px] border border-line bg-transparent text-foreground hover:border-line-bright hover:bg-surface"
+                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised"
                   onClick={() => setShowProviderSettings((value) => !value)}
                 >
                   <HugeiconsIcon icon={Settings02Icon} className="size-4" />

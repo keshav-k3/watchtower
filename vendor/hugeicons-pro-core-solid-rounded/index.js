@@ -38,8 +38,8 @@ export const ExternalLinkIcon = [
 
 export const AlertCircleIcon = [
   circle({ cx: 12, cy: 12, r: 9 }),
-  rect({ x: 11, y: 6.5, width: 2, height: 8, rx: 1, fill: "#1c1c1c" }),
-  circle({ cx: 12, cy: 17, r: 1.1, fill: "#1c1c1c" }),
+  rect({ x: 11, y: 6.5, width: 2, height: 8, rx: 1, fill: "var(--card)" }),
+  circle({ cx: 12, cy: 17, r: 1.1, fill: "var(--card)" }),
 ]
 
 export const HourglassIcon = [
@@ -78,4 +78,20 @@ export const DragDropVerticalIcon = [
 
 export const ArrowRight01Icon = [
   path("M13.3 5.3a1 1 0 0 1 1.4 0l6 6a1 1 0 0 1 0 1.4l-6 6a1 1 0 0 1-1.4-1.4l4.29-4.3H4a1 1 0 1 1 0-2h13.59l-4.3-4.3a1 1 0 0 1 0-1.4Z"),
+]
+
+export const Sun01Icon = [
+  circle({ cx: 12, cy: 12, r: 4 }),
+  path("M12 2.75a1 1 0 0 1 1 1V5a1 1 0 1 1-2 0V3.75a1 1 0 0 1 1-1Z"),
+  path("M12 19a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V20a1 1 0 0 1 1-1Z"),
+  path("M4.93 4.93a1 1 0 0 1 1.41 0l.88.88a1 1 0 1 1-1.41 1.41l-.88-.88a1 1 0 0 1 0-1.41Z"),
+  path("M16.78 16.78a1 1 0 0 1 1.41 0l.88.88a1 1 0 0 1-1.41 1.41l-.88-.88a1 1 0 0 1 0-1.41Z"),
+  path("M2.75 12a1 1 0 0 1 1-1H5a1 1 0 1 1 0 2H3.75a1 1 0 0 1-1-1Z"),
+  path("M19 12a1 1 0 0 1 1-1h1.25a1 1 0 1 1 0 2H20a1 1 0 0 1-1-1Z"),
+  path("M4.93 19.07a1 1 0 0 1 0-1.41l.88-.88a1 1 0 0 1 1.41 1.41l-.88.88a1 1 0 0 1-1.41 0Z"),
+  path("M16.78 7.22a1 1 0 0 1 0-1.41l.88-.88a1 1 0 1 1 1.41 1.41l-.88.88a1 1 0 0 1-1.41 0Z"),
+]
+
+export const Moon02Icon = [
+  path("M14.2 3.2a1 1 0 0 1 1.12 1.35A7.5 7.5 0 1 0 19.45 14.7a1 1 0 0 1 1.72.95A9.5 9.5 0 1 1 12.05 2.5c.5 0 .99.03 1.47.1a1 1 0 0 1 .68.6Z"),
 ]

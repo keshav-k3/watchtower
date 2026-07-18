@@ -204,10 +204,7 @@ fn init_panel(app_handle: tauri::AppHandle) {
 
 #[tauri::command]
 fn hide_panel(app_handle: tauri::AppHandle) {
-    use tauri_nspanel::ManagerExt;
-    if let Ok(panel) = app_handle.get_webview_panel("main") {
-        panel.hide();
-    }
+    panel::hide_panel(&app_handle);
 }
 
 #[tauri::command]
@@ -509,12 +506,17 @@ pub fn run() {
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
     let _guard = runtime.enter();
 
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_aptabase::Builder::new("A-US-6435241436").build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_nspanel::init())
+        .plugin(tauri_plugin_store::Builder::default().build());
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_nspanel::init());
+    }
+    builder
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -591,6 +593,14 @@ pub fn run() {
 
             tray::create(app.handle())?;
 
+            // Linux keep-visible path: show the panel immediately without
+            // waiting for the frontend init_panel call.
+            if std::env::var_os("WATCHTOWER_KEEP_VISIBLE").is_some() {
+                if let Err(err) = panel::init(app.handle()) {
+                    log::error!("Failed to init panel for keep-visible mode: {err}");
+                }
+            }
+
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
@@ -617,7 +627,16 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_, event| match event {
+        .run(|app_handle, event| match event {
+            #[cfg(not(target_os = "macos"))]
+            tauri::RunEvent::WindowEvent { label, event, .. } if label == "main" => {
+                if let tauri::WindowEvent::Focused(false) = event {
+                    // Keep the panel open when recording or debugging on Linux.
+                    if std::env::var_os("WATCHTOWER_KEEP_VISIBLE").is_none() {
+                        panel::hide_panel(app_handle);
+                    }
+                }
+            }
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
                 local_http_api::flush_cache();
             }

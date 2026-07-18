@@ -201,7 +201,13 @@ export function arePluginSettingsEqual(
   return true;
 }
 
+function isThemeMode(value: unknown): value is ThemeMode {
+  return typeof value === "string" && THEME_MODES.includes(value as ThemeMode);
+}
+
 export async function loadThemeMode(): Promise<ThemeMode> {
+  const stored = await store.get<unknown>(THEME_MODE_KEY);
+  if (isThemeMode(stored)) return stored;
   return DEFAULT_THEME_MODE;
 }
 

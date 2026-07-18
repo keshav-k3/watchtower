@@ -94,6 +94,8 @@ function createProps() {
     displayPlugins: [],
     autoUpdateNextAt: null,
     selectedPlugin: null,
+    themeMode: "dark" as const,
+    onThemeModeChange: vi.fn(),
     onPluginContextAction: vi.fn(),
     isPluginRefreshAvailable: vi.fn(() => true),
     onNavReorder: vi.fn(),
@@ -152,6 +154,47 @@ describe("AppShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }))
     expect(props.onRefreshAll).toHaveBeenCalledTimes(1)
+  })
+
+  it("places the theme toggle between refresh and settings", async () => {
+    const props = createProps()
+    render(<AppShell {...props} />)
+
+    const refresh = screen.getByRole("button", { name: "Refresh" })
+    const theme = screen.getByRole("button", { name: "Switch To Light Theme" })
+    const settings = screen.getByRole("button", { name: "Provider Settings" })
+    const buttons = screen.getAllByRole("button")
+    const headerButtons = buttons.filter((button) =>
+      ["Refresh", "Switch To Light Theme", "Provider Settings"].includes(
+        button.getAttribute("aria-label") ?? ""
+      )
+    )
+
+    expect(headerButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Refresh",
+      "Switch To Light Theme",
+      "Provider Settings",
+    ])
+    expect(theme.className).toContain("size-8")
+    expect(settings.className).toContain("size-8")
+    expect(refresh.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(theme.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await userEvent.click(theme)
+    expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
+  })
+
+  it("wires the light-theme toggle back to dark", async () => {
+    const props = createProps()
+    props.themeMode = "light"
+    render(<AppShell {...props} />)
+
+    const theme = screen.getByRole("button", { name: "Switch To Dark Theme" })
+    expect(theme.className).toContain("size-8")
+    expect(theme.className).toContain("bg-surface")
+
+    await userEvent.click(theme)
+    expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")
   })
 
   it("omits the max-height style when panel height is unavailable", () => {

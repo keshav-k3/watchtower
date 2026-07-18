@@ -192,14 +192,14 @@ describe("settings", () => {
     await expect(loadThemeMode()).resolves.toBe(DEFAULT_THEME_MODE)
   })
 
-  it("ignores stored theme mode for dark-only UI", async () => {
-    storeState.set("themeMode", "dark")
-    await expect(loadThemeMode()).resolves.toBe("dark")
+  it("loads stored theme mode", async () => {
+    storeState.set("themeMode", "light")
+    await expect(loadThemeMode()).resolves.toBe("light")
   })
 
-  it("saves theme mode without changing the loaded dark-only default", async () => {
+  it("saves theme mode", async () => {
     await saveThemeMode("light")
-    await expect(loadThemeMode()).resolves.toBe("dark")
+    await expect(loadThemeMode()).resolves.toBe("light")
   })
 
   it("falls back to default for invalid theme mode", async () => {

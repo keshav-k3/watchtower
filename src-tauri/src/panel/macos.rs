@@ -116,6 +116,29 @@ pub fn show_panel(app_handle: &AppHandle) {
     }
 }
 
+pub fn hide_panel(app_handle: &AppHandle) {
+    if let Ok(panel) = app_handle.get_webview_panel("main") {
+        panel.hide();
+    }
+}
+
+pub fn handle_tray_click(app_handle: &AppHandle, icon_position: Position, icon_size: Size) {
+    let Some(panel) = get_or_init_panel!(app_handle) else {
+        return;
+    };
+
+    if panel.is_visible() {
+        log::debug!("tray click: hiding panel");
+        panel.hide();
+        return;
+    }
+    log::debug!("tray click: showing panel");
+
+    // macOS quirk: must show window before positioning to another monitor
+    panel.show_and_make_key();
+    position_panel_at_tray_icon(app_handle, icon_position, icon_size);
+}
+
 /// Toggle panel visibility. If visible, hide it. If hidden, show it.
 /// Used by global shortcut handler.
 pub fn toggle_panel(app_handle: &AppHandle) {

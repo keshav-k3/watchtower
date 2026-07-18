@@ -101,56 +101,59 @@
 :root {
   --radius: 0.75rem;
 
-  /* OLED instrument panel (single dark system — app is dark-locked) */
-  --background: #000000;
-  --foreground: #e8e8e8;
-  --card: #0b0b0b;
-  --card-foreground: #e8e8e8;
-  --popover: #181818;
-  --popover-foreground: #e8e8e8;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #1a1a1a;
-  --secondary-foreground: #e8e8e8;
-  --muted: #161616;
-  --muted-foreground: #8c8c8c;
-  --accent: #1c1c1c;
-  --accent-foreground: #f5f5f5;
-  --destructive: #f0464d;
-  --border: #222222;
-  --input: #2a2a2a;
-  --ring: #3a3a3a;
+  /* Light instrument panel — cool paper, high-contrast ink */
+  --background: #f2f3f5;
+  --foreground: #141414;
+  --card: #fafafa;
+  --card-foreground: #141414;
+  --popover: #ffffff;
+  --popover-foreground: #141414;
+  --primary: #141414;
+  --primary-foreground: #fafafa;
+  --secondary: #eceef1;
+  --secondary-foreground: #141414;
+  --muted: #e6e8ec;
+  --muted-foreground: #5c616a;
+  --accent: #e8eaee;
+  --accent-foreground: #141414;
+  --destructive: #d92d36;
+  --border: #d5d8de;
+  --input: #cfd3da;
+  --ring: #8b919c;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: #060606;
-  --sidebar-foreground: #e8e8e8;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #161616;
-  --sidebar-accent-foreground: #e8e8e8;
-  --sidebar-border: #1c1c1c;
-  --sidebar-ring: #3a3a3a;
+  --sidebar: #eceef1;
+  --sidebar-foreground: #141414;
+  --sidebar-primary: #141414;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #e0e3e8;
+  --sidebar-accent-foreground: #141414;
+  --sidebar-border: #d5d8de;
+  --sidebar-ring: #8b919c;
 
-  --surface: #131313;
-  --surface-raised: #1b1b1b;
-  --line: #242424;
-  --line-bright: #383838;
-  --display: #ffffff;
+  --surface: #f0f1f3;
+  --surface-raised: #ffffff;
+  --line: #d9dce2;
+  --line-bright: #b8bdc7;
+  --display: #0f0f0f;
   --signal: #d71921;
 
-  --page-accent: #3fb970;
-  --success: #3fb970;
-  --warning: #e0b341;
-  --green-500: #3fb970;
-  --yellow-500: #e0b341;
-  --red-500: #f0464d;
+  --page-accent: #2f9e5f;
+  --success: #2f9e5f;
+  --warning: #b8860b;
+  --green-500: #2f9e5f;
+  --yellow-500: #b8860b;
+  --red-500: #d92d36;
+
+  --panel-shadow: 0 18px 40px rgba(20, 24, 32, 0.14);
+  --overlay-scrim: rgba(20, 24, 32, 0.28);
 }
 
-/* App forces .dark; keep the same instrument values there. */
 :root.dark {
+  /* OLED instrument panel */
   --background: #000000;
   --foreground: #e8e8e8;
   --card: #0b0b0b;
@@ -191,6 +194,9 @@
   --green-500: #3fb970;
   --yellow-500: #e0b341;
   --red-500: #f0464d;
+
+  --panel-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  --overlay-scrim: rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
