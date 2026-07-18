@@ -184,6 +184,19 @@ describe("AppShell", () => {
     expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
   })
 
+  it("wires the light-theme toggle back to dark", async () => {
+    const props = createProps()
+    props.themeMode = "light"
+    render(<AppShell {...props} />)
+
+    const theme = screen.getByRole("button", { name: "Switch To Dark Theme" })
+    expect(theme.className).toContain("size-8")
+    expect(theme.className).toContain("bg-surface")
+
+    await userEvent.click(theme)
+    expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")
+  })
+
   it("omits the max-height style when panel height is unavailable", () => {
     panelState.maxPanelHeightPx = null
     const { container } = render(<AppShell {...createProps()} />)

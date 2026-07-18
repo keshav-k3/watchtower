@@ -39,4 +39,20 @@ describe("useSettingsTheme", () => {
     listeners[0]?.({ matches: false } as MediaQueryListEvent)
     expect(document.documentElement.classList.contains("dark")).toBe(false)
   })
+
+  it("updates the document class when theme mode changes", () => {
+    document.documentElement.classList.remove("dark")
+    const { rerender } = renderHook(
+      ({ mode }: { mode: "light" | "dark" | "system" }) => useSettingsTheme(mode),
+      { initialProps: { mode: "dark" as const } }
+    )
+
+    expect(document.documentElement.classList.contains("dark")).toBe(true)
+
+    rerender({ mode: "light" })
+    expect(document.documentElement.classList.contains("dark")).toBe(false)
+
+    rerender({ mode: "dark" })
+    expect(document.documentElement.classList.contains("dark")).toBe(true)
+  })
 })

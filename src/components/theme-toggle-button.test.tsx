@@ -19,4 +19,24 @@ describe("ThemeToggleButton", () => {
     await userEvent.click(screen.getByRole("button", { name: "Switch To Dark Theme" }))
     expect(onThemeModeChange).toHaveBeenCalledWith("dark")
   })
+
+  it("treats system theme as non-light and switches to light", async () => {
+    const onThemeModeChange = vi.fn()
+    render(<ThemeToggleButton themeMode="system" onThemeModeChange={onThemeModeChange} />)
+
+    const button = screen.getByRole("button", { name: "Switch To Light Theme" })
+    expect(button).toHaveAttribute("title", "Switch To Light Theme")
+    await userEvent.click(button)
+    expect(onThemeModeChange).toHaveBeenCalledWith("light")
+  })
+
+  it("matches the Settings button surface styling", () => {
+    render(<ThemeToggleButton themeMode="dark" onThemeModeChange={vi.fn()} />)
+
+    const button = screen.getByRole("button", { name: "Switch To Light Theme" })
+    expect(button.className).toContain("size-8")
+    expect(button.className).toContain("bg-surface")
+    expect(button.className).toContain("rounded-[10px]")
+    expect(button.className).toContain("border-line")
+  })
 })

@@ -195,6 +195,22 @@ describe("App", () => {
     expect(state.saveThemeModeMock).toHaveBeenCalledWith("light")
   })
 
+  it("persists switching back to dark theme from the shell", async () => {
+    render(<App />)
+
+    await screen.findByText("Alpha")
+    await act(async () => {
+      state.appShellProps.onThemeModeChange("light")
+    })
+    await act(async () => {
+      state.appShellProps.onThemeModeChange("dark")
+    })
+
+    expect(useAppPreferencesStore.getState().themeMode).toBe("dark")
+    expect(document.documentElement.classList.contains("dark")).toBe(true)
+    expect(state.saveThemeModeMock).toHaveBeenLastCalledWith("dark")
+  })
+
   it("wires refresh and provider retry through the shell", async () => {
     render(<App />)
 
