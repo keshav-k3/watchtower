@@ -67,7 +67,6 @@ vi.mock("@/lib/settings", () => ({
   DEFAULT_MENUBAR_METRIC: "default",
   DEFAULT_RESET_TIMER_DISPLAY_MODE: "relative",
   DEFAULT_START_ON_LOGIN: true,
-  DEFAULT_THEME_MODE: "dark",
   DEFAULT_TIME_FORMAT_MODE: "auto",
   getEnabledPluginIds: getEnabledPluginIdsMock,
   loadAutoUpdateInterval: loadAutoUpdateIntervalMock,
