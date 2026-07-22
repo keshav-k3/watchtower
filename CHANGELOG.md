@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.6.30
+
+### New Features
+- Add header theme toggle between Refresh and Settings ([#19](https://github.com/keshav-k3/watchtower/pull/19)) by @keshav-k3
+- Add customizable global shortcut in Settings ([#22](https://github.com/keshav-k3/watchtower/pull/22)) by @keshav-k3
+
+### Bug Fixes
+- Keep Settings reachable in the side nav by @keshav-k3
+
+### Chores
+- Add integration coverage for shortcut save and relaunch apply by @keshav-k3
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.29...v0.6.30](https://github.com/keshav-k3/watchtower/compare/v0.6.29...v0.6.30)
+
+- [ef9946a](https://github.com/keshav-k3/watchtower/commit/ef9946a634c2c54588b81bcfe91a226bc6ec5fba) Keep Settings reachable in the side nav by @keshav-k3
+- [fd59b4e](https://github.com/keshav-k3/watchtower/commit/fd59b4e5d1c49dedf9c2a477ac7d51dd2cdc1093) Add integration coverage for shortcut save and relaunch apply by @keshav-k3
+- [75eaab9](https://github.com/keshav-k3/watchtower/commit/75eaab9250af12666272a78dd8878fa16535a838) Add customizable global shortcut in Settings by @keshav-k3
+- [ad648cf](https://github.com/keshav-k3/watchtower/commit/ad648cfe35a65c655506396940fad3ccb15fa7d7) Add header theme toggle between Refresh and Settings by @keshav-k3
+
 ## v0.6.29
 
 ### Bug Fixes

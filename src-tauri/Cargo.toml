@@ -1,6 +1,6 @@
 [package]
 name = "watchtower"
-version = "0.6.29"
+version = "0.6.30"
 description = "Watchtower is an open source AI subscription limit tracker"
 authors = ["Kk", "Robin Ebers and OpenUsage contributors"]
 edition = "2024"
