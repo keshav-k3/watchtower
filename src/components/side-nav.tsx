@@ -185,7 +185,7 @@ export function SideNav({
   )
 
   return (
-    <nav className="wt-dot-grid flex w-[52px] flex-col items-center gap-0.5 bg-transparent py-3">
+    <nav className="wt-dot-grid flex h-full w-[52px] shrink-0 flex-col items-center gap-0.5 self-stretch bg-transparent py-3">
       <NavButton
         isActive={activeView === "home"}
         onClick={() => onViewChange("home")}
