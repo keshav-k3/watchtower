@@ -17,12 +17,12 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
+import { DashboardSquare02Icon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
 
-type ActiveView = "home" | string
+type ActiveView = "home" | "settings" | string
 
 type PluginContextAction = "reload" | "remove"
 
@@ -185,7 +185,7 @@ export function SideNav({
   )
 
   return (
-    <nav className="wt-dot-grid flex w-[52px] flex-col items-center gap-0.5 bg-transparent py-3">
+    <nav className="wt-dot-grid flex h-full w-[52px] shrink-0 flex-col items-center gap-0.5 self-stretch bg-transparent py-3">
       <NavButton
         isActive={activeView === "home"}
         onClick={() => onViewChange("home")}
@@ -217,6 +217,13 @@ export function SideNav({
         </DndContext>
       </div>
 
+      <NavButton
+        isActive={activeView === "settings"}
+        onClick={() => onViewChange("settings")}
+        aria-label="Settings"
+      >
+        <HugeiconsIcon icon={Settings02Icon} className="size-5" />
+      </NavButton>
     </nav>
   )
 }

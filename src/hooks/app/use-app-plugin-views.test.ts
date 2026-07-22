@@ -145,6 +145,27 @@ describe("useAppPluginViews", () => {
     expect(setActiveView).not.toHaveBeenCalled()
   })
 
+  it("keeps settings view selected without a provider", () => {
+    const setActiveView = vi.fn()
+    const pluginSettings: PluginSettings = {
+      order: ["codex"],
+      disabled: [],
+    }
+
+    const { result } = renderHook(() =>
+      useAppPluginViews({
+        activeView: "settings",
+        setActiveView,
+        pluginSettings,
+        pluginsMeta: [createPluginMeta("codex", "Codex")],
+        pluginStates: {},
+      })
+    )
+
+    expect(setActiveView).not.toHaveBeenCalled()
+    expect(result.current.selectedPlugin).toBeNull()
+  })
+
   it("returns selected plugin for active provider view", () => {
     const pluginSettings: PluginSettings = {
       order: ["codex"],

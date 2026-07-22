@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { overviewPageMock, providerDetailPageMock } = vi.hoisted(() => ({
+const { overviewPageMock, providerDetailPageMock, settingsPageMock } = vi.hoisted(() => ({
   overviewPageMock: vi.fn(),
   providerDetailPageMock: vi.fn(),
+  settingsPageMock: vi.fn(),
 }))
 
 vi.mock("@/pages/overview", () => ({
@@ -21,6 +22,13 @@ vi.mock("@/pages/provider-detail", () => ({
         {props.onRetry ? <button onClick={props.onRetry}>retry-provider</button> : null}
       </div>
     )
+  },
+}))
+
+vi.mock("@/pages/settings", () => ({
+  SettingsPage: (props: unknown) => {
+    settingsPageMock(props)
+    return <div data-testid="settings-page" />
   },
 }))
 
@@ -48,6 +56,7 @@ function createProps(): AppContentProps {
     },
     onRetryPlugin: vi.fn(),
     onResetTimerDisplayModeToggle: vi.fn(),
+    onGlobalShortcutChange: vi.fn(),
   }
 }
 
@@ -55,6 +64,7 @@ describe("AppContent", () => {
   beforeEach(() => {
     overviewPageMock.mockReset()
     providerDetailPageMock.mockReset()
+    settingsPageMock.mockReset()
     useAppUiStore.getState().resetState()
     useAppPreferencesStore.getState().resetState()
   })
@@ -67,8 +77,17 @@ describe("AppContent", () => {
     expect(overviewPageMock).toHaveBeenCalledTimes(1)
   })
 
-  it("renders provider detail for non-home views", () => {
+  it("renders settings page for settings view", () => {
     useAppUiStore.getState().setActiveView("settings")
+    render(<AppContent {...createProps()} />)
+
+    expect(screen.getByTestId("settings-page")).toBeInTheDocument()
+    expect(settingsPageMock).toHaveBeenCalledTimes(1)
+    expect(providerDetailPageMock).not.toHaveBeenCalled()
+  })
+
+  it("renders provider detail for provider views", () => {
+    useAppUiStore.getState().setActiveView("codex")
     render(<AppContent {...createProps()} />)
 
     expect(screen.getByTestId("provider-detail-page")).toBeInTheDocument()

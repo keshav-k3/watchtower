@@ -193,9 +193,10 @@ describe("useSettingsBootstrap", () => {
     expect(disableAutostartMock).not.toHaveBeenCalled()
   })
 
-  it("applies fixed display defaults and the stored theme mode", async () => {
+  it("applies fixed display defaults, stored theme mode, and stored global shortcut", async () => {
     const args = createArgs()
     loadThemeModeMock.mockResolvedValueOnce("light")
+    loadGlobalShortcutMock.mockResolvedValueOnce("CommandOrControl+Shift+O")
 
     renderHook(() => useSettingsBootstrap(args))
 
@@ -205,10 +206,13 @@ describe("useSettingsBootstrap", () => {
       expect(args.setDisplayMode).toHaveBeenCalledWith("left")
       expect(args.setResetTimerDisplayMode).toHaveBeenCalledWith("relative")
       expect(args.setTimeFormatMode).toHaveBeenCalledWith("auto")
-      expect(args.setGlobalShortcut).toHaveBeenCalledWith("CommandOrControl+W")
+      expect(args.setGlobalShortcut).toHaveBeenCalledWith("CommandOrControl+Shift+O")
       expect(args.setStartOnLogin).toHaveBeenCalledWith(true)
       expect(args.setMenubarIconStyle).toHaveBeenCalledWith("watchtower")
       expect(args.setMenubarMetric).toHaveBeenCalledWith("default")
+      expect(invokeMock).toHaveBeenCalledWith("update_global_shortcut", {
+        shortcut: "CommandOrControl+Shift+O",
+      })
     })
   })
 
@@ -384,6 +388,41 @@ describe("useSettingsBootstrap", () => {
 
     expect(args.setPluginSettings).not.toHaveBeenCalled()
     expect(args.startBatch).not.toHaveBeenCalled()
+  })
+
+  it("logs global shortcut load and apply failures without aborting bootstrap", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    loadGlobalShortcutMock.mockRejectedValueOnce(new Error("shortcut load failed"))
+    invokeMock
+      .mockResolvedValueOnce([
+        {
+          id: "codex",
+          name: "Codex",
+          iconUrl: "/codex.svg",
+          brandColor: "#000000",
+          lines: [],
+          primaryCandidates: [],
+        },
+      ])
+      .mockRejectedValueOnce(new Error("shortcut apply failed"))
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setGlobalShortcut).toHaveBeenCalledWith("CommandOrControl+W")
+      expect(args.setPluginSettings).toHaveBeenCalled()
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to load global shortcut:",
+      expect.any(Error)
+    )
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to apply global shortcut:",
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
   })
 
   it("logs plugin settings load failures", async () => {

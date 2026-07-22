@@ -72,15 +72,18 @@ vi.mock("@dnd-kit/sortable", async () => {
 import { SideNav } from "@/components/side-nav"
 
 describe("SideNav", () => {
-  it("calls onViewChange for Home and omits Help and Settings", async () => {
+  it("calls onViewChange for Home and Settings", async () => {
     const onViewChange = vi.fn()
     render(<SideNav activeView="home" onViewChange={onViewChange} plugins={[]} />)
 
-    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Home" }))
     expect(onViewChange).toHaveBeenCalledWith("home")
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }))
+    expect(onViewChange).toHaveBeenCalledWith("settings")
   })
 
   it("renders plugin icon button and uses brand color when appropriate", () => {

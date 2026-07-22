@@ -17,9 +17,9 @@
 4. `App.tsx` passes derived values directly to `AppShell` and `AppContent`.
 5. `AppShell` and `AppContent` render from those direct props and source stores.
 
-## Fixed Preferences
+## Preferences
 
-Watchtower currently runs with fixed defaults instead of a user-facing Settings page:
+Most preferences still use fixed defaults. Settings currently exposes the global shortcut only:
 
 - Auto refresh: 5 minutes
 - Usage mode: Left
@@ -27,8 +27,8 @@ Watchtower currently runs with fixed defaults instead of a user-facing Settings 
 - Time format: Auto
 - Menubar icon style: Watchtower
 - Menubar metric: Default
-- Theme: Dark by default, with a header toggle for Light (Refresh → Theme → Settings)
-- Global shortcut: `CommandOrControl+W`
+- Theme: Dark by default, with a header toggle for Light (Refresh → Theme → Provider Settings)
+- Global shortcut: customizable in Settings (default `CommandOrControl+W`; clear to disable)
 - Start on login: enabled
 - Providers: bundled providers use a fixed order: Cursor, Codex, Claude, OpenCode, Gemini
 - Provider visibility: the small provider menu can hide or show bundled providers
