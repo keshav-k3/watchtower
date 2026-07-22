@@ -103,6 +103,7 @@ function createProps() {
     appContentProps: {
       onRetryPlugin: vi.fn(),
       onResetTimerDisplayModeToggle: vi.fn(),
+      onGlobalShortcutChange: vi.fn(),
     } satisfies AppContentActionProps,
   }
 }

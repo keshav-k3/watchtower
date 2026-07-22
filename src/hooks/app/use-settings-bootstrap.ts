@@ -17,6 +17,7 @@ import {
   DEFAULT_START_ON_LOGIN,
   DEFAULT_TIME_FORMAT_MODE,
   getEnabledPluginIds,
+  loadGlobalShortcut,
   loadThemeMode,
   migrateLegacyTraySettings,
   loadPluginSettings,
@@ -101,13 +102,26 @@ export function useSettingsBootstrap({
         const storedDisplayMode = DEFAULT_DISPLAY_MODE
         const storedResetTimerDisplayMode = DEFAULT_RESET_TIMER_DISPLAY_MODE
         const storedTimeFormatMode = DEFAULT_TIME_FORMAT_MODE
-        const storedGlobalShortcut = DEFAULT_GLOBAL_SHORTCUT
+        let storedGlobalShortcut = DEFAULT_GLOBAL_SHORTCUT
+        try {
+          storedGlobalShortcut = await loadGlobalShortcut()
+        } catch (error) {
+          console.error("Failed to load global shortcut:", error)
+        }
         const storedStartOnLogin = DEFAULT_START_ON_LOGIN
 
         try {
           await applyStartOnLogin(storedStartOnLogin)
         } catch (error) {
           console.error("Failed to apply start on login setting:", error)
+        }
+
+        try {
+          if (isTauri()) {
+            await invoke("update_global_shortcut", { shortcut: storedGlobalShortcut })
+          }
+        } catch (error) {
+          console.error("Failed to apply global shortcut:", error)
         }
         try {
           await migrateLegacyTraySettings()

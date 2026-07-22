@@ -145,19 +145,18 @@ describe("App", () => {
     document.documentElement.className = ""
   })
 
-  it("shows visible providers and omits removed Settings surfaces", async () => {
+  it("shows visible providers and wires shortcut settings action", async () => {
     render(<App />)
 
     await screen.findByText("Alpha")
     expect(screen.queryByText("Beta")).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument()
 
     expect(state.appShellProps.navPlugins.map((plugin: { id: string }) => plugin.id)).toEqual([
       "alpha",
     ])
     expect(state.appShellProps.settingsPlugins).toBeUndefined()
     expect(state.appShellProps.appContentProps.onToggle).toBeUndefined()
+    expect(typeof state.appShellProps.appContentProps.onGlobalShortcutChange).toBe("function")
     expect(typeof state.appShellProps.onProviderToggle).toBe("function")
   })
 

@@ -1,7 +1,9 @@
 import { useShallow } from "zustand/react/shallow"
 import { OverviewPage } from "@/pages/overview"
 import { ProviderDetailPage } from "@/pages/provider-detail"
+import { SettingsPage } from "@/pages/settings"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
+import type { GlobalShortcut } from "@/lib/settings"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
 
@@ -13,6 +15,7 @@ type AppContentDerivedProps = {
 export type AppContentActionProps = {
   onRetryPlugin: (id: string) => void
   onResetTimerDisplayModeToggle: () => void
+  onGlobalShortcutChange: (value: GlobalShortcut) => void
 }
 
 export type AppContentProps = AppContentDerivedProps & AppContentActionProps
@@ -22,6 +25,7 @@ export function AppContent({
   selectedPlugin,
   onRetryPlugin,
   onResetTimerDisplayModeToggle,
+  onGlobalShortcutChange,
 }: AppContentProps) {
   const { activeView } = useAppUiStore(
     useShallow((state) => ({
@@ -33,11 +37,13 @@ export function AppContent({
     displayMode,
     resetTimerDisplayMode,
     timeFormatMode,
+    globalShortcut,
   } = useAppPreferencesStore(
     useShallow((state) => ({
       displayMode: state.displayMode,
       resetTimerDisplayMode: state.resetTimerDisplayMode,
       timeFormatMode: state.timeFormatMode,
+      globalShortcut: state.globalShortcut,
     }))
   )
 
@@ -50,6 +56,15 @@ export function AppContent({
         resetTimerDisplayMode={resetTimerDisplayMode}
         timeFormatMode={timeFormatMode}
         onResetTimerDisplayModeToggle={onResetTimerDisplayModeToggle}
+      />
+    )
+  }
+
+  if (activeView === "settings") {
+    return (
+      <SettingsPage
+        globalShortcut={globalShortcut}
+        onGlobalShortcutChange={onGlobalShortcutChange}
       />
     )
   }

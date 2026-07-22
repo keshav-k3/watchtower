@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell"
 import { useAppPluginViews } from "@/hooks/app/use-app-plugin-views"
 import { useProbe } from "@/hooks/app/use-probe"
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
+import { useSettingsSystemActions } from "@/hooks/app/use-settings-system-actions"
 import { useSettingsTheme } from "@/hooks/app/use-settings-theme"
 import { useTrayIcon } from "@/hooks/app/use-tray-icon"
 import { REFRESH_COOLDOWN_MS, savePluginSettings, saveThemeMode, type ThemeMode } from "@/lib/settings"
@@ -128,6 +129,10 @@ function App() {
 
   useSettingsTheme(themeMode)
 
+  const { handleGlobalShortcutChange } = useSettingsSystemActions({
+    setGlobalShortcut,
+  })
+
   const { displayPlugins, navPlugins, selectedPlugin } = useAppPluginViews({
     activeView,
     setActiveView,
@@ -226,6 +231,7 @@ function App() {
       appContentProps={{
         onRetryPlugin: handleRetryPlugin,
         onResetTimerDisplayModeToggle: () => {},
+        onGlobalShortcutChange: handleGlobalShortcutChange,
       }}
     />
   )

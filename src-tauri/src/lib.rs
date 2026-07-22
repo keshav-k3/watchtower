@@ -604,7 +604,7 @@ pub fn run() {
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
-            // Register the fixed global shortcut.
+            // Register the default global shortcut until the frontend applies the stored preference.
             #[cfg(desktop)]
             {
                 let handle = app.handle().clone();
