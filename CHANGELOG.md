@@ -19,7 +19,7 @@
 
 **Full Changelog**: [v0.6.29...v0.6.30](https://github.com/keshav-k3/watchtower/compare/v0.6.29...v0.6.30)
 
-- [f2d6945](https://github.com/keshav-k3/watchtower/commit/f2d6945) Correct tauri.conf.json include path in panel module by @keshav-k3
+- [f2d6945](https://github.com/keshav-k3/watchtower/commit/f2d6945d3dfef4342f9d890b03101a0ca35ad104) Correct tauri.conf.json include path in panel module by @keshav-k3
 - [ef9946a](https://github.com/keshav-k3/watchtower/commit/ef9946a634c2c54588b81bcfe91a226bc6ec5fba) Keep Settings reachable in the side nav by @keshav-k3
 - [fd59b4e](https://github.com/keshav-k3/watchtower/commit/fd59b4e5d1c49dedf9c2a477ac7d51dd2cdc1093) Add integration coverage for shortcut save and relaunch apply by @keshav-k3
 - [75eaab9](https://github.com/keshav-k3/watchtower/commit/75eaab9250af12666272a78dd8878fa16535a838) Add customizable global shortcut in Settings by @keshav-k3
