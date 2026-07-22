@@ -11,9 +11,9 @@ type ProviderIconProps = {
 
 function iconColor(id: string, brandColor: string | undefined): string {
   if (id === "claude") return "#d97757"
-  if (id === "codex") return "#f4f4f5"
-  if (id === "cursor") return "#f5f5f5"
-  if (id === "opencode") return "#f5f5f5"
+  if (id === "codex" || id === "cursor" || id === "opencode") {
+    return "var(--provider-icon-monochrome)"
+  }
   return brandColor ?? "currentColor"
 }
 
