@@ -2,7 +2,9 @@
 
 Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode and Gemini.
 
-![Watchtower AI usage monitor](./screenshot.png)
+<p align="center">
+  <img src="./screenshot.png" alt="Watchtower AI usage monitor" />
+</p>
 
 ## Install
 
