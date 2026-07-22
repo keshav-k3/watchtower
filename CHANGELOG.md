@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.6.31
+
+### Bug Fixes
+- Refine panel controls and sidebar by @keshav-k3
+- Repair light theme contrast by @keshav-k3
+
+### Chores
+- Add installation and upgrade instructions by @keshav-k3
+- Add centered Watchtower screenshot to README by @keshav-k3
+
+---
+
+### Changelog
+
+**Full Changelog**: [v0.6.30...v0.6.31](https://github.com/keshav-k3/watchtower/compare/v0.6.30...v0.6.31)
+
+- [a522ee7](https://github.com/keshav-k3/watchtower/commit/a522ee7a561317cdf2f6c4db369d3c6a27f58563) Add centered Watchtower screenshot to README by @keshav-k3
+- [e1f0b9c](https://github.com/keshav-k3/watchtower/commit/e1f0b9c95c1141849f0c77743a9e28bfa75502d2) Refine panel controls and sidebar by @keshav-k3
+- [71e9012](https://github.com/keshav-k3/watchtower/commit/71e9012e7c613d8a90bed5370fd793ca6b8b081f) Repair light theme contrast by @keshav-k3
+- [c1c7fb5](https://github.com/keshav-k3/watchtower/commit/c1c7fb5f63c5b818ed63758c6c5e3a538181360b) Add installation and upgrade instructions by @keshav-k3
+
 ## v0.6.30
 
 ### New Features
