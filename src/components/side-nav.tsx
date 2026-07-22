@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare02Icon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
+import { CommandIcon, DashboardSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
@@ -185,7 +185,7 @@ export function SideNav({
   )
 
   return (
-    <nav className="wt-dot-grid flex h-full w-[52px] shrink-0 flex-col items-center gap-0.5 self-stretch bg-transparent py-3">
+    <nav className="wt-dot-grid flex w-[52px] shrink-0 flex-col items-center gap-0.5 self-stretch overflow-y-auto border-r border-sidebar-border bg-sidebar py-3 scrollbar-none">
       <NavButton
         isActive={activeView === "home"}
         onClick={() => onViewChange("home")}
@@ -194,7 +194,7 @@ export function SideNav({
         <HugeiconsIcon icon={DashboardSquare02Icon} className="size-5" />
       </NavButton>
 
-      <div className="flex flex-1 min-h-0 flex-col items-center gap-0.5 overflow-y-auto scrollbar-none">
+      <div className="flex flex-col items-center gap-0.5">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -220,9 +220,9 @@ export function SideNav({
       <NavButton
         isActive={activeView === "settings"}
         onClick={() => onViewChange("settings")}
-        aria-label="Settings"
+        aria-label="Keyboard Shortcut"
       >
-        <HugeiconsIcon icon={Settings02Icon} className="size-5" />
+        <HugeiconsIcon icon={CommandIcon} className="size-5" />
       </NavButton>
     </nav>
   )

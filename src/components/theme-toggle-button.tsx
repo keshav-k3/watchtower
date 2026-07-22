@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Moon02Icon, Sun01Icon } from "@hugeicons-pro/core-solid-rounded"
+import { MoonIcon, Sun01Icon } from "@hugeicons-pro/core-solid-rounded"
 import { Button } from "@/components/ui/button"
 import type { ThemeMode } from "@/lib/settings"
 
@@ -22,11 +22,10 @@ export function ThemeToggleButton({
       variant="ghost"
       size="icon-sm"
       aria-label={label}
-      title={label}
       className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised"
       onClick={() => onThemeModeChange(nextMode)}
     >
-      <HugeiconsIcon icon={isLight ? Moon02Icon : Sun01Icon} className="size-4" />
+      <HugeiconsIcon icon={isLight ? MoonIcon : Sun01Icon} className="size-4" />
     </Button>
   )
 }

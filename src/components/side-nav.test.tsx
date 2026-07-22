@@ -72,18 +72,30 @@ vi.mock("@dnd-kit/sortable", async () => {
 import { SideNav } from "@/components/side-nav"
 
 describe("SideNav", () => {
-  it("calls onViewChange for Home and Settings", async () => {
+  it("calls onViewChange for Home and the keyboard shortcut page", async () => {
     const onViewChange = vi.fn()
     render(<SideNav activeView="home" onViewChange={onViewChange} plugins={[]} />)
 
-    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Keyboard Shortcut" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Home" }))
     expect(onViewChange).toHaveBeenCalledWith("home")
 
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }))
+    await userEvent.click(screen.getByRole("button", { name: "Keyboard Shortcut" }))
     expect(onViewChange).toHaveBeenCalledWith("settings")
+  })
+
+  it("extends the sidebar rail and uses a shortcut-specific icon", () => {
+    render(<SideNav activeView="home" onViewChange={vi.fn()} plugins={[]} />)
+
+    const nav = screen.getByRole("navigation")
+    const shortcut = screen.getByRole("button", { name: "Keyboard Shortcut" })
+
+    expect(nav.className).toContain("self-stretch")
+    expect(nav.className).toContain("bg-sidebar")
+    expect(nav.className).not.toContain("h-full")
+    expect(shortcut.querySelectorAll("path")).toHaveLength(4)
   })
 
   it("renders plugin icon button and uses brand color when appropriate", () => {

@@ -8,6 +8,7 @@ import { PanelFooter } from "@/components/panel-footer"
 import { ProviderSettingsPopover } from "@/components/provider-settings-popover"
 import { SideNav, type NavPlugin, type PluginContextAction } from "@/components/side-nav"
 import { ThemeToggleButton } from "@/components/theme-toggle-button"
+import { WatchtowerMark } from "@/components/watchtower-mark"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
 import type { PluginMeta } from "@/lib/plugin-types"
 import type { PluginSettings, ThemeMode } from "@/lib/settings"
@@ -96,7 +97,7 @@ export function AppShell({
           ...(maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
         }}
       >
-        <div className="flex flex-1 min-h-0 flex-row">
+        <div className="flex flex-1 min-h-0 flex-row items-stretch">
           <SideNav
             activeView={activeView}
             onViewChange={setActiveView}
@@ -109,7 +110,7 @@ export function AppShell({
             <header className="flex items-start justify-between gap-3 pb-4">
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-line bg-surface-raised">
-                  <img src="/icon.png" alt="" className="size-6 object-contain" />
+                  <WatchtowerMark className="size-6 text-foreground" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="truncate text-[19px] font-semibold leading-6 tracking-tight text-foreground">

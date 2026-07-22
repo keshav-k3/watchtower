@@ -157,6 +157,19 @@ describe("AppShell", () => {
     expect(props.onRefreshAll).toHaveBeenCalledTimes(1)
   })
 
+  it("renders the theme-aware Watchtower mark instead of the fixed-color app image", () => {
+    const { container } = render(<AppShell {...createProps()} />)
+
+    expect(container.querySelector('header img[src="/icon.png"]')).toBeNull()
+    expect(container.querySelector('header svg[fill="currentColor"]')).toBeTruthy()
+  })
+
+  it("stretches the sidebar rail to the full panel height", () => {
+    render(<AppShell {...createProps()} />)
+
+    expect(screen.getByTestId("side-nav").parentElement?.className).toContain("items-stretch")
+  })
+
   it("places the theme toggle between refresh and settings", async () => {
     const props = createProps()
     render(<AppShell {...props} />)

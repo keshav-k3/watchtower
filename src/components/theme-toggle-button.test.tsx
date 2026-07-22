@@ -8,7 +8,9 @@ describe("ThemeToggleButton", () => {
     const onThemeModeChange = vi.fn()
     render(<ThemeToggleButton themeMode="dark" onThemeModeChange={onThemeModeChange} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Switch To Light Theme" }))
+    const button = screen.getByRole("button", { name: "Switch To Light Theme" })
+    expect(button.querySelector("circle")).toBeTruthy()
+    await userEvent.click(button)
     expect(onThemeModeChange).toHaveBeenCalledWith("light")
   })
 
@@ -16,7 +18,10 @@ describe("ThemeToggleButton", () => {
     const onThemeModeChange = vi.fn()
     render(<ThemeToggleButton themeMode="light" onThemeModeChange={onThemeModeChange} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Switch To Dark Theme" }))
+    const button = screen.getByRole("button", { name: "Switch To Dark Theme" })
+    expect(button.querySelector("circle")).toBeNull()
+    expect(button.querySelector('path[fill-rule="evenodd"]')).toBeTruthy()
+    await userEvent.click(button)
     expect(onThemeModeChange).toHaveBeenCalledWith("dark")
   })
 
@@ -25,7 +30,7 @@ describe("ThemeToggleButton", () => {
     render(<ThemeToggleButton themeMode="system" onThemeModeChange={onThemeModeChange} />)
 
     const button = screen.getByRole("button", { name: "Switch To Light Theme" })
-    expect(button).toHaveAttribute("title", "Switch To Light Theme")
+    expect(button).not.toHaveAttribute("title")
     await userEvent.click(button)
     expect(onThemeModeChange).toHaveBeenCalledWith("light")
   })
