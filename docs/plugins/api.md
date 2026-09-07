@@ -154,8 +154,9 @@ Reads an environment variable by name.
 - Returns variable value as string when set
 - Returns `null` when missing
 - Variable must be whitelisted first in `src-tauri/src/plugin_engine/host_api.rs`
-- Resolution order: current process env first, then a login+interactive shell lookup (macOS)
+- Resolution order: extra-account overlay first, then current process env, then a login+interactive shell lookup (macOS)
 - Values may be cached for the app session; restart Watchtower after changing shell config
+- Extra Claude and Codex cards overlay `CLAUDE_CONFIG_DIR` or `CODEX_HOME` for that probe only. See [Extra Accounts](../extra-accounts.md).
 
 ### Example
 

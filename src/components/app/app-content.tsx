@@ -3,7 +3,9 @@ import { OverviewPage } from "@/pages/overview"
 import { ProviderDetailPage } from "@/pages/provider-detail"
 import { SettingsPage } from "@/pages/settings"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
+import type { HomeCapablePluginId } from "@/lib/provider-homes"
 import type { GlobalShortcut } from "@/lib/settings"
+import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
 
@@ -16,6 +18,12 @@ export type AppContentActionProps = {
   onRetryPlugin: (id: string) => void
   onResetTimerDisplayModeToggle: () => void
   onGlobalShortcutChange: (value: GlobalShortcut) => void
+  onAddProviderHome: (draft: {
+    pluginId: HomeCapablePluginId
+    name: string
+    homePath: string
+  }) => void
+  onRemoveProviderHome: (id: string) => void
 }
 
 export type AppContentProps = AppContentDerivedProps & AppContentActionProps
@@ -26,6 +34,8 @@ export function AppContent({
   onRetryPlugin,
   onResetTimerDisplayModeToggle,
   onGlobalShortcutChange,
+  onAddProviderHome,
+  onRemoveProviderHome,
 }: AppContentProps) {
   const { activeView } = useAppUiStore(
     useShallow((state) => ({
@@ -47,6 +57,12 @@ export function AppContent({
     }))
   )
 
+  const { providerHomes } = useAppPluginStore(
+    useShallow((state) => ({
+      providerHomes: state.providerHomes,
+    }))
+  )
+
   if (activeView === "home") {
     return (
       <OverviewPage
@@ -65,6 +81,9 @@ export function AppContent({
       <SettingsPage
         globalShortcut={globalShortcut}
         onGlobalShortcutChange={onGlobalShortcutChange}
+        providerHomes={providerHomes}
+        onAddProviderHome={onAddProviderHome}
+        onRemoveProviderHome={onRemoveProviderHome}
       />
     )
   }

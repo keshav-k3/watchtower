@@ -2,7 +2,7 @@
 
 ## Source of truth stores
 - `app-ui-store`: UI view state (`activeView`, `showAbout`)
-- `app-plugin-store`: plugin metadata + persisted provider visibility
+- `app-plugin-store`: plugin metadata, extra accounts, and persisted provider visibility
 - `app-preferences-store`: fixed runtime preferences used by probes, tray rendering, and display formatting
 
 ## Derived values
@@ -19,7 +19,7 @@
 
 ## Preferences
 
-Most preferences still use fixed defaults. Settings currently exposes the global shortcut only:
+Most preferences still use fixed defaults. Settings currently exposes the global shortcut and extra accounts:
 
 - Auto refresh: 5 minutes
 - Usage mode: Left
@@ -30,8 +30,9 @@ Most preferences still use fixed defaults. Settings currently exposes the global
 - Theme: Dark by default, with a header toggle for Light (Refresh → Theme → Provider Settings)
 - Global shortcut: customizable in Settings (default `CommandOrControl+W`; clear to disable)
 - Start on login: enabled
+- Extra accounts: optional extra Claude and Codex cards, each pointed at a separate config folder
 - Providers: bundled providers use a fixed order: Cursor, Codex, Claude, OpenCode, Gemini
-- Provider visibility: the small provider menu can hide or show bundled providers
+- Provider visibility: the small provider menu can hide or show bundled providers and extra accounts
 
 ## Guardrails
 - Keep source-of-truth state in dedicated stores (`app-ui-store`, `app-plugin-store`, `app-preferences-store`).

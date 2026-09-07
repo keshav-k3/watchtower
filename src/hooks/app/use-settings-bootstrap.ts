@@ -6,6 +6,7 @@ import {
   isEnabled as isAutostartEnabled,
 } from "@tauri-apps/plugin-autostart"
 import type { PluginMeta } from "@/lib/plugin-types"
+import type { ProviderHome } from "@/lib/provider-homes"
 import {
   arePluginSettingsEqual,
   DEFAULT_AUTO_UPDATE_INTERVAL,
@@ -21,6 +22,7 @@ import {
   loadThemeMode,
   migrateLegacyTraySettings,
   loadPluginSettings,
+  loadProviderHomes,
   migrateRenamedPluginIds,
   normalizePluginSettings,
   savePluginSettings,
@@ -38,6 +40,7 @@ import {
 type UseSettingsBootstrapArgs = {
   setPluginSettings: (value: PluginSettings | null) => void
   setPluginsMeta: (value: PluginMeta[]) => void
+  setProviderHomes: (value: ProviderHome[]) => void
   setAutoUpdateInterval: (value: AutoUpdateIntervalMinutes) => void
   setThemeMode: (value: ThemeMode) => void
   setDisplayMode: (value: DisplayMode) => void
@@ -55,6 +58,7 @@ type UseSettingsBootstrapArgs = {
 export function useSettingsBootstrap({
   setPluginSettings,
   setPluginsMeta,
+  setProviderHomes,
   setAutoUpdateInterval,
   setThemeMode,
   setDisplayMode,
@@ -89,6 +93,10 @@ export function useSettingsBootstrap({
         const availablePlugins = await invoke<PluginMeta[]>("list_plugins")
         if (!isMounted) return
         setPluginsMeta(availablePlugins)
+
+        const storedHomes = await loadProviderHomes()
+        if (!isMounted) return
+        setProviderHomes(storedHomes)
 
         const storedSettings = await loadPluginSettings()
         const renamedSettings = migrateRenamedPluginIds(storedSettings)
@@ -179,6 +187,7 @@ export function useSettingsBootstrap({
     migrateLegacyTraySettings,
     setPluginSettings,
     setPluginsMeta,
+    setProviderHomes,
     setResetTimerDisplayMode,
     setStartOnLogin,
     setThemeMode,

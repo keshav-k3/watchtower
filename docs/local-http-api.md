@@ -22,6 +22,8 @@ Returns a single cached usage snapshot for the given provider.
 - **204 No Content** — Provider is known but has no cached snapshot yet.
 - **404 Not Found** — Provider ID is unknown.
 
+Extra Claude or Codex accounts use their own ids, such as `claude-work`. Those ids work on this route once the extra account has been saved.
+
 ### Unsupported methods
 
 Any method other than `GET` or `OPTIONS` on the above routes returns **405 Method Not Allowed**.

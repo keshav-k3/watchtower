@@ -34,6 +34,7 @@ export function ProviderDetailPage({
         name={plugin.meta.name}
         iconUrl={plugin.meta.iconUrl}
         brandColor={plugin.meta.brandColor}
+        sourcePluginId={plugin.meta.sourcePluginId}
         plan={plugin.data?.plan}
         links={plugin.meta.links}
         showSeparator={false}

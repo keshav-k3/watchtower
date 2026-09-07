@@ -46,6 +46,7 @@ export function ProviderSettingsPopover({
                 name={provider.name}
                 iconUrl={provider.iconUrl}
                 brandColor={provider.brandColor}
+                sourcePluginId={provider.sourcePluginId}
                 active={isEnabled}
                 className="size-5"
               />

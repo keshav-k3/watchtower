@@ -9,7 +9,7 @@ mod tray;
 #[cfg(target_os = "macos")]
 mod webkit_config;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -159,6 +159,9 @@ pub struct PluginMeta {
     /// Label of the progress line marked `"period": "weekly"`, if any.
     /// Drives the menubar weekly-metric preference.
     pub weekly_candidate: Option<String>,
+    /// Bundled plugin this extra account was cloned from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plugin_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -245,23 +248,13 @@ async fn start_probe_batch(
         )
     };
 
-    let selected_plugins = match plugin_ids {
-        Some(ids) => {
-            let mut by_id: HashMap<String, plugin_engine::manifest::LoadedPlugin> = plugins
-                .into_iter()
-                .map(|plugin| (plugin.manifest.id.clone(), plugin))
-                .collect();
-            let mut seen = HashSet::new();
-            ids.into_iter()
-                .filter_map(|id| {
-                    if !seen.insert(id.clone()) {
-                        return None;
-                    }
-                    by_id.remove(&id)
-                })
-                .collect()
-        }
-        None => plugins,
+    let selected_plugins = {
+        let homes = plugin_engine::provider_homes::read_provider_homes(&app_data_dir);
+        plugin_engine::provider_homes::resolve_probe_plugins(
+            &plugins,
+            plugin_ids.as_deref(),
+            &homes,
+        )
     };
 
     let response_plugin_ids: Vec<String> = selected_plugins
@@ -445,60 +438,58 @@ fn update_global_shortcut(
 
 #[tauri::command]
 fn list_plugins(state: tauri::State<'_, Mutex<AppState>>) -> Vec<PluginMeta> {
-    let plugins = {
+    let (plugins, app_data_dir) = {
         let locked = state.lock().expect("plugin state poisoned");
-        locked.plugins.clone()
+        (locked.plugins.clone(), locked.app_data_dir.clone())
     };
+    let homes = plugin_engine::provider_homes::read_provider_homes(&app_data_dir);
+    let plugins = plugin_engine::provider_homes::plugins_with_homes(&plugins, &homes);
     log::debug!("list_plugins: {} plugins", plugins.len());
 
-    plugins
-        .into_iter()
-        .map(|plugin| {
-            // Extract primary candidates: progress lines with primary_order, sorted by order
-            let mut candidates: Vec<_> = plugin
-                .manifest
-                .lines
-                .iter()
-                .filter(|line| line.line_type == "progress" && line.primary_order.is_some())
-                .collect();
-            candidates.sort_by_key(|line| line.primary_order.unwrap());
-            let primary_candidates: Vec<String> =
-                candidates.iter().map(|line| line.label.clone()).collect();
+    plugins.into_iter().map(plugin_meta_from_loaded).collect()
+}
 
-            // The weekly metric is the progress line declared `"period": "weekly"`.
-            let weekly_candidate: Option<String> =
-                plugin_engine::manifest::weekly_candidate(&plugin.manifest.lines)
-                    .map(str::to_string);
+fn plugin_meta_from_loaded(plugin: plugin_engine::manifest::LoadedPlugin) -> PluginMeta {
+    let mut candidates: Vec<_> = plugin
+        .manifest
+        .lines
+        .iter()
+        .filter(|line| line.line_type == "progress" && line.primary_order.is_some())
+        .collect();
+    candidates.sort_by_key(|line| line.primary_order.unwrap());
+    let primary_candidates: Vec<String> = candidates.iter().map(|line| line.label.clone()).collect();
 
-            PluginMeta {
-                id: plugin.manifest.id,
-                name: plugin.manifest.name,
-                icon_url: plugin.icon_data_url,
-                brand_color: plugin.manifest.brand_color,
-                lines: plugin
-                    .manifest
-                    .lines
-                    .iter()
-                    .map(|line| ManifestLineDto {
-                        line_type: line.line_type.clone(),
-                        label: line.label.clone(),
-                        scope: line.scope.clone(),
-                    })
-                    .collect(),
-                links: plugin
-                    .manifest
-                    .links
-                    .iter()
-                    .map(|link| PluginLinkDto {
-                        label: link.label.clone(),
-                        url: link.url.clone(),
-                    })
-                    .collect(),
-                primary_candidates,
-                weekly_candidate,
-            }
-        })
-        .collect()
+    let weekly_candidate: Option<String> =
+        plugin_engine::manifest::weekly_candidate(&plugin.manifest.lines).map(str::to_string);
+
+    PluginMeta {
+        id: plugin.manifest.id,
+        name: plugin.manifest.name,
+        icon_url: plugin.icon_data_url,
+        brand_color: plugin.manifest.brand_color,
+        lines: plugin
+            .manifest
+            .lines
+            .iter()
+            .map(|line| ManifestLineDto {
+                line_type: line.line_type.clone(),
+                label: line.label.clone(),
+                scope: line.scope.clone(),
+            })
+            .collect(),
+        links: plugin
+            .manifest
+            .links
+            .iter()
+            .map(|link| PluginLinkDto {
+                label: link.label.clone(),
+                url: link.url.clone(),
+            })
+            .collect(),
+        primary_candidates,
+        weekly_candidate,
+        source_plugin_id: plugin.source_plugin_id,
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

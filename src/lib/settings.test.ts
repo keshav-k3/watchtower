@@ -19,6 +19,7 @@ import {
   loadMenubarIconStyle,
   loadMenubarMetric,
   loadPluginSettings,
+  loadProviderHomes,
   loadResetTimerDisplayMode,
   loadStartOnLogin,
   loadTimeFormatMode,
@@ -32,6 +33,7 @@ import {
   saveMenubarIconStyle,
   saveMenubarMetric,
   savePluginSettings,
+  saveProviderHomes,
   saveResetTimerDisplayMode,
   saveStartOnLogin,
   saveThemeMode,
@@ -120,6 +122,44 @@ describe("settings", () => {
     const result = normalizePluginSettings({ order: [], disabled: [] }, plugins)
     expect(result.order).toEqual(["claude", "opencode", "gemini"])
     expect(result.disabled).toEqual([])
+  })
+
+  it("places extra accounts after their parent provider", () => {
+    const plugins: PluginMeta[] = [
+      { id: "cursor", name: "Cursor", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "codex", name: "Codex", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "claude", name: "Claude", iconUrl: "", lines: [], primaryCandidates: [] },
+      {
+        id: "claude-work",
+        name: "Claude Work",
+        iconUrl: "",
+        lines: [],
+        primaryCandidates: [],
+        sourcePluginId: "claude",
+      },
+      { id: "opencode", name: "OpenCode", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "gemini", name: "Gemini", iconUrl: "", lines: [], primaryCandidates: [] },
+    ]
+    const result = normalizePluginSettings(
+      { order: ["claude-work", "cursor"], disabled: [] },
+      plugins
+    )
+    expect(result.order).toEqual([
+      "cursor",
+      "codex",
+      "claude",
+      "claude-work",
+      "opencode",
+      "gemini",
+    ])
+  })
+
+  it("loads and saves extra accounts", async () => {
+    const homes = [
+      { id: "claude-work", pluginId: "claude" as const, name: "Claude Work", homePath: "~/.claude-work" },
+    ]
+    await saveProviderHomes(homes)
+    await expect(loadProviderHomes()).resolves.toEqual(homes)
   })
 
   it("uses the fixed provider order and removes dev-only plugins", () => {

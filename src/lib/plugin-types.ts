@@ -54,6 +54,8 @@ export type PluginMeta = {
   primaryCandidates: string[]
   /** Label of the line marked `"period": "weekly"`, if the provider has one. */
   weeklyCandidate?: string
+  /** Bundled plugin this extra account was cloned from. */
+  sourcePluginId?: string
 }
 
 export type PluginDisplayState = {

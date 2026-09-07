@@ -117,3 +117,5 @@ Content-Type: application/json
   "expires_in": 3600                       // seconds
 }
 ```
+
+To track a second Claude login, add an extra account in Settings and point it at that login's `CLAUDE_CONFIG_DIR` folder. See [Extra Accounts](../extra-accounts.md).

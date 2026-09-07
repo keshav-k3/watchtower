@@ -595,6 +595,8 @@ pub(crate) fn inject_host_api<'js>(
         app_data_dir,
         app_version,
         ProbeDeadline::none(),
+        HashMap::new(),
+        None,
     )
 }
 
@@ -604,6 +606,8 @@ pub(crate) fn inject_host_api_with_deadline<'js>(
     app_data_dir: &PathBuf,
     app_version: &str,
     deadline: ProbeDeadline,
+    env_overlay: HashMap<String, String>,
+    source_plugin_id: Option<&str>,
 ) -> rquickjs::Result<()> {
     let globals = ctx.globals();
     let probe_ctx = Object::new(ctx.clone())?;
@@ -632,12 +636,12 @@ pub(crate) fn inject_host_api_with_deadline<'js>(
     inject_log(ctx, &host, plugin_id)?;
     inject_fs(ctx, &host)?;
     inject_crypto(ctx, &host)?;
-    inject_env(ctx, &host, plugin_id)?;
+    inject_env(ctx, &host, env_overlay)?;
     inject_http(ctx, &host, plugin_id, deadline)?;
     inject_keychain(ctx, &host, plugin_id)?;
     inject_sqlite(ctx, &host)?;
     inject_ls(ctx, &host, plugin_id)?;
-    inject_ccusage(ctx, &host, plugin_id, deadline)?;
+    inject_ccusage(ctx, &host, plugin_id, source_plugin_id, deadline)?;
 
     probe_ctx.set("host", host)?;
     globals.set("__watchtower_ctx", probe_ctx)?;
@@ -792,13 +796,21 @@ fn inject_crypto<'js>(ctx: &Ctx<'js>, host: &Object<'js>) -> rquickjs::Result<()
     Ok(())
 }
 
-fn inject_env<'js>(ctx: &Ctx<'js>, host: &Object<'js>, _plugin_id: &str) -> rquickjs::Result<()> {
+fn inject_env<'js>(
+    ctx: &Ctx<'js>,
+    host: &Object<'js>,
+    overlay: HashMap<String, String>,
+) -> rquickjs::Result<()> {
     let env_obj = Object::new(ctx.clone())?;
     env_obj.set(
         "get",
         Function::new(ctx.clone(), move |name: String| -> Option<String> {
             if !WHITELISTED_ENV_VARS.contains(&name.as_str()) {
                 return None;
+            }
+
+            if let Some(value) = overlay.get(&name) {
+                return sanitize_env_value(value);
             }
 
             resolve_env_value(&name)
@@ -1651,28 +1663,28 @@ enum CcusageProvider {
     Codex,
 }
 
-static CCUSAGE_ACTIVE_PROVIDERS: OnceLock<Mutex<HashSet<CcusageProvider>>> = OnceLock::new();
+static CCUSAGE_ACTIVE_QUERIES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 
 struct CcusageQueryGuard {
-    provider: CcusageProvider,
+    plugin_id: String,
 }
 
 impl CcusageQueryGuard {
-    fn acquire(provider: CcusageProvider) -> Option<Self> {
-        let active = CCUSAGE_ACTIVE_PROVIDERS.get_or_init(|| Mutex::new(HashSet::new()));
+    fn acquire(plugin_id: String) -> Option<Self> {
+        let active = CCUSAGE_ACTIVE_QUERIES.get_or_init(|| Mutex::new(HashSet::new()));
         let mut active = active.lock().unwrap_or_else(|err| err.into_inner());
-        if !active.insert(provider) {
+        if !active.insert(plugin_id.clone()) {
             return None;
         }
-        Some(Self { provider })
+        Some(Self { plugin_id })
     }
 }
 
 impl Drop for CcusageQueryGuard {
     fn drop(&mut self) {
-        let active = CCUSAGE_ACTIVE_PROVIDERS.get_or_init(|| Mutex::new(HashSet::new()));
+        let active = CCUSAGE_ACTIVE_QUERIES.get_or_init(|| Mutex::new(HashSet::new()));
         let mut active = active.lock().unwrap_or_else(|err| err.into_inner());
-        active.remove(&self.provider);
+        active.remove(&self.plugin_id);
     }
 }
 
@@ -2392,10 +2404,12 @@ fn inject_ccusage<'js>(
     ctx: &Ctx<'js>,
     host: &Object<'js>,
     plugin_id: &str,
+    source_plugin_id: Option<&str>,
     deadline: ProbeDeadline,
 ) -> rquickjs::Result<()> {
     let ccusage_obj = Object::new(ctx.clone())?;
     let pid = plugin_id.to_string();
+    let provider_plugin_id = source_plugin_id.unwrap_or(plugin_id).to_string();
 
     ccusage_obj.set(
         "_queryRaw",
@@ -2409,8 +2423,8 @@ fn inject_ccusage<'js>(
                         CcusageQueryOpts::default()
                     }
                 };
-                let provider = resolve_ccusage_provider(&opts, &pid);
-                let Some(_active_query) = CcusageQueryGuard::acquire(provider) else {
+                let provider = resolve_ccusage_provider(&opts, &provider_plugin_id);
+                let Some(_active_query) = CcusageQueryGuard::acquire(pid.clone()) else {
                     log::warn!("[plugin:{}] ccusage query already running", pid);
                     return Ok(serde_json::json!({ "status": "runner_failed" }).to_string());
                 };
@@ -3275,6 +3289,35 @@ mod tests {
                 js_blocked.is_none(),
                 "non-whitelisted vars must not be exposed from JS"
             );
+        });
+    }
+
+    #[test]
+    fn env_api_overlay_wins_over_process_env() {
+        let rt = Runtime::new().expect("runtime");
+        let ctx = Context::full(&rt).expect("context");
+        ctx.with(|ctx| {
+            let app_data = std::env::temp_dir();
+            let mut overlay = HashMap::new();
+            overlay.insert(
+                "CLAUDE_CONFIG_DIR".to_string(),
+                "/tmp/claude-work".to_string(),
+            );
+            inject_host_api_with_deadline(
+                &ctx,
+                "claude-work",
+                &app_data,
+                "0.0.0",
+                ProbeDeadline::none(),
+                overlay,
+                Some("claude"),
+            )
+            .expect("inject host api");
+
+            let value: Option<String> = ctx
+                .eval(r#"__watchtower_ctx.host.env.get("CLAUDE_CONFIG_DIR")"#)
+                .expect("js get overlay var");
+            assert_eq!(value.as_deref(), Some("/tmp/claude-work"));
         });
     }
 
@@ -4369,20 +4412,22 @@ Saved lockfile
     }
 
     #[test]
-    fn ccusage_query_guard_blocks_overlapping_provider_query() {
-        let first = CcusageQueryGuard::acquire(CcusageProvider::Codex)
+    fn ccusage_query_guard_blocks_overlapping_instance_query() {
+        let first = CcusageQueryGuard::acquire("codex".to_string())
             .expect("first query should acquire guard");
         assert!(
-            CcusageQueryGuard::acquire(CcusageProvider::Codex).is_none(),
-            "second query for same provider should be blocked"
+            CcusageQueryGuard::acquire("codex".to_string()).is_none(),
+            "second query for same plugin instance should be blocked"
         );
+        let extra = CcusageQueryGuard::acquire("claude-work".to_string());
         assert!(
-            CcusageQueryGuard::acquire(CcusageProvider::Claude).is_some(),
-            "different provider should have its own guard"
+            extra.is_some(),
+            "a different extra account should have its own guard"
         );
+        drop(extra);
         drop(first);
         assert!(
-            CcusageQueryGuard::acquire(CcusageProvider::Codex).is_some(),
+            CcusageQueryGuard::acquire("codex".to_string()).is_some(),
             "guard should release on drop"
         );
     }
