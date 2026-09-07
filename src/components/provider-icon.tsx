@@ -7,11 +7,13 @@ type ProviderIconProps = {
   brandColor?: string
   className?: string
   active?: boolean
+  sourcePluginId?: string
 }
 
-function iconColor(id: string, brandColor: string | undefined): string {
-  if (id === "claude") return "#d97757"
-  if (id === "codex" || id === "cursor" || id === "opencode") {
+function iconColor(id: string, brandColor: string | undefined, sourcePluginId?: string): string {
+  const key = sourcePluginId ?? id
+  if (key === "claude") return "#d97757"
+  if (key === "codex" || key === "cursor" || key === "opencode") {
     return "var(--provider-icon-monochrome)"
   }
   return brandColor ?? "currentColor"
@@ -24,6 +26,7 @@ export function ProviderIcon({
   brandColor,
   className,
   active = false,
+  sourcePluginId,
 }: ProviderIconProps) {
   const maskStyle = iconUrl
     ? {
@@ -61,7 +64,7 @@ export function ProviderIcon({
       aria-label={name}
       className={cn("inline-block", className)}
       style={{
-        backgroundColor: iconColor(id, brandColor),
+        backgroundColor: iconColor(id, brandColor, sourcePluginId),
         ...maskStyle,
         opacity: active ? 1 : 0.72,
       }}

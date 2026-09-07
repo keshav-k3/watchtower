@@ -31,6 +31,7 @@ interface NavPlugin {
   name: string
   iconUrl: string
   brandColor?: string
+  sourcePluginId?: string
 }
 
 interface SideNavProps {
@@ -109,6 +110,7 @@ function SortableNavPlugin({ plugin, isActive, onClick, onContextMenu }: Sortabl
           name={plugin.name}
           iconUrl={plugin.iconUrl}
           brandColor={plugin.brandColor}
+          sourcePluginId={plugin.sourcePluginId}
           active={isActive}
           className="size-5"
         />

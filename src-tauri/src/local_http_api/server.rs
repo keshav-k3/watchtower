@@ -1,4 +1,4 @@
-use super::cache::{cache_state, enabled_snapshots_ordered};
+use super::cache::{cache_state, enabled_snapshots_ordered, is_known_provider};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -165,9 +165,7 @@ fn handle_get_usage_collection() -> String {
 fn handle_get_usage_single(provider_id: &str) -> String {
     let state = cache_state().lock().expect("cache state poisoned");
 
-    // Check if provider is known at all
-    let is_known = state.known_plugin_ids.iter().any(|id| id == provider_id);
-    if !is_known {
+    if !is_known_provider(&state, provider_id) {
         return response_not_found("provider_not_found");
     }
 

@@ -121,3 +121,5 @@ grant_type=refresh_token
 ```
 
 Response returns new `access_token`, and optionally new `refresh_token` and `id_token`.
+
+To track a second Codex login, add an extra account in Settings and point it at that login's `CODEX_HOME` folder. See [Extra Accounts](../extra-accounts.md).

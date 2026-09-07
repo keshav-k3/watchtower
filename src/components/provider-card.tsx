@@ -45,6 +45,7 @@ interface ProviderCardProps {
   resetTimerDisplayMode?: ResetTimerDisplayMode
   timeFormatMode?: TimeFormatMode
   onResetTimerDisplayModeToggle?: () => void
+  sourcePluginId?: string
 }
 
 const PACE_VISUALS: Record<PaceStatus, { dotClass: string }> = {
@@ -140,6 +141,7 @@ export function ProviderCard({
   resetTimerDisplayMode = "relative",
   timeFormatMode = "auto",
   onResetTimerDisplayModeToggle,
+  sourcePluginId,
 }: ProviderCardProps) {
   const cooldownRemainingMs = useMemo(() => {
     if (!lastManualRefreshAt) return 0
@@ -229,6 +231,7 @@ export function ProviderCard({
                 name={name}
                 iconUrl={iconUrl}
                 brandColor={brandColor}
+                sourcePluginId={sourcePluginId}
                 active
                 className="size-[18px]"
               />

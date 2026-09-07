@@ -15,6 +15,7 @@ const {
   loadMenubarIconStyleMock,
   loadMenubarMetricMock,
   loadPluginSettingsMock,
+  loadProviderHomesMock,
   loadResetTimerDisplayModeMock,
   loadStartOnLoginMock,
   loadThemeModeMock,
@@ -37,6 +38,7 @@ const {
   loadMenubarIconStyleMock: vi.fn(),
   loadMenubarMetricMock: vi.fn(),
   loadPluginSettingsMock: vi.fn(),
+  loadProviderHomesMock: vi.fn(),
   loadResetTimerDisplayModeMock: vi.fn(),
   loadStartOnLoginMock: vi.fn(),
   loadThemeModeMock: vi.fn(),
@@ -75,6 +77,7 @@ vi.mock("@/lib/settings", () => ({
   loadMenubarIconStyle: loadMenubarIconStyleMock,
   loadMenubarMetric: loadMenubarMetricMock,
   loadPluginSettings: loadPluginSettingsMock,
+  loadProviderHomes: loadProviderHomesMock,
   loadResetTimerDisplayMode: loadResetTimerDisplayModeMock,
   loadStartOnLogin: loadStartOnLoginMock,
   loadThemeMode: loadThemeModeMock,
@@ -91,6 +94,7 @@ function createArgs() {
   return {
     setPluginSettings: vi.fn(),
     setPluginsMeta: vi.fn(),
+    setProviderHomes: vi.fn(),
     setAutoUpdateInterval: vi.fn(),
     setThemeMode: vi.fn(),
     setDisplayMode: vi.fn(),
@@ -121,6 +125,7 @@ describe("useSettingsBootstrap", () => {
     loadMenubarIconStyleMock.mockReset()
     loadMenubarMetricMock.mockReset()
     loadPluginSettingsMock.mockReset()
+    loadProviderHomesMock.mockReset()
     loadResetTimerDisplayModeMock.mockReset()
     loadStartOnLoginMock.mockReset()
     loadThemeModeMock.mockReset()
@@ -143,6 +148,7 @@ describe("useSettingsBootstrap", () => {
       },
     ])
     loadPluginSettingsMock.mockResolvedValue({ order: ["codex"], disabled: [] })
+    loadProviderHomesMock.mockResolvedValue([])
     normalizePluginSettingsMock.mockImplementation((stored) => stored)
     arePluginSettingsEqualMock.mockReturnValue(true)
     loadAutoUpdateIntervalMock.mockResolvedValue(15)
@@ -201,6 +207,7 @@ describe("useSettingsBootstrap", () => {
     renderHook(() => useSettingsBootstrap(args))
 
     await waitFor(() => {
+      expect(args.setProviderHomes).toHaveBeenCalledWith([])
       expect(args.setAutoUpdateInterval).toHaveBeenCalledWith(5)
       expect(args.setThemeMode).toHaveBeenCalledWith("light")
       expect(args.setDisplayMode).toHaveBeenCalledWith("left")

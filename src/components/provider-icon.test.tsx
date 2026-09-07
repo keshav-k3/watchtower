@@ -22,6 +22,23 @@ describe("ProviderIcon", () => {
     }
   )
 
+  it("uses Claude orange for extra Claude accounts", () => {
+    render(
+      <ProviderIcon
+        id="claude-work"
+        name="Claude Work"
+        iconUrl="/claude.svg"
+        brandColor="#ffffff"
+        sourcePluginId="claude"
+        active
+      />
+    )
+
+    expect(screen.getByRole("img", { name: "Claude Work" })).toHaveStyle({
+      backgroundColor: "#d97757",
+    })
+  })
+
   it("keeps a plugin's brand color when it is not monochrome", () => {
     render(
       <ProviderIcon

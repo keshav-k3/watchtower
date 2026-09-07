@@ -115,6 +115,8 @@ fn run_probe_with_timeout(
             &app_data,
             app_version,
             deadline,
+            plugin.env_overlay.clone(),
+            plugin.source_plugin_id.as_deref(),
         )
         .is_err()
         {
@@ -740,6 +742,8 @@ mod tests {
             plugin_dir: PathBuf::from("."),
             entry_script: entry_script.to_string(),
             icon_data_url: "data:image/svg+xml;base64,".to_string(),
+            env_overlay: Default::default(),
+            source_plugin_id: None,
         }
     }
 
@@ -786,6 +790,35 @@ mod tests {
         );
         let output = run_probe(&plugin, &temp_app_dir("async"), "0.0.0");
         assert_eq!(error_text(output), "boom");
+    }
+
+    #[test]
+    fn run_probe_uses_env_overlay_for_whitelisted_vars() {
+        let mut plugin = test_plugin(
+            r#"
+            globalThis.__watchtower_plugin = {
+                probe(ctx) {
+                    return {
+                        lines: [{
+                            type: "text",
+                            label: "Home",
+                            value: ctx.host.env.get("CLAUDE_CONFIG_DIR") || "missing"
+                        }]
+                    };
+                }
+            };
+            "#,
+        );
+        plugin.env_overlay.insert(
+            "CLAUDE_CONFIG_DIR".to_string(),
+            "/tmp/claude-work".to_string(),
+        );
+
+        let output = run_probe(&plugin, &temp_app_dir("overlay"), "0.0.0");
+        match output.lines.first() {
+            Some(MetricLine::Text { value, .. }) => assert_eq!(value, "/tmp/claude-work"),
+            other => panic!("expected home text line, got {:?}", other),
+        }
     }
 
     #[test]

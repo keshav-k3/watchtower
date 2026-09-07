@@ -311,6 +311,15 @@ pub(super) fn enabled_snapshots_ordered(state: &CacheState) -> Vec<CachedPluginS
         .collect()
 }
 
+pub(super) fn is_known_provider(state: &CacheState, provider_id: &str) -> bool {
+    if state.known_plugin_ids.iter().any(|id| id == provider_id) {
+        return true;
+    }
+    crate::plugin_engine::provider_homes::read_provider_homes(&state.app_data_dir)
+        .iter()
+        .any(|home| home.id == provider_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -578,5 +587,31 @@ mod tests {
         let deserialized: CachedPluginSnapshot = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.provider_id, "claude");
         assert_eq!(deserialized.lines.len(), 1);
+    }
+
+    #[test]
+    fn extra_account_ids_from_settings_are_known_providers() {
+        let dir = temp_dir("extra-home-known");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("settings.json"),
+            r#"{"providerHomes":[{"id":"claude-work","pluginId":"claude","name":"Claude Work","homePath":"~/.claude-work"}]}"#,
+        )
+        .unwrap();
+
+        let state = CacheState {
+            snapshots: HashMap::new(),
+            app_data_dir: dir.clone(),
+            known_plugin_ids: vec!["claude".to_string()],
+            dirty_generation: 0,
+            flushed_generation: 0,
+            flush_scheduled: false,
+        };
+
+        assert!(is_known_provider(&state, "claude"));
+        assert!(is_known_provider(&state, "claude-work"));
+        assert!(!is_known_provider(&state, "missing"));
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

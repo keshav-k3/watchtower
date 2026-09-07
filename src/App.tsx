@@ -12,6 +12,7 @@ import { type PluginContextAction } from "@/components/side-nav"
 import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
+import { useProviderHomeActions } from "@/hooks/app/use-provider-home-actions"
 
 const TRAY_PROBE_DEBOUNCE_MS = 500
 
@@ -31,12 +32,16 @@ function App() {
     setPluginsMeta,
     pluginSettings,
     setPluginSettings,
+    providerHomes,
+    setProviderHomes,
   } = useAppPluginStore(
     useShallow((state) => ({
       pluginsMeta: state.pluginsMeta,
       setPluginsMeta: state.setPluginsMeta,
       pluginSettings: state.pluginSettings,
       setPluginSettings: state.setPluginSettings,
+      providerHomes: state.providerHomes,
+      setProviderHomes: state.setProviderHomes,
     }))
   )
 
@@ -113,6 +118,7 @@ function App() {
   useSettingsBootstrap({
     setPluginSettings,
     setPluginsMeta,
+    setProviderHomes,
     setAutoUpdateInterval,
     setThemeMode,
     setDisplayMode,
@@ -131,6 +137,19 @@ function App() {
 
   const { handleGlobalShortcutChange } = useSettingsSystemActions({
     setGlobalShortcut,
+  })
+
+  const { handleAddProviderHome, handleRemoveProviderHome } = useProviderHomeActions({
+    pluginsMeta,
+    pluginSettings,
+    providerHomes,
+    activeView,
+    setPluginsMeta,
+    setPluginSettings,
+    setProviderHomes,
+    setActiveView,
+    setLoadingForPlugins,
+    startBatch,
   })
 
   const { displayPlugins, navPlugins, selectedPlugin } = useAppPluginViews({
@@ -232,6 +251,8 @@ function App() {
         onRetryPlugin: handleRetryPlugin,
         onResetTimerDisplayModeToggle: () => {},
         onGlobalShortcutChange: handleGlobalShortcutChange,
+        onAddProviderHome: handleAddProviderHome,
+        onRemoveProviderHome: handleRemoveProviderHome,
       }}
     />
   )

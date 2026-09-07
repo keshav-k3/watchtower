@@ -52,6 +52,7 @@ export function useAppPluginViews({
         name: plugin.name,
         iconUrl: plugin.iconUrl,
         brandColor: plugin.brandColor,
+        ...(plugin.sourcePluginId ? { sourcePluginId: plugin.sourcePluginId } : {}),
       }))
   }, [pluginSettings, pluginsMeta])
 

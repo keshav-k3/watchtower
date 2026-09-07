@@ -57,6 +57,8 @@ function createProps(): AppContentProps {
     onRetryPlugin: vi.fn(),
     onResetTimerDisplayModeToggle: vi.fn(),
     onGlobalShortcutChange: vi.fn(),
+    onAddProviderHome: vi.fn(),
+    onRemoveProviderHome: vi.fn(),
   }
 }
 

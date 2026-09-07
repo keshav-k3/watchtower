@@ -1,5 +1,6 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
 import type { PluginMeta } from "@/lib/plugin-types";
+import { parseProviderHomes, type ProviderHome } from "@/lib/provider-homes";
 
 // Refresh cooldown duration in milliseconds (5 minutes)
 export const REFRESH_COOLDOWN_MS = 300_000;
@@ -28,6 +29,7 @@ export type GlobalShortcut = string | null;
 
 const SETTINGS_STORE_PATH = "settings.json";
 const PLUGIN_SETTINGS_KEY = "plugins";
+const PROVIDER_HOMES_KEY = "providerHomes";
 const AUTO_UPDATE_SETTINGS_KEY = "autoUpdateInterval";
 const THEME_MODE_KEY = "themeMode";
 const DISPLAY_MODE_KEY = "displayMode";
@@ -120,6 +122,16 @@ export async function savePluginSettings(settings: PluginSettings): Promise<void
   await store.save();
 }
 
+export async function loadProviderHomes(): Promise<ProviderHome[]> {
+  const stored = await store.get<unknown>(PROVIDER_HOMES_KEY);
+  return parseProviderHomes(stored);
+}
+
+export async function saveProviderHomes(homes: ProviderHome[]): Promise<void> {
+  await store.set(PROVIDER_HOMES_KEY, homes);
+  await store.save();
+}
+
 const RENAMED_PLUGIN_IDS: Record<string, string> = {
   antigravity: "gemini",
   "opencode-go": "opencode",
@@ -163,23 +175,45 @@ export function normalizePluginSettings(
   const knownSet = new Set(knownIds);
   const preferredOrder = DEFAULT_PROVIDER_ORDER.filter((id) => knownSet.has(id));
   const remainingKnownIds = knownIds.filter((id) => !DEFAULT_PROVIDER_ORDER.includes(id));
+  const extrasByParent = new Map<string, string[]>();
+  for (const plugin of plugins) {
+    const parentId = plugin.sourcePluginId;
+    if (!parentId || !knownSet.has(plugin.id)) continue;
+    const extras = extrasByParent.get(parentId) ?? [];
+    extras.push(plugin.id);
+    extrasByParent.set(parentId, extras);
+  }
+  const storedIndex = new Map(settings.order.map((id, index) => [id, index]));
+  for (const [parentId, extras] of extrasByParent) {
+    extras.sort((left, right) => {
+      const leftIndex = storedIndex.get(left);
+      const rightIndex = storedIndex.get(right);
+      if (leftIndex == null && rightIndex == null) return 0;
+      if (leftIndex == null) return 1;
+      if (rightIndex == null) return -1;
+      return leftIndex - rightIndex;
+    });
+    extrasByParent.set(parentId, extras);
+  }
 
   const order: string[] = [];
   const seen = new Set<string>();
-  for (const id of preferredOrder) {
+  const pushId = (id: string) => {
+    if (!knownSet.has(id) || seen.has(id)) return;
     seen.add(id);
     order.push(id);
+  };
+  for (const id of preferredOrder) {
+    pushId(id);
+    for (const extraId of extrasByParent.get(id) ?? []) {
+      pushId(extraId);
+    }
   }
   for (const id of settings.order) {
-    if (!knownSet.has(id) || seen.has(id)) continue;
-    seen.add(id);
-    order.push(id);
+    pushId(id);
   }
   for (const id of remainingKnownIds) {
-    if (!seen.has(id)) {
-      seen.add(id);
-      order.push(id);
-    }
+    pushId(id);
   }
 
   const disabled = Array.from(new Set(settings.disabled)).filter((id) => knownSet.has(id));

@@ -1,5 +1,6 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -45,6 +46,10 @@ pub struct LoadedPlugin {
     pub plugin_dir: PathBuf,
     pub entry_script: String,
     pub icon_data_url: String,
+    /// Extra env vars for this probe (e.g. CLAUDE_CONFIG_DIR for a work account).
+    pub env_overlay: HashMap<String, String>,
+    /// Bundled plugin this instance was cloned from, when this is an extra account.
+    pub source_plugin_id: Option<String>,
 }
 
 pub fn load_plugins_from_dir(plugins_dir: &std::path::Path) -> Vec<LoadedPlugin> {
@@ -147,6 +152,8 @@ fn load_single_plugin(
         plugin_dir: plugin_dir.to_path_buf(),
         entry_script,
         icon_data_url,
+        env_overlay: HashMap::new(),
+        source_plugin_id: None,
     })
 }
 
