@@ -129,6 +129,7 @@ describe("global shortcut save and apply flow", () => {
       useSettingsBootstrap({
         setPluginSettings: vi.fn(),
         setPluginsMeta: vi.fn(),
+        setProviderHomes: vi.fn(),
         setAutoUpdateInterval: vi.fn(),
         setThemeMode: vi.fn(),
         setDisplayMode: vi.fn(),
