@@ -62,7 +62,7 @@ describe("ui components", () => {
     expect(marker).toBeTruthy()
     expect(marker?.style.left).toBe("100%")
     expect(marker?.style.transform).toBe("translateX(-100%)")
-    expect(marker).toHaveClass("bg-muted-foreground", "w-0.5", "ring-background/70")
+    expect(marker).toHaveClass("bg-muted-foreground", "w-px")
 
     rerender(<Progress value={25} markerValue={-10} />)
     marker = container.querySelector<HTMLElement>('[data-slot="progress-marker"]')
@@ -99,7 +99,7 @@ describe("ui components", () => {
     expect(marker).toBeNull()
   })
 
-  it("animates segment fill after mount and applies staggered transitions", async () => {
+  it("grows the bar after mount", async () => {
     const matchMedia = vi.fn().mockReturnValue({ matches: false })
     vi.stubGlobal("matchMedia", matchMedia)
 
@@ -109,21 +109,32 @@ describe("ui components", () => {
       return rafCallbacks.length
     })
 
-    const { container } = render(<Progress value={50} segments={4} />)
-    const segments = container.querySelectorAll(".wt-seg")
-    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--line)" })
+    const { container } = render(<Progress value={50} />)
+    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
+    expect(fill).toHaveStyle({ width: "0%" })
 
     act(() => {
       rafCallbacks.forEach((callback) => {
         callback(0)
       })
     })
-    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--display)" })
-    expect(segments[0]?.getAttribute("style")).toContain("transition-delay: 0ms")
-    expect(segments[1]?.getAttribute("style")).toContain("transition-delay: 11ms")
+    expect(fill).toHaveStyle({ width: "50%", backgroundColor: "var(--foreground)" })
+    expect(fill?.getAttribute("style")).toContain("transition: width 150ms ease-out")
 
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it("skips the width transition when reduced motion is requested", () => {
+    const matchMedia = vi.fn().mockReturnValue({ matches: true })
+    vi.stubGlobal("matchMedia", matchMedia)
+
+    const { container } = render(<Progress value={50} />)
+    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
+    expect(fill).toHaveStyle({ width: "50%" })
+    expect(fill?.getAttribute("style")).not.toContain("transition")
+
+    vi.unstubAllGlobals()
   })
 
   it("renders shimmer overlay only when refreshing", () => {

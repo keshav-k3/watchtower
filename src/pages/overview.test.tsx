@@ -6,7 +6,21 @@ import { OverviewPage } from "@/pages/overview"
 describe("OverviewPage", () => {
   it("renders empty state", () => {
     render(<OverviewPage plugins={[]} displayMode="used" resetTimerDisplayMode="relative" />)
-    expect(screen.getByText("No Providers Available")).toBeInTheDocument()
+    expect(screen.getByText("No Providers Yet")).toBeInTheDocument()
+  })
+
+  it("opens provider settings from the empty state", async () => {
+    const onChooseProviders = vi.fn()
+    render(
+      <OverviewPage
+        plugins={[]}
+        displayMode="used"
+        resetTimerDisplayMode="relative"
+        onChooseProviders={onChooseProviders}
+      />
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Choose Providers" }))
+    expect(onChooseProviders).toHaveBeenCalledTimes(1)
   })
 
   it("renders provider cards with empty lines when data is missing", () => {

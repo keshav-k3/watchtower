@@ -75,6 +75,9 @@ describe("AppContent", () => {
 
     expect(screen.getByTestId("overview-page")).toBeInTheDocument()
     expect(overviewPageMock).toHaveBeenCalledTimes(1)
+    const overviewProps = overviewPageMock.mock.calls[0][0] as { onChooseProviders: () => void }
+    overviewProps.onChooseProviders()
+    expect(useAppUiStore.getState().activeView).toBe("settings")
   })
 
   it("renders settings page for settings view", () => {
@@ -84,6 +87,8 @@ describe("AppContent", () => {
     expect(screen.getByTestId("settings-page")).toBeInTheDocument()
     expect(settingsPageMock).toHaveBeenCalledTimes(1)
     expect(providerDetailPageMock).not.toHaveBeenCalled()
+    const settingsProps = settingsPageMock.mock.calls[0][0] as { onProviderToggle: (id: string) => void }
+    settingsProps.onProviderToggle("codex")
   })
 
   it("renders provider detail for provider views", () => {

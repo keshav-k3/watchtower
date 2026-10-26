@@ -115,25 +115,11 @@ describe("AppShell", () => {
     useAppUiStore.getState().resetState()
   })
 
-  it("keeps provider settings usable when the panel height is capped", async () => {
+  it("leaves a plain logo slot instead of a truncated wordmark", () => {
     render(<AppShell {...createProps()} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-
-    const popover = screen.getByText("Providers").parentElement?.parentElement
-
-    expect(popover).toHaveClass("max-h-[calc(100%-4rem)]")
-    expect(popover).toHaveClass("overflow-y-auto")
-  })
-
-  it("toggles provider settings from the header button", async () => {
-    render(<AppShell {...createProps()} />)
-
-    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-    expect(screen.getByText("Providers")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Watchtower" })).not.toBeInTheDocument()
+    expect(document.querySelector("[data-slot=app-logo]")).toBeTruthy()
   })
 
   it("wires about dialog open and close through the footer", async () => {
@@ -170,29 +156,24 @@ describe("AppShell", () => {
     expect(screen.getByTestId("side-nav").parentElement?.className).toContain("items-stretch")
   })
 
-  it("places the theme toggle between refresh and settings", async () => {
+  it("places the theme toggle after refresh", async () => {
     const props = createProps()
     render(<AppShell {...props} />)
 
     const refresh = screen.getByRole("button", { name: "Refresh" })
     const theme = screen.getByRole("button", { name: "Switch To Light Theme" })
-    const settings = screen.getByRole("button", { name: "Provider Settings" })
     const buttons = screen.getAllByRole("button")
     const headerButtons = buttons.filter((button) =>
-      ["Refresh", "Switch To Light Theme", "Provider Settings"].includes(
-        button.getAttribute("aria-label") ?? ""
-      )
+      ["Refresh", "Switch To Light Theme"].includes(button.getAttribute("aria-label") ?? "")
     )
 
     expect(headerButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
       "Refresh",
       "Switch To Light Theme",
-      "Provider Settings",
     ])
-    expect(theme.className).toContain("size-8")
-    expect(settings.className).toContain("size-8")
+    expect(theme.className).toContain("size-7")
+    expect(theme.className).toContain("bg-transparent")
     expect(refresh.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(theme.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
@@ -204,8 +185,8 @@ describe("AppShell", () => {
     render(<AppShell {...props} />)
 
     const theme = screen.getByRole("button", { name: "Switch To Dark Theme" })
-    expect(theme.className).toContain("size-8")
-    expect(theme.className).toContain("bg-surface")
+    expect(theme.className).toContain("size-7")
+    expect(theme.className).toContain("bg-transparent")
 
     await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")

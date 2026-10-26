@@ -243,9 +243,8 @@ export function GlobalShortcutSection({
 
   return (
     <section>
-      <h3 className="text-lg font-semibold mb-0">Global Shortcut</h3>
-      <p className="text-sm text-muted-foreground mb-2">
-        Show panel from anywhere
+      <p className="mb-2 px-1 text-[12px] text-muted-foreground">
+        Show the panel from anywhere
       </p>
       <div className="space-y-2">
         {isRecording ? (
@@ -258,7 +257,7 @@ export function GlobalShortcutSection({
             onKeyUp={handleKeyUp}
             onBlur={handleBlur}
             className={cn(
-              "w-full h-8 px-3 text-sm rounded-md border-2 border-primary bg-muted/50",
+              "w-full h-8 px-3 text-sm rounded-md border border-line bg-muted/50 ring-2 ring-ring",
               "flex items-center outline-none",
               !pendingDisplay && "text-muted-foreground"
             )}
@@ -293,7 +292,7 @@ export function GlobalShortcutSection({
           </div>
         )}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 px-1 text-[11px] text-muted-foreground">
         Press Escape while recording to clear.
       </p>
     </section>

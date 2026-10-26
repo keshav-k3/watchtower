@@ -90,7 +90,7 @@ function SimpleMarkdown({ content }: { content: string }) {
       parts = newParts;
     });
 
-    const linkClass = "text-[#58a6ff] hover:underline hover:text-[#58a6ff]/80 transition-colors cursor-pointer";
+    const linkClass = "text-foreground underline-offset-2 hover:underline transition-colors cursor-pointer";
 
     return parts.map((part, i) => {
       if (part.type === "link") {
@@ -202,10 +202,10 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] rounded-xl"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: "var(--overlay-scrim)" }}
     >
-      <div className="bg-card rounded-lg border shadow-2xl flex flex-col w-[92%] h-[88%] animate-in fade-in zoom-in-95 duration-200">
+      <div className="flex h-[88%] w-[92%] flex-col rounded-xl border border-line bg-popover shadow-[var(--panel-shadow)]">
         <div className="flex items-center justify-between p-3.5 border-b bg-muted/20">
           <div className="flex items-center gap-2">
             <button
@@ -252,7 +252,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
                 </div>
                 <button
                   onClick={() => openUrl(currentRelease.html_url).catch(console.error)}
-                  className="text-[10px] text-[#58a6ff] hover:underline flex items-center gap-1"
+                  className="flex items-center gap-1 text-[11px] text-foreground underline-offset-2 hover:underline"
                 >
                   GitHub <HugeiconsIcon icon={ExternalLinkIcon} className="size-3" />
                 </button>
@@ -268,7 +268,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
                     Looking for older versions? Check the{" "}
                     <button 
                       onClick={() => openUrl("https://github.com/keshav-k3/watchtower/releases").catch(console.error)}
-                      className="text-[#58a6ff] hover:underline"
+                      className="text-foreground underline-offset-2 hover:underline"
                     >
                       full changelog
                     </button>
@@ -282,7 +282,7 @@ export function ChangelogDialog({ currentVersion, onBack, onClose }: ChangelogDi
               <span className="text-xs mb-4">This version might be a pre-release or local build.</span>
               <button 
                 onClick={() => openUrl("https://github.com/keshav-k3/watchtower/releases").catch(console.error)}
-                className="text-xs text-[#58a6ff] hover:underline"
+                className="text-xs text-foreground underline-offset-2 hover:underline"
               >
                 View all releases on GitHub
               </button>
