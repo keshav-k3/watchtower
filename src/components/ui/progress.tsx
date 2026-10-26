@@ -18,22 +18,15 @@ function prefersReducedMotion() {
 }
 
 /**
- * Thin continuous meter. Colour comes from the caller and is reserved for
- * over-limit and behind-pace states.
+ * Thin continuous meter. The neutral fill is --meter-fill (dark on a light
+ * track, light on a dark track). Callers pass amber or red only for behind
+ * pace and over-limit.
  */
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   ({ className, value = 0, indicatorColor, markerValue, refreshing, ...props }, ref) => {
     const clamped = Math.min(100, Math.max(0, value))
     const reducedMotion = prefersReducedMotion()
-    const [mounted, setMounted] = React.useState(reducedMotion)
-
-    React.useEffect(() => {
-      const raf = requestAnimationFrame(() => setMounted(true))
-      return () => cancelAnimationFrame(raf)
-    }, [])
-
-    const shown = mounted ? clamped : 0
-    const fillColor = indicatorColor || "var(--foreground)"
+    const fillColor = indicatorColor || "var(--meter-fill)"
 
     const clampedMarker =
       typeof markerValue === "number" && Number.isFinite(markerValue)
@@ -62,14 +55,14 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        className={cn("relative h-[3px] w-full overflow-hidden rounded-full bg-line", className)}
+        className={cn("relative h-[3px] w-full overflow-hidden rounded-full bg-[var(--meter-track)]", className)}
         {...props}
       >
         <div
           data-slot="progress-fill"
           className="h-full rounded-full"
           style={{
-            width: `${shown}%`,
+            width: `${clamped}%`,
             backgroundColor: fillColor,
             transition: reducedMotion ? undefined : "width 150ms ease-out",
           }}

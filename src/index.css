@@ -142,6 +142,8 @@
   --signal: #d70015;
   --dot-grid: transparent;
   --provider-icon-monochrome: #1d1d1f;
+  --meter-track: #d5d5da;
+  --meter-fill: #1d1d1f;
 
   --page-accent: #248a3d;
   --success: #248a3d;
@@ -191,6 +193,8 @@
   --signal: #ff453a;
   --dot-grid: transparent;
   --provider-icon-monochrome: #f5f5f7;
+  --meter-track: #3a3a3e;
+  --meter-fill: #f2f2f4;
 
   --page-accent: #30d158;
   --success: #30d158;

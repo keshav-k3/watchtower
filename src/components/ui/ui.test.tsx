@@ -1,4 +1,6 @@
-import { render, screen, act } from "@testing-library/react"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
+import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +12,35 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
+function relativeLuminance(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16)
+  const channels = [(value >> 16) & 255, (value >> 8) & 255, value & 255].map((channel) => {
+    const scaled = channel / 255
+    return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+}
+
 describe("ui components", () => {
+  it("keeps the meter fill dark in light mode and light in dark mode", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8")
+    const light = css.slice(css.indexOf(":root {"), css.indexOf(":root.dark"))
+    const dark = css.slice(css.indexOf(":root.dark {"), css.indexOf("@layer base"))
+    const fill = (block: string) => block.match(/--meter-fill:\s*(#[0-9a-fA-F]{6})/)?.[1]
+
+    const lightFill = fill(light)
+    const darkFill = fill(dark)
+    expect(lightFill).toBeTruthy()
+    expect(darkFill).toBeTruthy()
+    expect(relativeLuminance(lightFill!)).toBeLessThan(0.15)
+    expect(relativeLuminance(darkFill!)).toBeGreaterThan(0.85)
+    expect(relativeLuminance("#000000")).toBe(0)
+    expect(relativeLuminance("#ffffff")).toBeGreaterThan(0.99)
+    expect(light).toContain("--meter-track:")
+    expect(dark).toContain("--meter-track:")
+    expect(lightFill).not.toBe(darkFill)
+  })
+
   it("renders alert variants", () => {
     render(
       <Alert variant="destructive">
@@ -99,30 +129,19 @@ describe("ui components", () => {
     expect(marker).toBeNull()
   })
 
-  it("grows the bar after mount", async () => {
+  it("paints the meter fill on the first render", () => {
     const matchMedia = vi.fn().mockReturnValue({ matches: false })
     vi.stubGlobal("matchMedia", matchMedia)
 
-    const rafCallbacks: FrameRequestCallback[] = []
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      rafCallbacks.push(callback)
-      return rafCallbacks.length
-    })
-
-    const { container } = render(<Progress value={50} />)
+    const { container } = render(<Progress value={73} />)
     const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
-    expect(fill).toHaveStyle({ width: "0%" })
+    const track = screen.getByRole("progressbar")
 
-    act(() => {
-      rafCallbacks.forEach((callback) => {
-        callback(0)
-      })
-    })
-    expect(fill).toHaveStyle({ width: "50%", backgroundColor: "var(--foreground)" })
+    expect(fill).toHaveStyle({ width: "73%", backgroundColor: "var(--meter-fill)" })
     expect(fill?.getAttribute("style")).toContain("transition: width 150ms ease-out")
+    expect(track.className).toContain("bg-[var(--meter-track)]")
 
     vi.unstubAllGlobals()
-    vi.restoreAllMocks()
   })
 
   it("skips the width transition when reduced motion is requested", () => {

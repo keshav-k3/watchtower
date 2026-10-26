@@ -28,7 +28,7 @@ function SkeletonProgress({ label }: { label: string }) {
         <span className="pb-1 text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{label}</span>
         <Skeleton className="h-6 w-16" />
       </div>
-      <div className="h-[3px] w-full rounded-full bg-line" />
+      <div className="h-[3px] w-full rounded-full bg-[var(--meter-track)]" />
       <div className="mt-2 flex justify-end">
         <Skeleton className="h-3 w-24" />
       </div>

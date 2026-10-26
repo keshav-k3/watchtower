@@ -197,9 +197,9 @@ export function ProviderCard({
   }
 
   return (
-    <section className="group py-3">
+    <section className="group py-2">
       <div>
-        <div className="mb-2.5 flex items-start gap-2">
+        <div className="mb-1.5 flex items-start gap-2">
           <ProviderIcon
             id={id}
             name={name}
@@ -210,7 +210,7 @@ export function ProviderCard({
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="min-w-0 break-words text-[13px] font-semibold leading-5 text-foreground">{name}</h2>
+              <h2 className="min-w-0 break-words text-[13px] font-semibold leading-4 text-foreground">{name}</h2>
               <div className="flex shrink-0 items-center gap-1.5">
                 {(loading || error) && (
                   <span
@@ -278,7 +278,7 @@ export function ProviderCard({
               </div>
             </div>
             {(plan || lastUpdatedAt != null) && (
-              <p className="mt-0.5 break-words text-[11px] leading-4 text-muted-foreground">
+              <p className="mt-0.5 break-words text-[11px] leading-[14px] text-muted-foreground">
                 {plan}
                 {plan && lastUpdatedAt != null ? " · " : ""}
                 {lastUpdatedAt != null ? `Updated ${formatRelativeTime(Date.now() - lastUpdatedAt)}` : ""}
@@ -339,7 +339,7 @@ export function ProviderCard({
         )}
 
         {hasStaleData && (
-          <div className="space-y-3.5">
+          <div className="space-y-2">
             {groupLinesByType(visibleLines).map((group, gi) =>
               group.kind === "text" ? (
                 <div key={gi} className="space-y-1.5">
@@ -535,11 +535,11 @@ function MetricLineRenderer({
       ? "var(--destructive)"
       : paceStatus === "behind"
         ? "var(--warning)"
-        : "var(--foreground)"
+        : "var(--meter-fill)"
 
     return (
       <div>
-        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="break-words text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{line.label}</span>
             {paceStatus && (
@@ -565,7 +565,7 @@ function MetricLineRenderer({
           markerValue={paceMarkerValue}
           refreshing={refreshing}
         />
-        <div className="mt-1.5 flex items-center">
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
           {secondaryText && (
             resetTooltipText ? (
               <Tooltip>
@@ -605,14 +605,14 @@ function MetricLineRenderer({
           )}
         </div>
         {(deficitText || runsOutText) && (
-          <div className="mt-1 flex items-center justify-between">
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
             {deficitText && (
               <span className="text-[11px] tabular-nums text-muted-foreground">
                 {deficitText}
               </span>
             )}
             {runsOutText && (
-              <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {runsOutText}
               </span>
             )}
