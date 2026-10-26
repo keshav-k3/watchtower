@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="sq"><path d="M 1024.0 512.0 L 1023.6 684.0 L 1022.2 738.8 L 1020.0 778.3 L 1016.9 810.2 L 1013.0 837.2 L 1008.0 860.7 L 1002.2 881.4 L 995.4 900.0 L 987.6 916.7 L 978.7 931.8 L 968.8 945.4 L 957.7 957.7 L 945.4 968.8 L 931.8 978.7 L 916.7 987.6 L 900.0 995.4 L 881.4 1002.2 L 860.7 1008.0 L 837.2 1013.0 L 810.2 1016.9 L 778.3 1020.0 L 738.8 1022.2 L 684.0 1023.6 L 512.0 1024.0 L 340.0 1023.6 L 285.2 1022.2 L 245.7 1020.0 L 213.8 1016.9 L 186.8 1013.0 L 163.3 1008.0 L 142.6 1002.2 L 124.0 995.4 L 107.3 987.6 L 92.2 978.7 L 78.6 968.8 L 66.3 957.7 L 55.2 945.4 L 45.3 931.8 L 36.4 916.7 L 28.6 900.0 L 21.8 881.4 L 16.0 860.7 L 11.0 837.2 L 7.1 810.2 L 4.0 778.3 L 1.8 738.8 L 0.4 684.0 L 0.0 512.0 L 0.4 340.0 L 1.8 285.2 L 4.0 245.7 L 7.1 213.8 L 11.0 186.8 L 16.0 163.3 L 21.8 142.6 L 28.6 124.0 L 36.4 107.3 L 45.3 92.2 L 55.2 78.6 L 66.3 66.3 L 78.6 55.2 L 92.2 45.3 L 107.3 36.4 L 124.0 28.6 L 142.6 21.8 L 163.3 16.0 L 186.8 11.0 L 213.8 7.1 L 245.7 4.0 L 285.2 1.8 L 340.0 0.4 L 512.0 0.0 L 684.0 0.4 L 738.8 1.8 L 778.3 4.0 L 810.2 7.1 L 837.2 11.0 L 860.7 16.0 L 881.4 21.8 L 900.0 28.6 L 916.7 36.4 L 931.8 45.3 L 945.4 55.2 L 957.7 66.3 L 968.8 78.6 L 978.7 92.2 L 987.6 107.3 L 995.4 124.0 L 1002.2 142.6 L 1008.0 163.3 L 1013.0 186.8 L 1016.9 213.8 L 1020.0 245.7 L 1022.2 285.2 L 1023.6 340.0 L 1024.0 512.0 Z"/></clipPath>
+    <linearGradient id="night" gradientUnits="userSpaceOnUse" x1="40" y1="0" x2="980" y2="1024">
+      <stop offset="0%" stop-color="#3A4E86"/>
+      <stop offset="42%" stop-color="#1A2758"/>
+      <stop offset="100%" stop-color="#120E28"/>
+    </linearGradient>
+    <radialGradient id="sheen" gradientUnits="userSpaceOnUse" cx="280" cy="40" r="780">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="42%" stop-color="#fff" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="horizon" gradientUnits="userSpaceOnUse" cx="560" cy="470" r="520">
+      <stop offset="0%" stop-color="#6E5878" stop-opacity="0.38"/>
+      <stop offset="45%" stop-color="#3A3058" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#3A3058" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vignette" gradientUnits="userSpaceOnUse" cx="512" cy="500" r="700">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#05040f" stop-opacity="0.55"/>
+    </radialGradient>
+    <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="80" y1="0" x2="940" y2="1024">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.7"/>
+      <stop offset="28%" stop-color="#fff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+    <radialGradient id="bloom" gradientUnits="userSpaceOnUse" cx="-10" cy="0" r="170">
+      <stop offset="0%" stop-color="#FFE7B8" stop-opacity="0.9"/>
+      <stop offset="18%" stop-color="#FFC15A" stop-opacity="0.42"/>
+      <stop offset="48%" stop-color="#FF9A3A" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FF9A3A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="roofMetal" gradientUnits="userSpaceOnUse" x1="276" y1="90" x2="716" y2="380">
+      <stop offset="0%" stop-color="#FFF4E6"/>
+      <stop offset="32%" stop-color="#E7C9A8"/>
+      <stop offset="68%" stop-color="#8A6A52"/>
+      <stop offset="100%" stop-color="#342820"/>
+    </linearGradient>
+    <linearGradient id="stone" gradientUnits="userSpaceOnUse" x1="266" y1="400" x2="716" y2="700">
+      <stop offset="0%" stop-color="#F7F1E8"/>
+      <stop offset="22%" stop-color="#E7D9C8"/>
+      <stop offset="58%" stop-color="#D9C8B4"/>
+      <stop offset="100%" stop-color="#A8927C"/>
+    </linearGradient>
+    <linearGradient id="stoneShade" gradientUnits="userSpaceOnUse" x1="0" y1="480" x2="0" y2="930">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.16"/>
+      <stop offset="30%" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#5A4030" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="roofL" gradientUnits="userSpaceOnUse" x1="286" y1="100" x2="496" y2="360">
+      <stop offset="0%" stop-color="#FFF1DE"/>
+      <stop offset="38%" stop-color="#E2C4A4"/>
+      <stop offset="100%" stop-color="#A48468"/>
+    </linearGradient>
+    <linearGradient id="roofR" gradientUnits="userSpaceOnUse" x1="486" y1="110" x2="706" y2="360">
+      <stop offset="0%" stop-color="#B49274"/>
+      <stop offset="50%" stop-color="#6E5646"/>
+      <stop offset="100%" stop-color="#322820"/>
+    </linearGradient>
+    <linearGradient id="frame" gradientUnits="userSpaceOnUse" x1="306" y1="330" x2="676" y2="520">
+      <stop offset="0%" stop-color="#8C7360"/>
+      <stop offset="40%" stop-color="#5C4638"/>
+      <stop offset="100%" stop-color="#2C221C"/>
+    </linearGradient>
+    <radialGradient id="glass" gradientUnits="userSpaceOnUse" cx="450" cy="420" r="170">
+      <stop offset="0%" stop-color="#FFF8E2"/>
+      <stop offset="26%" stop-color="#FFE08A"/>
+      <stop offset="58%" stop-color="#FFAE3A"/>
+      <stop offset="100%" stop-color="#D06810"/>
+    </radialGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="contact" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <clipPath id="shaftClip"><path d="M 332.60 527.47 Q 338.00 500.00 366.00 500.00 L 606.00 500.00 Q 634.00 500.00 639.40 527.47 L 709.66 885.20 Q 722.00 948.00 658.00 948.00 L 314.00 948.00 Q 250.00 948.00 262.34 885.20 Z"/></clipPath>
+    <clipPath id="roofClip"><path d="M 474.59 107.22 Q 486.00 96.00 497.41 107.22 L 709.16 315.38 Q 722.00 328.00 707.48 338.64 L 671.68 364.90 Q 662.00 372.00 650.00 372.00 L 322.00 372.00 Q 310.00 372.00 300.32 364.90 L 264.52 338.64 Q 250.00 328.00 262.84 315.38 Z"/></clipPath>
+    <clipPath id="glassClip"><path d="M 344 378 H 628 A 16 16 0 0 1 644 394 V 502 A 16 16 0 0 1 628 518 H 344 A 16 16 0 0 1 328 502 V 394 A 16 16 0 0 1 344 378 Z"/></clipPath>
+    <clipPath id="cageClip"><path d="M 282.09 377.93 Q 280.00 348.00 310.00 348.00 L 662.00 348.00 Q 692.00 348.00 689.91 377.93 L 679.68 524.06 Q 678.00 548.00 654.00 548.00 L 318.00 548.00 Q 294.00 548.00 292.32 524.06 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect width="1024" height="1024" fill="url(#night)"/>
+    <rect width="1024" height="1024" fill="url(#horizon)"/>
+    <rect width="1024" height="1024" fill="url(#sheen)"/>
+    <rect width="1024" height="1024" fill="url(#vignette)"/>
+    <!-- one soft bloom, stretched across the dusk, behind the tower -->
+    <g transform="translate(556 452) scale(3.1 0.58)">
+      <circle r="150" fill="url(#bloom)"/>
+    </g>
+    <ellipse cx="494" cy="958" rx="270" ry="20" fill="#050814" opacity="0.5" filter="url(#contact)"/>
+    <g>
+      <path d="M 332.60 527.47 Q 338.00 500.00 366.00 500.00 L 606.00 500.00 Q 634.00 500.00 639.40 527.47 L 709.66 885.20 Q 722.00 948.00 658.00 948.00 L 314.00 948.00 Q 250.00 948.00 262.34 885.20 Z" fill="url(#stone)"/>
+      <g clip-path="url(#shaftClip)">
+        <path d="M 332.60 527.47 Q 338.00 500.00 366.00 500.00 L 606.00 500.00 Q 634.00 500.00 639.40 527.47 L 709.66 885.20 Q 722.00 948.00 658.00 948.00 L 314.00 948.00 Q 250.00 948.00 262.34 885.20 Z" fill="url(#stoneShade)"/>
+        <ellipse cx="476" cy="560" rx="170" ry="80" fill="#FFB15A" opacity="0.2"/>
+      </g>
+      <path d="M 282.09 377.93 Q 280.00 348.00 310.00 348.00 L 662.00 348.00 Q 692.00 348.00 689.91 377.93 L 679.68 524.06 Q 678.00 548.00 654.00 548.00 L 318.00 548.00 Q 294.00 548.00 292.32 524.06 Z" fill="url(#frame)"/>
+      <g clip-path="url(#roofClip)">
+        <path d="M 474.59 107.22 Q 486.00 96.00 497.41 107.22 L 709.16 315.38 Q 722.00 328.00 707.48 338.64 L 671.68 364.90 Q 662.00 372.00 650.00 372.00 L 322.00 372.00 Q 310.00 372.00 300.32 364.90 L 264.52 338.64 Q 250.00 328.00 262.84 315.38 Z" fill="url(#roofMetal)"/>
+        <path d="M 468 128 C 396 190 326 260 272 332" fill="none" stroke="#FFF8EE" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+      </g>
+      <g clip-path="url(#glassClip)">
+        <path d="M 344 378 H 628 A 16 16 0 0 1 644 394 V 502 A 16 16 0 0 1 628 518 H 344 A 16 16 0 0 1 328 502 V 394 A 16 16 0 0 1 344 378 Z" fill="url(#glass)"/>
+        <ellipse cx="446" cy="430" rx="110" ry="58" fill="#fff" opacity="0.22"/>
+        <rect x="328" y="488" width="316" height="30" fill="#6A3208" opacity="0.2"/>
+      </g>
+      <rect x="308" y="366" width="356" height="8" rx="3" fill="#F6EADA" opacity="0.45"/>
+      <rect x="316" y="512" width="340" height="10" rx="3" fill="#241810" opacity="0.4"/>
+    </g>
+    <path d="M 1024.0 512.0 L 1023.6 684.0 L 1022.2 738.8 L 1020.0 778.3 L 1016.9 810.2 L 1013.0 837.2 L 1008.0 860.7 L 1002.2 881.4 L 995.4 900.0 L 987.6 916.7 L 978.7 931.8 L 968.8 945.4 L 957.7 957.7 L 945.4 968.8 L 931.8 978.7 L 916.7 987.6 L 900.0 995.4 L 881.4 1002.2 L 860.7 1008.0 L 837.2 1013.0 L 810.2 1016.9 L 778.3 1020.0 L 738.8 1022.2 L 684.0 1023.6 L 512.0 1024.0 L 340.0 1023.6 L 285.2 1022.2 L 245.7 1020.0 L 213.8 1016.9 L 186.8 1013.0 L 163.3 1008.0 L 142.6 1002.2 L 124.0 995.4 L 107.3 987.6 L 92.2 978.7 L 78.6 968.8 L 66.3 957.7 L 55.2 945.4 L 45.3 931.8 L 36.4 916.7 L 28.6 900.0 L 21.8 881.4 L 16.0 860.7 L 11.0 837.2 L 7.1 810.2 L 4.0 778.3 L 1.8 738.8 L 0.4 684.0 L 0.0 512.0 L 0.4 340.0 L 1.8 285.2 L 4.0 245.7 L 7.1 213.8 L 11.0 186.8 L 16.0 163.3 L 21.8 142.6 L 28.6 124.0 L 36.4 107.3 L 45.3 92.2 L 55.2 78.6 L 66.3 66.3 L 78.6 55.2 L 92.2 45.3 L 107.3 36.4 L 124.0 28.6 L 142.6 21.8 L 163.3 16.0 L 186.8 11.0 L 213.8 7.1 L 245.7 4.0 L 285.2 1.8 L 340.0 0.4 L 512.0 0.0 L 684.0 0.4 L 738.8 1.8 L 778.3 4.0 L 810.2 7.1 L 837.2 11.0 L 860.7 16.0 L 881.4 21.8 L 900.0 28.6 L 916.7 36.4 L 931.8 45.3 L 945.4 55.2 L 957.7 66.3 L 968.8 78.6 L 978.7 92.2 L 987.6 107.3 L 995.4 124.0 L 1002.2 142.6 L 1008.0 163.3 L 1013.0 186.8 L 1016.9 213.8 L 1020.0 245.7 L 1022.2 285.2 L 1023.6 340.0 L 1024.0 512.0 Z" fill="none" stroke="url(#rim)" stroke-width="18"/>
+  </g>
+</svg>

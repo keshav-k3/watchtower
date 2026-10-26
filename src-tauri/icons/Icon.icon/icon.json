@@ -1,6 +1,6 @@
 {
   "fill" : {
-    "automatic-gradient" : "display-p3:0.80265,0.99122,0.31665,1.00000"
+    "automatic-gradient" : "display-p3:0.16471,0.29020,0.47059,1.00000"
   },
   "groups" : [
     {
@@ -9,20 +9,20 @@
           "fill-specializations" : [
             {
               "value" : {
-                "solid" : "display-p3:0.25418,0.31292,0.07529,1.00000"
+                "solid" : "display-p3:0.90980,0.86275,0.80784,1.00000"
               }
             },
             {
               "appearance" : "dark",
               "value" : {
-                "solid" : "display-p3:0.80265,0.99122,0.31665,1.00000"
+                "solid" : "display-p3:0.96471,0.94118,0.90196,1.00000"
               }
             }
           ],
-          "image-name" : "dashboard-3-line.svg",
-          "name" : "dashboard-3-line",
+          "image-name" : "watchtower-mark.svg",
+          "name" : "watchtower-mark",
           "position" : {
-            "scale" : 37.48,
+            "scale" : 78,
             "translation-in-points" : [
               0,
               0
@@ -32,11 +32,11 @@
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 0.35
       },
       "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+        "enabled" : false,
+        "value" : 0
       }
     }
   ],
