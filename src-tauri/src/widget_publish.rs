@@ -60,15 +60,15 @@ pub fn init(app_data_dir: &Path, plugins: &[LoadedPlugin]) {
 
 pub fn record_probe(app_data_dir: &Path, plugin: &LoadedPlugin, output: &PluginOutput) {
     let seed = widget_snapshot::seed_from_plugin(plugin);
-    let json = {
-        let mut guard = lock();
-        guard.record_output(&seed, output, OffsetDateTime::now_utc());
-        match guard.to_json() {
-            Ok(json) => json,
-            Err(error) => {
-                log::error!("{error}");
-                return;
-            }
+    // Probes run on several workers. Write while holding the lock so two
+    // writers never race on the temp file and the newest document lands last.
+    let mut guard = lock();
+    guard.record_output(&seed, output, OffsetDateTime::now_utc());
+    let json = match guard.to_json() {
+        Ok(json) => json,
+        Err(error) => {
+            log::error!("{error}");
+            return;
         }
     };
     if let Err(error) = write_snapshot_files(&json, &destinations(app_data_dir)) {
@@ -80,15 +80,15 @@ pub fn record_probe(app_data_dir: &Path, plugin: &LoadedPlugin, output: &PluginO
 }
 
 pub fn record_failure(app_data_dir: &Path, provider_id: &str, provider_name: &str) {
-    let json = {
-        let mut guard = lock();
-        guard.record_failure(provider_id, provider_name, OffsetDateTime::now_utc());
-        match guard.to_json() {
-            Ok(json) => json,
-            Err(error) => {
-                log::error!("{error}");
-                return;
-            }
+    // Probes run on several workers. Write while holding the lock so two
+    // writers never race on the temp file and the newest document lands last.
+    let mut guard = lock();
+    guard.record_failure(provider_id, provider_name, OffsetDateTime::now_utc());
+    let json = match guard.to_json() {
+        Ok(json) => json,
+        Err(error) => {
+            log::error!("{error}");
+            return;
         }
     };
     if let Err(error) = write_snapshot_files(&json, &destinations(app_data_dir)) {
@@ -163,6 +163,8 @@ pub fn write_snapshot_files(json: &str, destinations: &[PathBuf]) -> Result<(), 
     if destinations.is_empty() {
         return Err("no widget snapshot destinations".to_string());
     }
+    static WRITE: Mutex<()> = Mutex::new(());
+    let _write = WRITE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let mut first_error = None;
     for dir in destinations {
         if let Err(error) = write_atomic(dir, json.as_bytes()) {
@@ -211,8 +213,11 @@ fn write_atomic(dir: &Path, bytes: &[u8]) -> Result<(), String> {
         )
     })?;
     let dest = dir.join(SNAPSHOT_FILE_NAME);
-    let tmp = dir.join(".widget-snapshot.json.tmp");
-    std::fs::write(&tmp, bytes).map_err(|error| {
+    // A name of our own: the Swift bridge writes `.widget-snapshot.json.tmp`
+    // in the App Group folder at the same time.
+    let tmp = dir.join(format!(".widget-snapshot.{}.tmp", std::process::id()));
+    write_private(&tmp, bytes).map_err(|error| {
+        let _ = std::fs::remove_file(&tmp);
         format!(
             "failed to write widget snapshot temp file {}: {error}",
             tmp.display()
@@ -226,6 +231,26 @@ fn write_atomic(dir: &Path, bytes: &[u8]) -> Result<(), String> {
         )
     })?;
     Ok(())
+}
+
+/// Usage numbers are private to the user: owner read/write only.
+fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+    }
+    file.write_all(bytes)?;
+    file.sync_all()
 }
 
 #[cfg(target_os = "macos")]
@@ -354,7 +379,51 @@ mod tests {
             fs::read_to_string(good.join(SNAPSHOT_FILE_NAME)).unwrap(),
             json
         );
-        assert!(!good.join(".widget-snapshot.json.tmp").exists());
+        let leftovers: Vec<_> = fs::read_dir(&good)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = fs::metadata(good.join(SNAPSHOT_FILE_NAME))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn concurrent_writers_always_leave_a_whole_document() {
+        let root = std::env::temp_dir().join(format!(
+            "watchtower-widget-race-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let handles: Vec<_> = (0..8)
+            .map(|index| {
+                let dir = root.clone();
+                std::thread::spawn(move || {
+                    let body = format!("{{\"writer\":{index},\"pad\":\"{}\"}}", "x".repeat(index * 4096));
+                    for _ in 0..25 {
+                        write_snapshot_files(&body, &[dir.clone()]).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        let text = fs::read_to_string(root.join(SNAPSHOT_FILE_NAME)).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert!(value.get("writer").is_some());
         let _ = fs::remove_dir_all(root);
     }
 }
