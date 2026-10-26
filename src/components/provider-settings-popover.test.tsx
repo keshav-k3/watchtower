@@ -48,13 +48,11 @@ describe("ProviderSettingsPopover", () => {
       />
     )
 
-    expect(screen.getByText("Providers")).toBeInTheDocument()
-    expect(screen.getByText("Toggle Visibility")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Codex/ })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Claude/ })).toBeInTheDocument()
+    expect(screen.getByRole("switch", { name: /Codex/ })).toBeChecked()
+    expect(screen.getByRole("switch", { name: /Claude/ })).not.toBeChecked()
     expect(screen.queryByText("missing")).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("button", { name: /Codex/ }))
+    await userEvent.click(screen.getByRole("switch", { name: /Codex/ }))
     expect(onProviderToggle).toHaveBeenCalledWith("codex")
   })
 })

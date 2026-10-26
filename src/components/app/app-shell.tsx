@@ -1,11 +1,9 @@
-import { useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { RefreshIcon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
+import { RefreshIcon } from "@hugeicons-pro/core-solid-rounded"
 import { AppContent, type AppContentActionProps } from "@/components/app/app-content"
 import { Button } from "@/components/ui/button"
 import { PanelFooter } from "@/components/panel-footer"
-import { ProviderSettingsPopover } from "@/components/provider-settings-popover"
 import { SideNav, type NavPlugin, type PluginContextAction } from "@/components/side-nav"
 import { ThemeToggleButton } from "@/components/theme-toggle-button"
 import { WatchtowerMark } from "@/components/watchtower-mark"
@@ -53,7 +51,6 @@ export function AppShell({
   onProviderToggle,
   appContentProps,
 }: AppShellProps) {
-  const [showProviderSettings, setShowProviderSettings] = useState(false)
   const {
     activeView,
     setActiveView,
@@ -93,7 +90,7 @@ export function AppShell({
     >
       <div className="tray-arrow" />
       <div
-        className="relative flex w-full select-none flex-col overflow-hidden rounded-[16px] border border-line-bright bg-card"
+        className="relative flex w-full select-none flex-col overflow-hidden rounded-xl border border-line bg-card"
         style={{
           boxShadow: "var(--panel-shadow)",
           ...(maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
@@ -108,28 +105,18 @@ export function AppShell({
             isPluginRefreshAvailable={isPluginRefreshAvailable}
             onReorder={onNavReorder}
           />
-          <div className="wt-dot-grid relative flex min-w-0 flex-1 flex-col bg-card px-4 pb-2 pt-4">
-            <header className="flex items-start justify-between gap-3 pb-4">
-              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <div className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-line bg-surface-raised">
-                  <WatchtowerMark className="size-6 text-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="truncate text-[19px] font-semibold leading-6 tracking-tight text-foreground">
-                    Watchtower
-                  </h1>
-                  <p className="label-mono text-[9px] leading-3 text-muted-foreground/70">
-                    AI Usage Monitor
-                  </p>
-                </div>
-              </div>
-              <div className="relative flex shrink-0 items-center gap-1.5">
+          <div className="relative flex min-w-0 flex-1 flex-col bg-card">
+            <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
+              <span data-slot="app-logo" className="grid size-4 shrink-0 place-items-center text-foreground">
+                <WatchtowerMark className="size-4" />
+              </span>
+              <div className="flex shrink-0 items-center gap-0.5">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Refresh"
-                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
+                  className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={onRefreshAll}
                 >
                   <HugeiconsIcon icon={RefreshIcon} className="size-4" />
@@ -138,36 +125,21 @@ export function AppShell({
                   themeMode={themeMode}
                   onThemeModeChange={onThemeModeChange}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Provider Settings"
-                  aria-expanded={showProviderSettings}
-                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised"
-                  onClick={() => setShowProviderSettings((value) => !value)}
-                >
-                  <HugeiconsIcon icon={Settings02Icon} className="size-4" />
-                </Button>
               </div>
             </header>
-            {showProviderSettings && (
-              <ProviderSettingsPopover
-                pluginsMeta={pluginsMeta}
-                pluginSettings={pluginSettings}
-                onProviderToggle={onProviderToggle}
-              />
-            )}
             <div className="relative flex-1 min-h-0">
               <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-none">
                 <AppContent
                   {...appContentProps}
                   displayPlugins={displayPlugins}
                   selectedPlugin={selectedPlugin}
+                  pluginsMeta={pluginsMeta}
+                  pluginSettings={pluginSettings}
+                  onProviderToggle={onProviderToggle}
                 />
               </div>
               <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card to-transparent transition-opacity duration-200 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
+                className={`pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-card to-transparent transition-opacity duration-150 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
               />
             </div>
             <PanelFooter

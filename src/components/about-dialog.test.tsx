@@ -23,6 +23,20 @@ vi.mock("@/hooks/use-changelog", () => ({
 }))
 
 describe("AboutDialog", () => {
+  it("restores focus even when nothing was focused", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, "activeElement")
+    Object.defineProperty(document, "activeElement", {
+      configurable: true,
+      get: () => null,
+    })
+    const { unmount } = render(<AboutDialog version="1.2.3" onClose={() => {}} />)
+    unmount()
+    if (descriptor) {
+      Object.defineProperty(Document.prototype, "activeElement", descriptor)
+    }
+    delete (document as { activeElement?: Element | null }).activeElement
+  })
+
   it("renders version, links, and maintainers", () => {
     render(<AboutDialog version="1.2.3" onClose={() => {}} />)
     expect(screen.getByText("Watchtower")).toBeInTheDocument()

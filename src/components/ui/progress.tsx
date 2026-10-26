@@ -7,37 +7,26 @@ interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   indicatorColor?: string
   markerValue?: number
   refreshing?: boolean
-  /** Number of discrete instrument segments. */
-  segments?: number
 }
 
-const REDUCED_MOTION =
-  typeof window !== "undefined" &&
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
+}
 
 /**
- * Segmented instrument bar. Discrete blocks light up left-to-right — the
- * signature Nothing-style data readout. The accessible value, pace marker, and
- * refreshing overlay are preserved for callers and tests.
+ * Thin continuous meter. The neutral fill is --meter-fill (dark on a light
+ * track, light on a dark track). Callers pass amber or red only for behind
+ * pace and over-limit.
  */
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  (
-    { className, value = 0, indicatorColor, markerValue, refreshing, segments = 28, ...props },
-    ref
-  ) => {
+  ({ className, value = 0, indicatorColor, markerValue, refreshing, ...props }, ref) => {
     const clamped = Math.min(100, Math.max(0, value))
-
-    // Light the segments up on mount (and animate when the value changes).
-    const [mounted, setMounted] = React.useState(REDUCED_MOTION)
-    React.useEffect(() => {
-      const raf = requestAnimationFrame(() => setMounted(true))
-      return () => cancelAnimationFrame(raf)
-    }, [])
-
-    const filled = Math.round((clamped / 100) * segments)
-    const shownFilled = mounted ? filled : 0
-    const fillColor = indicatorColor || "var(--display)"
+    const reducedMotion = prefersReducedMotion()
+    const fillColor = indicatorColor || "var(--meter-fill)"
 
     const clampedMarker =
       typeof markerValue === "number" && Number.isFinite(markerValue)
@@ -66,28 +55,23 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        className={cn("relative flex h-2.5 w-full items-stretch gap-[2px]", className)}
+        className={cn("relative h-[3px] w-full overflow-hidden rounded-full bg-[var(--meter-track)]", className)}
         {...props}
       >
-        {Array.from({ length: segments }).map((_, index) => {
-          const isOn = index < shownFilled
-          return (
-            <div
-              key={index}
-              className="wt-seg min-w-px flex-1 rounded-[1px]"
-              style={{
-                backgroundColor: isOn ? fillColor : "var(--line)",
-                /* v8 ignore next */
-                transitionDelay: REDUCED_MOTION ? undefined : `${index * 11}ms`,
-              }}
-            />
-          )
-        })}
+        <div
+          data-slot="progress-fill"
+          className="h-full rounded-full"
+          style={{
+            width: `${clamped}%`,
+            backgroundColor: fillColor,
+            transition: reducedMotion ? undefined : "width 150ms ease-out",
+          }}
+        />
         {showMarker && (
           <div
             data-slot="progress-marker"
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-[-1px] top-[-1px] z-10 w-0.5 rounded-sm bg-muted-foreground ring-1 ring-background/70"
+            className="pointer-events-none absolute bottom-[-1px] top-[-1px] z-10 w-px bg-muted-foreground"
             style={markerStyle}
           />
         )}
@@ -95,9 +79,9 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           <div
             data-slot="progress-refreshing"
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1px]"
+            className="pointer-events-none absolute inset-0 overflow-hidden"
           >
-            <div className="h-full w-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="h-full w-full animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
           </div>
         )}
       </div>

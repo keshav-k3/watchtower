@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChangelogDialog } from "./changelog-dialog";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,19 @@ function ExternalLink({
 
 export function AboutDialog({ version, onClose }: AboutDialogProps) {
   const [view, setView] = useState<"about" | "changelog">("about");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (view !== "about") return;
+    previouslyFocused.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    dialogRef.current?.focus();
+    return () => {
+      previouslyFocused.current?.focus();
+    };
+  }, [view]);
 
   // Close on ESC key
   useEffect(() => {
@@ -81,21 +94,28 @@ export function AboutDialog({ version, onClose }: AboutDialogProps) {
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm rounded-xl"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: "var(--overlay-scrim)" }}
       onClick={handleBackdropClick}
     >
-      <div className="bg-card rounded-lg border shadow-xl p-6 max-w-xs w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="About Watchtower"
+        tabIndex={-1}
+        className="mx-4 w-full max-w-xs rounded-xl border border-line bg-popover p-5 text-center shadow-[var(--panel-shadow)] outline-none"
+      >
         <img
           src="/icon.png"
           alt="Watchtower"
-          className="w-16 h-16 mx-auto mb-3 rounded-xl"
+          className="mx-auto mb-3 size-10"
         />
 
-        <h2 className="text-xl font-semibold mb-1">Watchtower</h2>
+        <h2 className="mb-1 text-[15px] font-semibold">Watchtower</h2>
 
-        <div className="flex flex-col items-center gap-2 mb-4">
-          <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+        <div className="mb-4 flex flex-col items-center gap-2">
+          <span className="text-[12px] text-muted-foreground">
             v{version}
           </span>
           <Button

@@ -76,26 +76,27 @@ describe("SideNav", () => {
     const onViewChange = vi.fn()
     render(<SideNav activeView="home" onViewChange={onViewChange} plugins={[]} />)
 
-    expect(screen.getByRole("button", { name: "Keyboard Shortcut" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Home" }))
     expect(onViewChange).toHaveBeenCalledWith("home")
 
-    await userEvent.click(screen.getByRole("button", { name: "Keyboard Shortcut" }))
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }))
     expect(onViewChange).toHaveBeenCalledWith("settings")
   })
 
-  it("extends the sidebar rail and uses a shortcut-specific icon", () => {
+  it("extends the sidebar rail and uses a settings icon", () => {
     render(<SideNav activeView="home" onViewChange={vi.fn()} plugins={[]} />)
 
     const nav = screen.getByRole("navigation")
-    const shortcut = screen.getByRole("button", { name: "Keyboard Shortcut" })
+    const shortcut = screen.getByRole("button", { name: "Settings" })
 
     expect(nav.className).toContain("self-stretch")
     expect(nav.className).toContain("bg-sidebar")
+    expect(nav.className).toContain("w-10")
     expect(nav.className).not.toContain("h-full")
-    expect(shortcut.querySelectorAll("path")).toHaveLength(4)
+    expect(shortcut.querySelector("svg")).toBeTruthy()
   })
 
   it("renders plugin icon button and uses brand color when appropriate", () => {
@@ -128,8 +129,8 @@ describe("SideNav", () => {
     )
 
     const icon = screen.getByRole("img", { name: "Gemini" })
-    expect(icon.className).toContain("conic-gradient")
-    expect(icon.getAttribute("style")).toContain("gemini.svg")
+    expect(icon.tagName).toBe("IMG")
+    expect(icon.getAttribute("src")).toContain("gemini")
   })
 
   it("switches to a plugin view when its nav button is clicked", async () => {
@@ -189,7 +190,7 @@ describe("SideNav", () => {
     expect(onPluginContextAction).toHaveBeenCalledWith("p1", "reload")
   })
 
-  it("invokes devtools from the inspect context menu item", async () => {
+  it("does not offer Inspect Element in the context menu", async () => {
     render(
       <SideNav
         activeView="home"
@@ -202,9 +203,8 @@ describe("SideNav", () => {
     await userEvent.pointer({ keys: "[MouseRight]", target: screen.getByRole("button", { name: "Plugin 1" }) })
 
     const inspectCall = menuItemNewMock.mock.calls.find(([args]) => args.id === "ctx-inspect-p1")
-    inspectCall?.[0].action?.()
-
-    expect(invokeMock).toHaveBeenCalledWith("open_devtools")
+    expect(inspectCall).toBeUndefined()
+    expect(invokeMock).not.toHaveBeenCalledWith("open_devtools")
   })
 
   it("no-ops context menu actions when handler is missing", async () => {

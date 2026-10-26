@@ -1,4 +1,6 @@
-import { render, screen, act } from "@testing-library/react"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
+import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +12,35 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
+function relativeLuminance(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16)
+  const channels = [(value >> 16) & 255, (value >> 8) & 255, value & 255].map((channel) => {
+    const scaled = channel / 255
+    return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+}
+
 describe("ui components", () => {
+  it("keeps the meter fill dark in light mode and light in dark mode", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8")
+    const light = css.slice(css.indexOf(":root {"), css.indexOf(":root.dark"))
+    const dark = css.slice(css.indexOf(":root.dark {"), css.indexOf("@layer base"))
+    const fill = (block: string) => block.match(/--meter-fill:\s*(#[0-9a-fA-F]{6})/)?.[1]
+
+    const lightFill = fill(light)
+    const darkFill = fill(dark)
+    expect(lightFill).toBeTruthy()
+    expect(darkFill).toBeTruthy()
+    expect(relativeLuminance(lightFill!)).toBeLessThan(0.15)
+    expect(relativeLuminance(darkFill!)).toBeGreaterThan(0.85)
+    expect(relativeLuminance("#000000")).toBe(0)
+    expect(relativeLuminance("#ffffff")).toBeGreaterThan(0.99)
+    expect(light).toContain("--meter-track:")
+    expect(dark).toContain("--meter-track:")
+    expect(lightFill).not.toBe(darkFill)
+  })
+
   it("renders alert variants", () => {
     render(
       <Alert variant="destructive">
@@ -62,7 +92,7 @@ describe("ui components", () => {
     expect(marker).toBeTruthy()
     expect(marker?.style.left).toBe("100%")
     expect(marker?.style.transform).toBe("translateX(-100%)")
-    expect(marker).toHaveClass("bg-muted-foreground", "w-0.5", "ring-background/70")
+    expect(marker).toHaveClass("bg-muted-foreground", "w-px")
 
     rerender(<Progress value={25} markerValue={-10} />)
     marker = container.querySelector<HTMLElement>('[data-slot="progress-marker"]')
@@ -99,31 +129,31 @@ describe("ui components", () => {
     expect(marker).toBeNull()
   })
 
-  it("animates segment fill after mount and applies staggered transitions", async () => {
+  it("paints the meter fill on the first render", () => {
     const matchMedia = vi.fn().mockReturnValue({ matches: false })
     vi.stubGlobal("matchMedia", matchMedia)
 
-    const rafCallbacks: FrameRequestCallback[] = []
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      rafCallbacks.push(callback)
-      return rafCallbacks.length
-    })
+    const { container } = render(<Progress value={73} />)
+    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
+    const track = screen.getByRole("progressbar")
 
-    const { container } = render(<Progress value={50} segments={4} />)
-    const segments = container.querySelectorAll(".wt-seg")
-    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--line)" })
-
-    act(() => {
-      rafCallbacks.forEach((callback) => {
-        callback(0)
-      })
-    })
-    expect(segments[0]).toHaveStyle({ backgroundColor: "var(--display)" })
-    expect(segments[0]?.getAttribute("style")).toContain("transition-delay: 0ms")
-    expect(segments[1]?.getAttribute("style")).toContain("transition-delay: 11ms")
+    expect(fill).toHaveStyle({ width: "73%", backgroundColor: "var(--meter-fill)" })
+    expect(fill?.getAttribute("style")).toContain("transition: width 150ms ease-out")
+    expect(track.className).toContain("bg-[var(--meter-track)]")
 
     vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+  })
+
+  it("skips the width transition when reduced motion is requested", () => {
+    const matchMedia = vi.fn().mockReturnValue({ matches: true })
+    vi.stubGlobal("matchMedia", matchMedia)
+
+    const { container } = render(<Progress value={50} />)
+    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
+    expect(fill).toHaveStyle({ width: "50%" })
+    expect(fill?.getAttribute("style")).not.toContain("transition")
+
+    vi.unstubAllGlobals()
   })
 
   it("renders shimmer overlay only when refreshing", () => {

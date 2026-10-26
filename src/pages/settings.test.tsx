@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { SettingsPage } from "@/pages/settings"
 
@@ -28,5 +29,27 @@ describe("SettingsPage", () => {
       globalShortcut: "CommandOrControl+W",
       onGlobalShortcutChange,
     })
+    expect(screen.getByRole("heading", { name: "Providers" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Shortcut" })).toBeInTheDocument()
+  })
+
+  it("toggles a provider from the default handler", async () => {
+    render(
+      <SettingsPage
+        globalShortcut={null}
+        onGlobalShortcutChange={vi.fn()}
+        pluginsMeta={[
+          {
+            id: "codex",
+            name: "Codex",
+            iconUrl: "",
+            lines: [],
+            primaryCandidates: [],
+          },
+        ]}
+        pluginSettings={{ order: ["codex"], disabled: [] }}
+      />
+    )
+    await userEvent.click(screen.getByRole("switch", { name: /Codex/ }))
   })
 })
