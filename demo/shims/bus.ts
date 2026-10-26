@@ -1,6 +1,7 @@
 import kiroSvg from "../../plugins/kiro/icon.svg?raw"
 import kimiSvg from "../../plugins/kimi/icon.svg?raw"
 import devinSvg from "../../plugins/devin/icon.svg?raw"
+import grokBotSvg from "../../plugins/grok-bot/icon.svg?raw"
 import codexSvg from "../../plugins/codex/icon.svg?raw"
 import cursorSvg from "../../plugins/cursor/icon.svg?raw"
 import claudeSvg from "../../plugins/claude/icon.svg?raw"
@@ -19,9 +20,22 @@ const icons = {
   kiro: svgUrl(kiroSvg),
   kimi: svgUrl(kimiSvg),
   devin: svgUrl(devinSvg),
+  "grok-bot": svgUrl(grokBotSvg),
   codex: svgUrl(codexSvg),
   cursor: svgUrl(cursorSvg),
   claude: svgUrl(claudeSvg),
+}
+
+const demoParams =
+  typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams()
+
+function nextThursday(): string {
+  const d = new Date()
+  const day = d.getDay()
+  const daysUntil = (4 - day + 7) % 7 || 7
+  d.setDate(d.getDate() + daysUntil)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
 }
 
 function progress(label: string, used: number, resetsAt: string, periodDurationMs: number) {
@@ -64,6 +78,50 @@ function codexOutput(reset: boolean) {
   }
 }
 
+function devinOutput() {
+  if (demoParams.get("error") === "devin") {
+    return {
+      providerId: "devin",
+      displayName: "Devin",
+      iconUrl: icons.devin,
+      lines: [
+        { type: "badge" as const, label: "Error", text: "Sign in to Devin", color: "#ef4444" },
+      ],
+    }
+  }
+  return {
+    providerId: "devin",
+    displayName: "Devin",
+    plan: "Max",
+    iconUrl: icons.devin,
+    lines: [
+      count("ACU", 187, 500),
+      { type: "text" as const, label: "Extra usage balance", value: "$18.29" },
+    ],
+  }
+}
+
+function grokBotOutput() {
+  const lines: Record<string, unknown>[] = [
+    progress("Weekly Usage", 58, nextThursday(), 7 * 24 * 60 * 60 * 1000),
+  ]
+  if (demoParams.get("stale") === "grok-bot" || demoParams.get("stale") === "1") {
+    lines.push({
+      type: "badge",
+      label: "Status",
+      text: "Open Grok Bot to refresh",
+      color: "#f59e0b",
+    })
+  }
+  return {
+    providerId: "grok-bot",
+    displayName: "Grok Bot",
+    plan: "SuperGrok",
+    iconUrl: icons["grok-bot"],
+    lines,
+  }
+}
+
 const outputs = [
   {
     providerId: "kiro",
@@ -86,16 +144,8 @@ const outputs = [
       progress("Monthly", 61, later, 30 * 24 * 60 * 60 * 1000),
     ],
   },
-  {
-    providerId: "devin",
-    displayName: "Devin",
-    plan: "Max",
-    iconUrl: icons.devin,
-    lines: [
-      progress("Weekly quota", 35, later, 7 * 24 * 60 * 60 * 1000),
-      { type: "text" as const, label: "Extra usage balance", value: "$18.29" },
-    ],
-  },
+  devinOutput(),
+  grokBotOutput(),
   codexOutput(false),
   {
     providerId: "cursor",
@@ -130,7 +180,8 @@ const metas = [
   { id: "claude", name: "Claude", brandColor: "#D97757", lines: [{ type: "progress", label: "Session", scope: "overview" }], primaryCandidates: ["Session"] },
   { id: "kiro", name: "Kiro", brandColor: "#C09CFF", lines: [{ type: "progress", label: "Credits", scope: "overview" }, { type: "progress", label: "Bonus Credits", scope: "overview" }], primaryCandidates: ["Credits"] },
   { id: "kimi", name: "Kimi", brandColor: "#000000", lines: [{ type: "progress", label: "Session", scope: "overview" }, { type: "progress", label: "Monthly", scope: "overview" }], primaryCandidates: ["Session"] },
-  { id: "devin", name: "Devin", brandColor: "#000000", lines: [{ type: "progress", label: "Weekly quota", scope: "overview" }], primaryCandidates: ["Weekly quota"], weeklyCandidate: "Weekly quota" },
+  { id: "devin", name: "Devin", brandColor: "#000000", lines: [{ type: "progress", label: "ACU", scope: "overview" }], primaryCandidates: ["ACU"] },
+  { id: "grok-bot", name: "Grok Bot", brandColor: "#000000", lines: [{ type: "progress", label: "Weekly Usage", scope: "overview" }], primaryCandidates: ["Weekly Usage"], weeklyCandidate: "Weekly Usage" },
 ].map((meta) => ({ ...meta, iconUrl: icons[meta.id as keyof typeof icons] ?? icons.codex, links: [] }))
 
 export async function invoke(command: string, args?: Record<string, unknown>) {

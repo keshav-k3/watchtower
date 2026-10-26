@@ -50,6 +50,11 @@ WATCHTOWER_DEMO=1 bun x vite --host 127.0.0.1 --port 4173
 
 Open http://127.0.0.1:4173. The page is 400px wide. A sample Codex reset appears a few seconds after load, and Ports can stop the demo server the page starts.
 
+Query params toggle extra demo states:
+
+- `?stale=grok-bot` (or `?stale=1`) shows Grok Bot with its "Open Grok Bot to refresh" stale badge.
+- `?error=devin` shows Devin in its signed-out error state ("Sign in to Devin").
+
 ## Log level
 
 The tray menu no longer has a Debug Level item. The saved level still applies on launch. To change it, quit Watchtower, edit `logLevel` in:
