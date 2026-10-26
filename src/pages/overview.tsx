@@ -1,5 +1,6 @@
 import { memo } from "react"
 import { ProviderCard } from "@/components/provider-card"
+import { CodexScopedProviderCard } from "@/components/codex-account-scope"
 import { Button } from "@/components/ui/button"
 import type { PluginDisplayState } from "@/lib/plugin-types"
 import type { DisplayMode, ResetTimerDisplayMode, TimeFormatMode } from "@/lib/settings"
@@ -19,27 +20,29 @@ const ProviderRow = memo(function ProviderRow({
   onResetTimerDisplayModeToggle?: () => void
   onRetryPlugin?: (pluginId: string) => void
 }) {
-  return (
-    <ProviderCard
-      id={plugin.meta.id}
-      name={plugin.meta.name}
-      iconUrl={plugin.meta.iconUrl}
-      brandColor={plugin.meta.brandColor}
-      plan={plugin.data?.plan}
-      loading={plugin.loading}
-      error={plugin.error}
-      lines={plugin.data?.lines ?? []}
-      skeletonLines={plugin.meta.lines}
-      lastManualRefreshAt={plugin.lastManualRefreshAt}
-      lastUpdatedAt={plugin.lastUpdatedAt}
-      onRetry={onRetryPlugin ? () => onRetryPlugin(plugin.meta.id) : undefined}
-      scopeFilter="overview"
-      displayMode={displayMode}
-      resetTimerDisplayMode={resetTimerDisplayMode}
-      timeFormatMode={timeFormatMode}
-      onResetTimerDisplayModeToggle={onResetTimerDisplayModeToggle}
-    />
-  )
+  const cardProps = {
+    id: plugin.meta.id,
+    name: plugin.meta.name,
+    iconUrl: plugin.meta.iconUrl,
+    brandColor: plugin.meta.brandColor,
+    plan: plugin.data?.plan,
+    loading: plugin.loading,
+    error: plugin.error,
+    skeletonLines: plugin.meta.lines,
+    lastManualRefreshAt: plugin.lastManualRefreshAt,
+    lastUpdatedAt: plugin.lastUpdatedAt,
+    onRetry: onRetryPlugin ? () => onRetryPlugin(plugin.meta.id) : undefined,
+    scopeFilter: "overview" as const,
+    displayMode,
+    resetTimerDisplayMode,
+    timeFormatMode,
+    onResetTimerDisplayModeToggle,
+  }
+  const lines = plugin.data?.lines ?? []
+  if (plugin.meta.id === "codex") {
+    return <CodexScopedProviderCard {...cardProps} lines={lines} />
+  }
+  return <ProviderCard {...cardProps} lines={lines} />
 })
 
 interface OverviewPageProps {

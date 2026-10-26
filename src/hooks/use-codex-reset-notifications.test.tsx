@@ -173,4 +173,19 @@ describe("useCodexResetNotifications", () => {
     })
     expect(saveSnapshotMock).not.toHaveBeenCalled()
   })
+
+  it("auto-dismisses the banner after eight seconds", async () => {
+    const { rerender } = render(<Harness lines={[high]} />)
+    await waitFor(() => expect(saveSnapshotMock).toHaveBeenCalled())
+    vi.useFakeTimers()
+    act(() => {
+      rerender(<Harness lines={[reset]} />)
+    })
+    expect(screen.getByRole("status")).toBeInTheDocument()
+    act(() => {
+      vi.advanceTimersByTime(8000)
+    })
+    expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    vi.useRealTimers()
+  })
 })

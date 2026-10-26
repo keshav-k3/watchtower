@@ -178,9 +178,7 @@
   }
 
   function toPercentUsage(quota) {
-    if (!quota || quota.limit <= 0) return null
     const usedPercent = (quota.used / quota.limit) * 100
-    if (!Number.isFinite(usedPercent)) return null
     return {
       used: Math.round(Math.max(0, usedPercent) * 10) / 10,
       limit: 100,
@@ -321,40 +319,36 @@
 
     if (sessionCandidate) {
       const sessionPercent = toPercentUsage(sessionCandidate.quota)
-      if (sessionPercent) {
-        lines.push(
-          ctx.line.progress({
-            label: "Session",
-            used: sessionPercent.used,
-            limit: sessionPercent.limit,
-            format: { kind: "percent" },
-            resetsAt: sessionPercent.resetsAt || undefined,
-            periodDurationMs:
-              typeof sessionCandidate.periodMs === "number"
-                ? sessionCandidate.periodMs
-                : undefined,
-          })
-        )
-      }
+      lines.push(
+        ctx.line.progress({
+          label: "Session",
+          used: sessionPercent.used,
+          limit: sessionPercent.limit,
+          format: { kind: "percent" },
+          resetsAt: sessionPercent.resetsAt || undefined,
+          periodDurationMs:
+            typeof sessionCandidate.periodMs === "number"
+              ? sessionCandidate.periodMs
+              : undefined,
+        })
+      )
     }
 
     if (longerCandidate && !sameQuota(longerCandidate, sessionCandidate)) {
       const longerPercent = toPercentUsage(longerCandidate.quota)
-      if (longerPercent) {
-        lines.push(
-          ctx.line.progress({
-            label: longerWindowLabel(longerCandidate),
-            used: longerPercent.used,
-            limit: longerPercent.limit,
-            format: { kind: "percent" },
-            resetsAt: longerPercent.resetsAt || undefined,
-            periodDurationMs:
-              typeof longerCandidate.periodMs === "number"
-                ? longerCandidate.periodMs
-                : undefined,
-          })
-        )
-      }
+      lines.push(
+        ctx.line.progress({
+          label: longerWindowLabel(longerCandidate),
+          used: longerPercent.used,
+          limit: longerPercent.limit,
+          format: { kind: "percent" },
+          resetsAt: longerPercent.resetsAt || undefined,
+          periodDurationMs:
+            typeof longerCandidate.periodMs === "number"
+              ? longerCandidate.periodMs
+              : undefined,
+        })
+      )
     }
 
     if (lines.length === 0) {

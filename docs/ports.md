@@ -12,7 +12,7 @@ Each row shows:
 
 If the working directory cannot be read, the row says so. Nothing is invented.
 
-System and root processes are hidden until **Show System Processes** is turned on. Watchtower never offers to stop itself.
+System and root processes are hidden until **Show System** is turned on. Watchtower never offers to stop itself.
 
 **Stop** asks for confirmation, then sends the process a normal shutdown signal. If it is still listening on the next refresh, **Force Stop** is offered and asks again before ending it immediately.
 

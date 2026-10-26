@@ -55,14 +55,17 @@ describe("PortsPage", () => {
   it("lists user ports, reveals system ports, and stops a process", async () => {
     render(<PortsPage />)
     expect(await screen.findByText("3000")).toBeInTheDocument()
-    expect(screen.getByText("/Users/keshav/demo")).toBeInTheDocument()
-    expect(screen.getByText("This is Watchtower.")).toBeInTheDocument()
+    expect(screen.getByText("demo · /Users/keshav/demo")).toBeInTheDocument()
+    expect(screen.getByText("Watchtower")).toBeInTheDocument()
     expect(screen.queryByText("22")).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("button", { name: "Show System Processes" }))
+    const systemSwitch = screen.getByRole("switch", { name: "Show System" })
+    await userEvent.click(systemSwitch)
     expect(screen.getByText("22")).toBeInTheDocument()
+    expect(screen.getByText("System")).toBeInTheDocument()
     expect(screen.getByText("Working directory unavailable")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Hide System Processes" }))
+    expect(screen.getByRole("switch", { name: "Show System" })).toHaveAttribute("aria-checked", "true")
+    await userEvent.click(screen.getByRole("switch", { name: "Show System" }))
     expect(screen.queryByText("22")).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Stop" }))
@@ -137,5 +140,29 @@ describe("PortsPage", () => {
     await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Stop" }))
     expect(await screen.findByText("busy")).toBeInTheDocument()
     consoleSpy.mockRestore()
+  })
+
+  it("disables the dialog while a stop is in flight", async () => {
+    let resolveStop: () => void = () => {}
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "stop_listening_process") {
+        return new Promise<void>((resolve) => {
+          resolveStop = resolve
+        })
+      }
+      return { supported: true, note: null, ports: [nodePort] }
+    })
+    render(<PortsPage />)
+    await screen.findByText("3000")
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
+    const dialog = screen.getByRole("dialog", { name: "Stop Process" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Stop" }))
+    expect(await within(dialog).findByRole("button", { name: "Stopping…" })).toBeDisabled()
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled()
+    await act(async () => {
+      resolveStop()
+      await Promise.resolve()
+    })
+    expect(await screen.findByRole("button", { name: "Force Stop" })).toBeInTheDocument()
   })
 })

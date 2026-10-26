@@ -28,7 +28,6 @@
   }
 
   function clampPercent(value) {
-    if (!Number.isFinite(value)) return 0
     if (value < 0) return 0
     if (value > 100) return 100
     return value
@@ -222,7 +221,6 @@
   function formatDollarsFromMicros(value) {
     var micros = readFiniteNumber(value)
     if (micros === null) return null
-    if (!Number.isFinite(micros)) return null
     if (micros < 0) micros = 0
     return "$" + (micros / 1000000).toFixed(2)
   }

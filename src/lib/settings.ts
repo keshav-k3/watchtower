@@ -384,6 +384,7 @@ export type CodexAccountSettings = {
 };
 
 const CODEX_ACCOUNTS_KEY = "codexAccounts";
+const CODEX_ACCOUNT_VIEW_KEY = "codexAccountView";
 const CODEX_RESET_NOTIFICATIONS_KEY = "codexResetNotifications";
 const CODEX_RESET_SNAPSHOT_KEY = "codexResetSnapshot";
 
@@ -417,6 +418,19 @@ export async function loadCodexAccountSettings(): Promise<CodexAccountSettings> 
 
 export async function saveCodexAccountSettings(settings: CodexAccountSettings): Promise<void> {
   await store.set(CODEX_ACCOUNTS_KEY, normalizeCodexAccountSettings(settings));
+  await store.save();
+}
+
+export const DEFAULT_CODEX_ACCOUNT_VIEW = "both";
+
+export async function loadCodexAccountView(): Promise<string> {
+  const stored = await store.get<unknown>(CODEX_ACCOUNT_VIEW_KEY);
+  if (typeof stored === "string" && stored.trim()) return stored.trim();
+  return DEFAULT_CODEX_ACCOUNT_VIEW;
+}
+
+export async function saveCodexAccountView(view: string): Promise<void> {
+  await store.set(CODEX_ACCOUNT_VIEW_KEY, view);
   await store.save();
 }
 

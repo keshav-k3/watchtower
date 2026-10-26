@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
-import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 
 export type ListeningPort = {
   port: number
@@ -85,84 +85,110 @@ export function PortsPage() {
   }
 
   return (
-    <div className="space-y-3 pb-5">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Ports</h2>
-        <button
-          type="button"
-          aria-pressed={showSystem}
-          className="text-xs text-muted-foreground"
-          onClick={() => setShowSystem((current) => !current)}
-        >
-          {showSystem ? "Hide System Processes" : "Show System Processes"}
-        </button>
+    <div className="pb-5">
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <h2 className="text-[13px] font-semibold text-foreground">Ports</h2>
+        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          Show System
+          <Switch
+            aria-label="Show System"
+            checked={showSystem}
+            onCheckedChange={setShowSystem}
+          />
+        </label>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="px-3 pb-2 text-[11px] leading-4 text-muted-foreground">
         TCP ports listening on this Mac. Stopping a process asks first, then gives it a chance to exit.
       </p>
-      {note && <p className="text-sm text-muted-foreground">{note}</p>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {note && <p className="px-3 pb-2 text-[12px] text-muted-foreground">{note}</p>}
+      {error && <p className="px-3 py-6 text-center text-[12px] text-destructive">{error}</p>}
       {visible.length === 0 && !error && (
-        <p className="py-8 text-center text-sm text-muted-foreground">No Listening Ports</p>
+        <div className="flex flex-col items-center justify-center gap-1 px-6 py-12 text-center">
+          <p className="text-[13px] font-medium text-foreground">No Listening Ports</p>
+          <p className="text-[12px] text-muted-foreground">Nothing is accepting connections right now.</p>
+        </div>
       )}
-      <ul className="space-y-2">
+      <ul className="divide-y divide-line border-t border-line">
         {visible.map((port) => {
           const stillRunning = termSent[port.pid] === true
           return (
-            <li key={`${port.pid}:${port.port}`} className="rounded-[12px] border border-line px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{port.port}</span>
-                <span className="truncate text-sm">{port.processName}</span>
+            <li key={`${port.pid}:${port.port}`} className="flex items-center gap-2 px-3 py-2">
+              <span className="label-mono w-12 shrink-0 text-[13px] tabular-nums text-foreground">
+                {port.port}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="break-words text-[13px] font-medium text-foreground">
+                    {port.processName}
+                  </span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    PID {port.pid}
+                  </span>
+                </div>
+                <p
+                  className="truncate text-[11px] leading-4 text-muted-foreground"
+                  title={port.cwd ?? undefined}
+                >
+                  {port.project ? `${port.project} · ` : ""}
+                  {port.cwd ?? "Working directory unavailable"}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                PID {port.pid}
-                {port.project ? ` · ${port.project}` : ""}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {port.cwd ?? "Working directory unavailable"}
-              </p>
-              {port.selfProcess ? (
-                <p className="mt-1 text-xs text-muted-foreground">This is Watchtower.</p>
+              {port.system ? (
+                <span className="label-mono shrink-0 text-[10px] uppercase text-muted-foreground">
+                  System
+                </span>
+              ) : port.selfProcess ? (
+                <span className="label-mono shrink-0 text-[10px] uppercase text-muted-foreground">
+                  Watchtower
+                </span>
               ) : stillRunning ? (
-                <Button
+                <button
                   type="button"
-                  size="xs"
-                  variant="destructive"
-                  className="mt-2"
+                  className="shrink-0 text-[12px] font-medium text-destructive underline-offset-2 hover:underline"
                   onClick={() => setConfirm({ port, force: true })}
                 >
                   Force Stop
-                </Button>
+                </button>
               ) : (
-                <Button
+                <button
                   type="button"
-                  size="xs"
-                  variant="outline"
-                  className="mt-2"
+                  className="shrink-0 text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   onClick={() => setConfirm({ port, force: false })}
                 >
                   Stop
-                </Button>
+                </button>
               )}
             </li>
           )
         })}
       </ul>
       {confirm && (
-        <div className="rounded-[12px] border border-line bg-surface p-3" role="dialog" aria-label="Stop Process">
-          <h3 className="text-sm font-semibold">{confirm.force ? "Force Stop" : "Stop Process"}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+        <div className="border-t border-line bg-surface px-3 py-3" role="dialog" aria-label="Stop Process">
+          <h3 className="text-[13px] font-semibold text-foreground">
+            {confirm.force ? "Force Stop" : "Stop"} {confirm.port.processName} on :{confirm.port.port}?
+          </h3>
+          <p className="mt-1 text-[12px] leading-4 text-muted-foreground">
             {confirm.force
-              ? `${confirm.port.processName} on port ${confirm.port.port} did not exit. Force stop ends it immediately.`
-              : `Stop ${confirm.port.processName} on port ${confirm.port.port}? It will get a chance to shut down.`}
+              ? "It did not exit after being asked. Force Stop sends SIGKILL and ends it immediately, without cleanup."
+              : "This sends SIGTERM, which asks the process to shut down and gives it a moment to clean up."}
           </p>
-          <div className="mt-2 flex gap-2">
-            <Button type="button" size="xs" variant="outline" onClick={() => setConfirm(null)} disabled={stopping}>
+          <div className="mt-2 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              onClick={() => setConfirm(null)}
+              disabled={stopping}
+            >
               Cancel
-            </Button>
-            <Button type="button" size="xs" variant="destructive" onClick={() => void stop()} disabled={stopping}>
-              {confirm.force ? "Force Stop" : "Stop"}
-            </Button>
+            </button>
+            <button
+              type="button"
+              className="text-[12px] font-medium text-destructive underline-offset-2 hover:underline"
+              onClick={() => void stop()}
+              disabled={stopping}
+            >
+              {stopping ? "Stopping…" : confirm.force ? "Force Stop" : "Stop"}
+            </button>
           </div>
         </div>
       )}

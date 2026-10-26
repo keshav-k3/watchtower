@@ -37,10 +37,12 @@ import {
   saveThemeMode,
   saveTimeFormatMode,
   loadCodexAccountSettings,
+  loadCodexAccountView,
   loadCodexResetNotifications,
   loadCodexResetSnapshot,
   normalizeCodexAccountSettings,
   saveCodexAccountSettings,
+  saveCodexAccountView,
   saveCodexResetNotifications,
   saveCodexResetSnapshot,
 } from "@/lib/settings"
@@ -496,5 +498,15 @@ describe("settings", () => {
     await expect(loadCodexResetSnapshot()).resolves.toEqual([
       { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: null },
     ])
+  })
+
+  it("saves and loads the Codex account view", async () => {
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    storeState.set("codexAccountView", 42)
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    storeState.set("codexAccountView", "   ")
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    await saveCodexAccountView("Work")
+    await expect(loadCodexAccountView()).resolves.toBe("Work")
   })
 })
