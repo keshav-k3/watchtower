@@ -510,4 +510,166 @@ describe("devin plugin", () => {
     boom.line.progress = () => { throw new Error("boom") }
     expect(() => plugin.probe(boom)).toThrow("boom")
   })
+
+  it("rejects empty, blank, and comment-only TOML values", async () => {
+    const plugin = await loadPlugin()
+
+    const empty = makeCtx()
+    empty.host.fs.writeText(CREDENTIALS_PATH, "windsurf_api_key =")
+    expect(() => plugin.probe(empty)).toThrow("devin auth login")
+    expect(empty.host.log.warn).toHaveBeenCalledWith("Devin credentials missing windsurf_api_key")
+
+    const emptyQuoted = makeCtx()
+    emptyQuoted.host.fs.writeText(CREDENTIALS_PATH, 'windsurf_api_key = ""')
+    expect(() => plugin.probe(emptyQuoted)).toThrow("devin auth login")
+    expect(emptyQuoted.host.log.warn).toHaveBeenCalledWith("Devin credentials missing windsurf_api_key")
+
+    const commentOnly = makeCtx()
+    commentOnly.host.fs.writeText(CREDENTIALS_PATH, "windsurf_api_key = # just a note")
+    expect(() => plugin.probe(commentOnly)).toThrow("devin auth login")
+    expect(commentOnly.host.log.warn).toHaveBeenCalledWith("Devin credentials missing windsurf_api_key")
+
+    const ghost = makeCtx()
+    ghost.host.fs.writeText(CREDENTIALS_PATH + "/nested", "x")
+    expect(() => plugin.probe(ghost)).toThrow("devin auth login")
+    expect(ghost.host.log.warn).toHaveBeenCalledWith("Devin credentials missing windsurf_api_key")
+  })
+
+  it("does not end quoted TOML values at escaped quotes", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, 'windsurf_api_key = "devin\\"key"')
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify(makeQuotaResponse()),
+    })
+
+    const plugin = await loadPlugin()
+    plugin.probe(ctx)
+
+    const sentBody = JSON.parse(String(ctx.host.http.request.mock.calls[0][0].bodyText))
+    expect(sentBody.metadata.apiKey).toBe('devin\\"key')
+  })
+
+  it("uses the default API server when the credentials file has no api_server_url", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, 'windsurf_api_key = "devin-session-token$cli"')
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify(makeQuotaResponse()),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Max")
+    expect(ctx.host.http.request.mock.calls[0][0].url).toBe(
+      `${DEFAULT_API_SERVER_URL}/exa.seat_management_pb.SeatManagementService/GetUserStatus`
+    )
+  })
+
+  it("throws quota unavailable when the user status has no plan status block", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, makeCredentialsToml())
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({ userStatus: { teamsTier: "TEAMS_TIER_FREE" } }),
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Devin quota data unavailable. Try again later.")
+    expect(ctx.host.log.info).toHaveBeenCalledWith(
+      expect.stringContaining("planName=missing")
+    )
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("quota contract unavailable for credentials.toml")
+    )
+  })
+
+  it("skips app installs whose token the cloud already rejected via the CLI credentials", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, makeCredentialsToml({
+      apiKey: "devin-session-token$same",
+      apiServerUrl: DEFAULT_API_SERVER_URL,
+    }))
+    mockAppAuth(ctx, "devin-session-token$same")
+    ctx.host.http.request.mockReturnValue({ status: 500, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Devin quota data unavailable. Try again later.")
+    expect(ctx.host.http.request).toHaveBeenCalledTimes(1)
+  })
+
+  it("treats app auth entries without an apiKey as missing", async () => {
+    const ctx = makeCtx()
+    ctx.host.sqlite.query.mockReturnValue(
+      JSON.stringify([{ value: JSON.stringify({ refreshToken: "no-key-here" }) }])
+    )
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Run devin auth login or sign in to Devin and try again.")
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("keeps scanning app installs when an attempt fails without an auth error", async () => {
+    const ctx = makeCtx()
+    ctx.host.sqlite.query.mockImplementation((db) =>
+      db === STATE_DB ? makeAuthStatus("devin-session-token$stable") : "[]"
+    )
+    ctx.host.http.request.mockReturnValue({ status: 500, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Devin quota data unavailable. Try again later.")
+    expect(ctx.host.http.request).toHaveBeenCalledTimes(1)
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("cloud request returned status 500 for Devin app")
+    )
+  })
+
+  it("clamps over-100 usage and ignores blank or non-finite quota numbers", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, makeCredentialsToml())
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText:
+        '{"userStatus":{"planStatus":{"planInfo":{"planName":"Max"},' +
+        '"dailyQuotaRemainingPercent":-5,"weeklyQuotaRemainingPercent":1e999,' +
+        '"overageBalanceMicros":" "}}}',
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines).toEqual([
+      {
+        type: "progress",
+        label: "Daily quota",
+        used: 100,
+        limit: 100,
+        format: { kind: "percent" },
+        periodDurationMs: 24 * 60 * 60 * 1000,
+      },
+    ])
+  })
+
+  it("omits the weekly line when the hidden daily fallback value is missing too", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(CREDENTIALS_PATH, makeCredentialsToml())
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify(
+        makeQuotaResponse({
+          planInfo: { hideDailyQuota: true },
+          dailyQuotaRemainingPercent: undefined,
+          weeklyQuotaRemainingPercent: undefined,
+        })
+      ),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines).toEqual([
+      { type: "text", label: "Extra usage balance", value: "$964.22" },
+    ])
+  })
 })

@@ -713,4 +713,138 @@ describe("kimi plugin", () => {
       expect(result.lines.find((line) => line.label === item.label)).toBeTruthy()
     }
   })
+
+  it("refreshes when the credentials have no expires_at", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(
+      CRED_PATH,
+      JSON.stringify({ access_token: "old-token", refresh_token: "refresh-token" })
+    )
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("/api/oauth/token")) {
+        return { status: 200, bodyText: JSON.stringify({ access_token: "new-token", expires_in: 3600 }) }
+      }
+      expect(opts.headers.Authorization).toBe("Bearer new-token")
+      return {
+        status: 200,
+        bodyText: JSON.stringify({ usage: { limit: "100", remaining: "90", resetTime: "2099-02-11T00:00:00Z" } }),
+      }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Monthly")).toBeTruthy()
+  })
+
+  it("ignores limits with malformed windows", async () => {
+    const ctx = makeCtx()
+    const nowSec = Math.floor(Date.now() / 1000)
+    ctx.host.fs.writeText(
+      CRED_PATH,
+      JSON.stringify({ access_token: "token", expires_at: nowSec + 3600 })
+    )
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        usage: { limit: "100", remaining: "90", resetTime: "2099-02-11T00:00:00Z" },
+        limits: [
+          { window: "weekly", detail: { limit: "100", remaining: "50" } },
+          { window: {}, detail: { limit: "100", remaining: "60" } },
+          { window: { duration: 5 }, detail: { limit: "100", remaining: "70" } },
+          {
+            window: { duration: 300, timeUnit: "TIME_UNIT_MINUTE" },
+            detail: { limit: "100", remaining: "80", resetTime: "2099-02-07T00:00:00Z" },
+          },
+        ],
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const session = result.lines.find((line) => line.label === "Session")
+    expect(session).toBeTruthy()
+    expect(session.periodDurationMs).toBe(300 * 60 * 1000)
+    expect(result.lines.find((line) => line.label === "Monthly")).toBeTruthy()
+  })
+
+  it("skips limits that have neither used nor remaining values", async () => {
+    const ctx = makeCtx()
+    const nowSec = Math.floor(Date.now() / 1000)
+    ctx.host.fs.writeText(
+      CRED_PATH,
+      JSON.stringify({ access_token: "token", expires_at: nowSec + 3600 })
+    )
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        limits: [
+          { window: { duration: 5, timeUnit: "TIME_UNIT_MINUTE" }, detail: { limit: "100" } },
+          {
+            window: { duration: 300, timeUnit: "TIME_UNIT_MINUTE" },
+            detail: { limit: "100", remaining: "75", resetTime: "2099-02-07T00:00:00Z" },
+          },
+        ],
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const session = result.lines.find((line) => line.label === "Session")
+    expect(session).toBeTruthy()
+    expect(session.used).toBe(25)
+  })
+
+  it("picks a later candidate when it has the larger period", async () => {
+    const ctx = makeCtx()
+    const nowSec = Math.floor(Date.now() / 1000)
+    ctx.host.fs.writeText(
+      CRED_PATH,
+      JSON.stringify({ access_token: "token", expires_at: nowSec + 3600 })
+    )
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        limits: [
+          {
+            window: { duration: 5, timeUnit: "TIME_UNIT_MINUTE" },
+            detail: { limit: "100", remaining: "90", resetTime: "2099-02-07T00:00:00Z" },
+          },
+          {
+            window: { duration: 1, timeUnit: "TIME_UNIT_HOUR" },
+            detail: { limit: "100", remaining: "60", resetTime: "2099-02-07T01:00:00Z" },
+          },
+          {
+            window: { duration: 7, timeUnit: "TIME_UNIT_DAY" },
+            detail: { limit: "100", remaining: "40", resetTime: "2099-02-14T00:00:00Z" },
+          },
+        ],
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const weekly = result.lines.find((line) => line.label === "Weekly")
+    expect(weekly).toBeTruthy()
+    expect(weekly.periodDurationMs).toBe(7 * 24 * 60 * 60 * 1000)
+  })
+
+  it("rethrows the session error when refresh during retry is unauthorized", async () => {
+    const ctx = makeCtx()
+    const nowSec = Math.floor(Date.now() / 1000)
+    ctx.host.fs.writeText(
+      CRED_PATH,
+      JSON.stringify({ access_token: "token", refresh_token: "refresh-token", expires_at: nowSec + 3600 })
+    )
+    ctx.host.http.request.mockImplementation((opts) => {
+      const url = String(opts.url)
+      if (url.includes("/api/oauth/token")) {
+        return { status: 401, bodyText: JSON.stringify({ error: "unauthorized" }) }
+      }
+      return { status: 401, bodyText: "" }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Session expired")
+  })
 })

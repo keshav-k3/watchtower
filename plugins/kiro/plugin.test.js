@@ -331,4 +331,370 @@ describe("kiro plugin", () => {
     expect(() => plugin.probe(live)).toThrow("Kiro usage data unavailable")
     expect(live.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("Kiro token refresh failed"))
   })
+
+  it("throws the login hint when the token file has no usable tokens", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(TOKEN_PATH, JSON.stringify({ provider: "Google" }))
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Open Kiro and sign in, then try again.")
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("keeps tokens from unrecognized providers as-is and rethrows the session error when nothing is cached", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({
+      provider: "Other",
+      authMethod: undefined,
+      accessToken: "",
+      expiresAt: "2026-02-01T00:00:00.000Z",
+    }))
+    ctx.host.http.request.mockReturnValue({ status: 401, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Kiro session expired. Open Kiro and sign in again.")
+
+    const savedToken = JSON.parse(ctx.host.fs.readText(TOKEN_PATH))
+    expect(savedToken.provider).toBe("Other")
+    expect(savedToken.authMethod).toBeUndefined()
+  })
+
+  it("throws the session hint when the refresh fails and no access token remains", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ accessToken: "", expiresAt: "2026-02-01T00:00:00.000Z" }))
+    ctx.host.http.request.mockReturnValue({ status: 500, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Kiro session expired. Open Kiro and sign in again.")
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("Kiro token refresh failed"))
+  })
+
+  it("keeps existing token fields when the refresh response omits them", async () => {
+    const ctx = makeCtx()
+    ctx.app = {}
+    writeToken(ctx, makeToken({ accessToken: "", expiresAt: "2026-02-01T00:00:00.000Z" }))
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/refreshToken")) {
+        expect(opts.headers["User-Agent"]).toBe("Watchtower/0.0.0")
+        return { status: 200, headers: {}, bodyText: JSON.stringify({ accessToken: "fresh-access-token" }) }
+      }
+      expect(opts.headers.Authorization).toBe("Bearer fresh-access-token")
+      return { status: 200, headers: {}, bodyText: JSON.stringify(makeUsageOutput()) }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    const savedToken = JSON.parse(ctx.host.fs.readText(TOKEN_PATH))
+    expect(savedToken.accessToken).toBe("fresh-access-token")
+    expect(savedToken.refreshToken).toBe("kiro-refresh-token")
+    expect(savedToken.profileArn).toBe(makeToken().profileArn)
+    expect(savedToken.expiresAt).toBe("2026-02-01T00:00:00.000Z")
+  })
+
+  it("still uses a refreshed token when persisting it fails", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ accessToken: "", expiresAt: "2026-02-01T00:00:00.000Z" }))
+    ctx.host.fs.writeText = () => { throw new Error("readonly") }
+
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/refreshToken")) {
+        return {
+          status: 200,
+          headers: {},
+          bodyText: JSON.stringify({ accessToken: "fresh-access-token", expiresIn: 3600 }),
+        }
+      }
+      return { status: 200, headers: {}, bodyText: JSON.stringify(makeUsageOutput()) }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("failed to persist refreshed Kiro auth"))
+  })
+
+  it("retries the live usage request once after a 401 by refreshing the token", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx)
+
+    let usageCalls = 0
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/refreshToken")) {
+        return {
+          status: 200,
+          headers: {},
+          bodyText: JSON.stringify({ accessToken: "retried-access-token", expiresIn: 3600 }),
+        }
+      }
+      usageCalls += 1
+      if (usageCalls === 1) return { status: 401, headers: {}, bodyText: "{}" }
+      expect(opts.headers.Authorization).toBe("Bearer retried-access-token")
+      return { status: 200, headers: {}, bodyText: JSON.stringify(makeUsageOutput()) }
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(usageCalls).toBe(2)
+    expect(result.plan).toBe("Kiro Free")
+  })
+
+  it("throws the session hint when the live usage request stays unauthorized", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx)
+    ctx.host.http.request.mockImplementation((opts) => {
+      if (String(opts.url).includes("/refreshToken")) {
+        return { status: 500, headers: {}, bodyText: "{}" }
+      }
+      return { status: 401, headers: {}, bodyText: "{}" }
+    })
+
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Kiro session expired. Open Kiro and sign in again.")
+  })
+
+  it("skips the live fetch when no profile ARN is available", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    ctx.host.fs.writeText(PROFILE_PATH, JSON.stringify({ name: "Google" }))
+    mockStateDb(ctx, makeStatePayload())
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines.find((line) => line.label === "Credits")).toBeTruthy()
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("falls back to the default region when the profile ARN has no region segment", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "bare-arn" }))
+
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: {},
+      bodyText: JSON.stringify(makeUsageOutput()),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    expect(String(ctx.host.http.request.mock.calls[0][0].url)).toContain(
+      "https://q.us-east-1.amazonaws.com/getUsageLimits?"
+    )
+  })
+
+  it("warns and falls back to the usage log when the sqlite state read fails", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx)
+    ctx.host.sqlite.query.mockImplementation(() => { throw new Error("db down") })
+    writeUsageLog(ctx)
+    ctx.host.http.request.mockReturnValue({ status: 503, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    expect(result.lines.find((line) => line.label === "Credits")).toBeTruthy()
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("Kiro sqlite read failed"))
+  })
+
+  it("drops invalid numbers, pools, and breakdowns from cached state", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    const stateValue =
+      '{"kiro.resourceNotifications.usageState":{"usageBreakdowns":[' +
+      '{"type":"CREDIT","currentUsage":2,"usageLimit":50,' +
+      '"freeTrialUsage":{"currentUsage":1,"usageLimit":0},' +
+      '"bonuses":[' +
+      '{"status":"ACTIVE","currentUsage":1,"usageLimit":0},' +
+      '{"status":"ACTIVE","currentUsage":2,"usageLimit":5,"displayName":"Promo","expiresAt":"2026-06-01T00:00:00.000Z"}' +
+      "]},\n" +
+      '{"type":"SPEC","currentUsage":1e999,"usageLimit":5},' +
+      '{"type":"PLAN","currentUsage":"Infinity","usageLimit":5},' +
+      '{"type":"EXTRA","currentUsage":5,"usageLimit":0}' +
+      "]}}"
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([{ value: stateValue }]))
+    ctx.host.http.request.mockReturnValue({ status: 503, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines.find((line) => line.label === "Credits")).toMatchObject({ used: 2, limit: 50 })
+    expect(result.lines.find((line) => line.label === "Bonus Credits")).toMatchObject({ used: 2, limit: 5 })
+  })
+
+  it("treats cached state with only invalid breakdowns as missing", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    const stateValue =
+      '{"kiro.resourceNotifications.usageState":{"usageBreakdowns":[' +
+      '{"type":"CREDIT","currentUsage":1,"usageLimit":0}' +
+      "]}}"
+    ctx.host.sqlite.query.mockReturnValue(JSON.stringify([{ value: stateValue }]))
+    writeUsageLog(ctx)
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    expect(result.lines.find((line) => line.label === "Credits")).toMatchObject({ used: 0, limit: 50 })
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("skips malformed usage log lines and accepts an entry without a timestamp", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    const output = {
+      usageBreakdownList: [
+        {
+          resourceType: "CREDIT",
+          currentUsage: 4,
+          usageLimit: 50,
+        },
+      ],
+    }
+    const text =
+      JSON.stringify({ commandName: "GetUsageLimitsCommand", output }) + "\n" +
+      '2026-02-01 23:56:00.000 [info] "commandName":"GetUsageLimitsCommand" {bad json\n' +
+      '2026-02-01 23:57:00.000 [info] "commandName":"GetUsageLimitsCommand" trailing\n'
+    ctx.host.fs.writeText(LOG_PATH, text)
+    ctx.host.http.request.mockReturnValue({ status: 503, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBeUndefined()
+    expect(result.lines.find((line) => line.label === "Overages")).toBeUndefined()
+    expect(result.lines.find((line) => line.label === "Credits")).toMatchObject({ used: 4, limit: 50 })
+  })
+
+  it("ignores usage logs with non-object output, missing log files, or no marker", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    mockStateDb(ctx, makeStatePayload())
+    const logsRoot = "~/Library/Application Support/Kiro/logs"
+    ctx.host.fs.writeText(
+      logsRoot + "/20260407T000000/window1/exthost/kiro.kiroAgent/q-client.log",
+      '2026-02-01 23:57:00.000 [info] "commandName":"GetUsageLimitsCommand" {"output":"text"}\n'
+    )
+    ctx.host.fs.writeText(logsRoot + "/20260407T000000/window2/other.txt", "x")
+    ctx.host.fs.writeText(
+      logsRoot + "/20260408T000000/window1/exthost/kiro.kiroAgent/q-client.log",
+      "2026-02-01 23:57:00.000 [info] unrelated line\n"
+    )
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines.find((line) => line.label === "Credits")).toMatchObject({ used: 0, limit: 50 })
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("survives unreadable log directories and log files", async () => {
+    const plugin = await loadPlugin()
+    const logsRoot = "~/Library/Application Support/Kiro/logs"
+
+    const throwingDir = makeCtx()
+    writeToken(throwingDir, makeToken({ profileArn: "" }))
+    mockStateDb(throwingDir, makeStatePayload())
+    writeUsageLog(throwingDir)
+    const listDir = throwingDir.host.fs.listDir
+    throwingDir.host.fs.listDir = (path) => {
+      if (path === logsRoot + "/20260406T235910") throw new Error("locked")
+      return listDir(path)
+    }
+    expect(plugin.probe(throwingDir).lines.find((line) => line.label === "Credits")).toBeTruthy()
+
+    const throwingFile = makeCtx()
+    writeToken(throwingFile, makeToken({ profileArn: "" }))
+    mockStateDb(throwingFile, makeStatePayload())
+    writeUsageLog(throwingFile)
+    const readText = throwingFile.host.fs.readText
+    throwingFile.host.fs.readText = (path) => {
+      if (path === LOG_PATH) throw new Error("corrupt")
+      return readText(path)
+    }
+    expect(plugin.probe(throwingFile).lines.find((line) => line.label === "Credits")).toBeTruthy()
+    expect(throwingFile.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("failed to parse Kiro usage log"))
+
+    const ghostFile = makeCtx()
+    writeToken(ghostFile, makeToken({ profileArn: "" }))
+    mockStateDb(ghostFile, makeStatePayload())
+    ghostFile.host.fs.writeText(LOG_PATH + "/child", "x")
+    expect(plugin.probe(ghostFile).lines.find((line) => line.label === "Credits")).toBeTruthy()
+  })
+
+  it("uses the first breakdown when no CREDIT breakdown exists and omits empty bonus and reset fields", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    mockStateDb(ctx, makeStatePayload({
+      usageBreakdowns: [{ type: "SPEC", currentUsage: 3, usageLimit: 10 }],
+    }))
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    const credits = result.lines.find((line) => line.label === "Credits")
+    expect(credits).toMatchObject({ used: 3, limit: 10 })
+    expect(credits).not.toHaveProperty("resetsAt")
+    expect(result.lines.find((line) => line.label === "Bonus Credits")).toBeUndefined()
+    expect(result.lines.find((line) => line.label === "Overages")).toBeUndefined()
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("takes the plan from a usage log entry that has no breakdown list", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx)
+    mockStateDb(ctx, makeStatePayload())
+    writeUsageLog(ctx, makeUsageOutput({ usageBreakdownList: undefined }))
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.plan).toBe("Kiro Free")
+    expect(result.lines.find((line) => line.label === "Credits")).toBeTruthy()
+    expect(ctx.host.http.request).not.toHaveBeenCalled()
+  })
+
+  it("renders bonus credits without a reset date when the bonus has no expiry", async () => {
+    const ctx = makeCtx()
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    mockStateDb(ctx, makeStatePayload({
+      usageBreakdowns: [
+        {
+          type: "CREDIT",
+          currentUsage: 1,
+          usageLimit: 50,
+          resetDate: "2026-05-01T00:00:00.000Z",
+          bonuses: [{ status: "ACTIVE", currentUsage: 1, usageLimit: 4 }],
+        },
+      ],
+    }))
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    const bonus = result.lines.find((line) => line.label === "Bonus Credits")
+    expect(bonus).toMatchObject({ used: 1, limit: 4 })
+    expect(bonus).not.toHaveProperty("resetsAt")
+  })
+
+  it("falls back to the current time when nowIso is not parseable", async () => {
+    const ctx = makeCtx()
+    ctx.nowIso = "not-a-date"
+    writeToken(ctx, makeToken({ profileArn: "" }))
+    mockStateDb(ctx, makeStatePayload())
+    ctx.host.http.request.mockReturnValue({ status: 503, headers: {}, bodyText: "{}" })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+
+    expect(result.lines.find((line) => line.label === "Credits")).toMatchObject({ used: 0, limit: 50 })
+  })
 })

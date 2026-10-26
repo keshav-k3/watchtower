@@ -42,7 +42,6 @@
       : null
   }
   function sanitizeAuth(token) {
-    if (!token || typeof token !== "object") return null
     if (token.provider === "Google" || token.provider === "Github") return { ...token, authMethod: "social" }
     if (token.provider === "ExternalIdp") return { ...token, authMethod: "external_idp" }
     if (token.provider === "Enterprise" || token.provider === "BuilderId" || token.provider === "Internal") {
@@ -81,7 +80,7 @@
     return parsed && typeof parsed.arn === "string" && parsed.arn.trim() ? parsed.arn.trim() : null
   }
   function regionFromArn(profileArn) {
-    const parts = String(profileArn || "").split(":")
+    const parts = String(profileArn).split(":")
     return parts.length > 3 && parts[3] ? parts[3] : DEFAULT_REGION
   }
   function readStateValue(ctx, key) {
@@ -96,10 +95,8 @@
   }
   function normalizePool(ctx, raw, config) {
     if (!raw || typeof raw !== "object") return null
-    if (config.statusKey) {
-      const status = raw[config.statusKey]
-      if (status && !config.allowedStatuses.includes(status)) return null
-    }
+    const status = raw[config.statusKey]
+    if (status && !config.allowedStatuses.includes(status)) return null
     const currentUsage = first(raw[config.preciseCurrent], raw[config.current])
     const usageLimit = first(raw[config.preciseLimit], raw[config.limit])
     if (currentUsage === null || usageLimit === null || usageLimit <= 0) return null
@@ -229,7 +226,6 @@
     return headers
   }
   function refreshAccessToken(ctx, authState, nowMs) {
-    if (!authState.token || !authState.token.refreshToken) throw SESSION_HINT
     const { resp, json } = ctx.util.requestJson({
       method: "POST",
       url: REFRESH_URL,
@@ -323,14 +319,13 @@
   }
   function pickPrimaryBreakdown(usageBreakdowns) {
     for (let i = 0; i < usageBreakdowns.length; i += 1) if (usageBreakdowns[i].type === "CREDIT") return usageBreakdowns[i]
-    return usageBreakdowns.length ? usageBreakdowns[0] : null
+    return usageBreakdowns[0]
   }
   function pickBonusUsage(primary) {
-    return !primary ? null : primary.freeTrialUsage && primary.freeTrialUsage.usageLimit > 0 ? primary.freeTrialUsage : primary.bonuses && primary.bonuses.length ? primary.bonuses[0] : null
+    return primary.freeTrialUsage && primary.freeTrialUsage.usageLimit > 0 ? primary.freeTrialUsage : primary.bonuses && primary.bonuses.length ? primary.bonuses[0] : null
   }
   function buildOutput(ctx, snapshot, nowMs) {
     const primary = pickPrimaryBreakdown(snapshot.usageBreakdowns)
-    if (!primary) throw DATA_HINT
     const lines = [ctx.line.progress({ label: "Credits", used: primary.currentUsage, limit: primary.usageLimit, format: COUNT_FORMAT, resetsAt: primary.resetDate || undefined })]
     const bonusUsage = pickBonusUsage(primary)
     if (bonusUsage) {
