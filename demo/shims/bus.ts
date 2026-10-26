@@ -275,7 +275,9 @@ export function getCurrentWindow() {
   return { setSize: async () => {}, scaleFactor: async () => window.devicePixelRatio || 1 }
 }
 export async function currentMonitor() {
-  return { size: { width: 1440, height: 900 }, scaleFactor: window.devicePixelRatio || 1 }
+  // A 1440x900 point display, reported in physical pixels like Tauri does.
+  const scale = window.devicePixelRatio || 1
+  return { size: { width: 1440 * scale, height: 900 * scale }, scaleFactor: scale }
 }
 export async function resolveResource() {
   throw new Error("demo")
