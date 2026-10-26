@@ -1,6 +1,6 @@
 # Watchtower
 
-Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode, Gemini, Kiro, Kimi, and Devin.
+Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode, Gemini, Kiro, Kimi, Devin, and Grok Bot.
 
 ## Develop
 
