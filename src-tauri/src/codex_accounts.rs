@@ -23,6 +23,10 @@ pub struct ResolvedCodexAccount {
     pub home: String,
     pub source: String,
     pub has_auth: bool,
+    /// The folder exactly as the user typed it (`~/.codex-work`), so the
+    /// panel can match and remove a manual entry after `home` is expanded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_home: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -229,6 +233,7 @@ pub fn resolve_accounts(
             home: key,
             source: source.to_string(),
             has_auth: has_auth(home),
+            input_home: None,
         });
     };
 
@@ -264,6 +269,7 @@ pub fn resolve_accounts(
         let key = normalize_path(&home);
         if let Some(existing) = accounts.iter_mut().find(|item| item.home == key) {
             existing.label = label.to_string();
+            existing.input_home = Some(account.home.clone());
             if existing.source == "detected" {
                 existing.source = "manual".to_string();
             }
@@ -276,6 +282,9 @@ pub fn resolve_accounts(
             label.to_string(),
             "manual",
         );
+        if let Some(added) = accounts.iter_mut().find(|item| item.home == key) {
+            added.input_home = Some(account.home.clone());
+        }
     }
 
     CodexAccountSync {
@@ -346,10 +355,17 @@ pub fn write_accounts_file(
         accounts: sync.accounts.clone(),
     };
     let text = serde_json::to_string_pretty(&file).map_err(|error| error.to_string())?;
-    std::fs::write(path, text).map_err(|error| error.to_string())
+    // The Codex probe can read this file at any moment: write a temp file
+    // and rename it so a reader never sees half a document.
+    let tmp = path.with_extension(format!("json.{}.tmp", std::process::id()));
+    std::fs::write(&tmp, text).map_err(|error| error.to_string())?;
+    std::fs::rename(&tmp, &path).map_err(|error| {
+        let _ = std::fs::remove_file(&tmp);
+        error.to_string()
+    })
 }
 
-// Spawns lsof/ps/pmset or reads files: keep it off the main (UI) thread.
+// Reads shell profiles and writes a file: keep it off the main (UI) thread.
 #[tauri::command(async)]
 pub fn sync_codex_accounts(
     app: tauri::AppHandle,
@@ -468,6 +484,27 @@ mod tests {
     }
 
     #[test]
+    fn manual_accounts_keep_the_folder_as_typed() {
+        let home = Path::new("/Users/keshav");
+        let sync = resolve_accounts(
+            home,
+            Path::new("/Users/keshav/.codex"),
+            &[],
+            &[
+                CodexAccountInput { label: "Work".into(), home: "~/.codex-work/".into() },
+                CodexAccountInput { label: "Main".into(), home: "$HOME/.codex".into() },
+            ],
+            false,
+        );
+        let work = sync.accounts.iter().find(|a| a.label == "Work").unwrap();
+        assert_eq!(work.home, "/Users/keshav/.codex-work");
+        assert_eq!(work.input_home.as_deref(), Some("~/.codex-work/"));
+        let main = sync.accounts.iter().find(|a| a.label == "Main").unwrap();
+        assert_eq!(main.source, "default");
+        assert_eq!(main.input_home.as_deref(), Some("$HOME/.codex"));
+    }
+
+    #[test]
     fn writes_the_plugin_accounts_file() {
         let root = std::env::temp_dir().join(format!("wt-codex-accounts-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -477,6 +514,7 @@ mod tests {
                 home: "/Users/keshav/.codex".into(),
                 source: "default".into(),
                 has_auth: true,
+                input_home: None,
             }],
             profile_note: None,
         };
@@ -484,6 +522,12 @@ mod tests {
         let text = std::fs::read_to_string(accounts_file_path(&root)).unwrap();
         assert!(text.contains("\"showAll\": false"));
         assert!(text.contains("Codex"));
+        let leftovers = std::fs::read_dir(accounts_file_path(&root).parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".tmp"))
+            .count();
+        assert_eq!(leftovers, 0);
         let _ = std::fs::remove_dir_all(&root);
     }
 }

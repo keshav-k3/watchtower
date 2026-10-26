@@ -81,6 +81,33 @@ describe("CodexAccountsSection", () => {
     expect(screen.queryByText("/tmp/work")).not.toBeInTheDocument()
   })
 
+  it("removes an account typed with ~ after the backend expands it", async () => {
+    invokeMock.mockImplementation(async (_cmd: string, args: { showAll: boolean; accounts: { label: string; home: string }[] }) => ({
+      accounts: [
+        { label: "Codex", home: "/Users/keshav/.codex", source: "default", hasAuth: true },
+        ...args.accounts.map((account) => ({
+          label: account.label,
+          home: account.home.replace("~", "/Users/keshav"),
+          inputHome: account.home,
+          source: "manual",
+          hasAuth: true,
+        })),
+      ],
+      profileNote: null,
+    }))
+    render(<CodexAccountsSection />)
+    await screen.findByText("/Users/keshav/.codex")
+    await userEvent.type(screen.getByRole("textbox", { name: "Codex account label" }), "Work")
+    await userEvent.type(screen.getByRole("textbox", { name: "Codex home folder" }), "~/.codex-work")
+    await userEvent.click(screen.getByRole("button", { name: "Add Account" }))
+    expect(await screen.findByText("/Users/keshav/.codex-work")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }))
+    expect(await screen.findByText("/Users/keshav/.codex")).toBeInTheDocument()
+    expect(screen.queryByText("/Users/keshav/.codex-work")).not.toBeInTheDocument()
+    expect(storeState.get("codexAccounts")).toEqual({ showAll: false, accounts: [] })
+  })
+
   it("shows a load error, a save error, and a reset-alert save error", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     invokeMock.mockRejectedValueOnce(new Error("sync"))

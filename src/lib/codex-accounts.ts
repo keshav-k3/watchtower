@@ -4,6 +4,8 @@ import { loadCodexAccountSettings, type CodexAccountRecord } from "@/lib/setting
 export type ResolvedCodexAccount = CodexAccountRecord & {
   source: string
   hasAuth: boolean
+  /** The folder as typed in Settings, before `~` and `$HOME` were expanded. */
+  inputHome?: string
 }
 
 export type CodexAccountSync = {
@@ -27,4 +29,9 @@ export async function syncCodexAccounts(): Promise<CodexAccountSync> {
     accounts: result?.accounts ?? [],
     profileNote: result?.profileNote ?? null,
   }
+}
+
+/** True when a saved manual entry produced this resolved account. */
+export function isSavedAccount(record: CodexAccountRecord, account: ResolvedCodexAccount): boolean {
+  return record.home === (account.inputHome ?? account.home)
 }

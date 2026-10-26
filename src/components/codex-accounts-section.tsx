@@ -7,6 +7,7 @@ import {
 } from "@/lib/settings"
 import {
   codexAccountError,
+  isSavedAccount,
   syncCodexAccounts,
   type ResolvedCodexAccount,
 } from "@/lib/codex-accounts"
@@ -111,14 +112,14 @@ export function CodexAccountsSection() {
                   <span className="label-mono text-[10px] uppercase text-muted-foreground">
                     {account.source}
                   </span>
-                  {accounts.some((item) => item.home === account.home) && (
+                  {accounts.some((item) => isSavedAccount(item, account)) && (
                     <button
                       type="button"
                       className="text-[12px] text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
                       onClick={() => {
                         void persist(
                           showAll,
-                          accounts.filter((item) => item.home !== account.home)
+                          accounts.filter((item) => !isSavedAccount(item, account))
                         )
                       }}
                     >
