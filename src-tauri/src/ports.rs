@@ -370,12 +370,14 @@ pub fn signal_process(_pid: u32, _force: bool, _expected: Option<&str>) -> Resul
     Err("Stopping a listening process is available on macOS and Linux.".to_string())
 }
 
-#[tauri::command]
+// Spawns lsof/ps/pmset or reads files: keep it off the main (UI) thread.
+#[tauri::command(async)]
 pub fn list_listening_ports() -> ListeningPortsResponse {
     collect_listening_ports()
 }
 
-#[tauri::command]
+// Spawns lsof/ps/pmset or reads files: keep it off the main (UI) thread.
+#[tauri::command(async)]
 pub fn stop_listening_process(
     pid: u32,
     force: bool,

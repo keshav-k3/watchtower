@@ -349,7 +349,8 @@ pub fn write_accounts_file(
     std::fs::write(path, text).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
+// Spawns lsof/ps/pmset or reads files: keep it off the main (UI) thread.
+#[tauri::command(async)]
 pub fn sync_codex_accounts(
     app: tauri::AppHandle,
     show_all: bool,

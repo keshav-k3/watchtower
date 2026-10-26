@@ -404,7 +404,8 @@ fn panel_visible() -> bool {
     panel::panel_is_visible()
 }
 
-#[tauri::command]
+// Spawns lsof/ps/pmset or reads files: keep it off the main (UI) thread.
+#[tauri::command(async)]
 fn power_status() -> power::PowerStatus {
     power::PowerStatus {
         on_battery: power::on_battery(),
