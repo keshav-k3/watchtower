@@ -13,6 +13,10 @@ brew install --cask keshav-k3/tap/watchtower
 xattr -dr com.apple.quarantine /Applications/watchtower.app
 ```
 
+## Mac Widget
+
+On macOS Sonoma and later, Watchtower can show the same usage in Notification Center and on the desktop. The widget is built into the app on a Mac. Setup is in [docs/widget.md](docs/widget.md).
+
 ## Upgrade
 
 ```sh
