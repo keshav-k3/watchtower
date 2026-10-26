@@ -45,16 +45,14 @@ describe("ProviderIcon", () => {
     expect(icon.getAttribute("src")).toContain("hsl(14.8")
   })
 
-  it("uses the dark official artwork when the theme is dark", () => {
-    document.documentElement.classList.add("dark")
+  it("ships light and dark official artwork so CSS can follow the theme", () => {
     render(<ProviderIcon id="kimi" name="Kimi" />)
-    expect(screen.getByRole("img", { name: "Kimi" }).getAttribute("src")).toContain("fill='white'")
-    document.documentElement.classList.remove("dark")
-  })
-
-  it("uses the light official artwork by default", () => {
-    render(<ProviderIcon id="kimi" name="Kimi" />)
-    expect(screen.getByRole("img", { name: "Kimi" }).getAttribute("src")).toContain("fill='black'")
+    const icon = screen.getByRole("img", { name: "Kimi" })
+    const [light, dark] = Array.from(icon.querySelectorAll("img"))
+    expect(light.getAttribute("src")).toContain("fill='black'")
+    expect(light.className).toContain("dark:hidden")
+    expect(dark.getAttribute("src")).toContain("fill='white'")
+    expect(dark.className).toContain("dark:block")
   })
 
   it("renders an empty mask when a custom provider has no icon", () => {

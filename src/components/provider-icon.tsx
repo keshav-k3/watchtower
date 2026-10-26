@@ -46,10 +46,6 @@ const MONO_ICONS: Record<string, string> = {
   grokbot: grokIcon,
 }
 
-function isDarkTheme() {
-  return document.documentElement.classList.contains("dark")
-}
-
 function BrandImage({
   src,
   name,
@@ -84,12 +80,23 @@ export function ProviderIcon({
 
   const themeIcon = THEME_ICONS[id]
   if (themeIcon) {
+    // Both variants are in the DOM and CSS picks one, so a memoized row
+    // still swaps artwork when the theme changes.
     return (
-      <BrandImage
-        src={isDarkTheme() ? themeIcon.dark : themeIcon.light}
-        name={name}
-        className={className}
-      />
+      <span role="img" aria-label={name} className={cn("inline-block size-4", className)}>
+        <img
+          src={themeIcon.light}
+          alt=""
+          draggable={false}
+          className="block size-full object-contain dark:hidden"
+        />
+        <img
+          src={themeIcon.dark}
+          alt=""
+          draggable={false}
+          className="hidden size-full object-contain dark:block"
+        />
+      </span>
     )
   }
 
