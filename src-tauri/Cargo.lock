@@ -6295,6 +6295,7 @@ dependencies = [
  "tauri-plugin-updater",
  "time",
  "tokio",
+ "tray-icon",
  "uuid",
 ]
 
