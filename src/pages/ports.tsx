@@ -42,9 +42,10 @@ export function PortsPage() {
       // Forget SIGTERM marks for pids that are gone, so a reused pid starts at Stop again.
       setTermSent((current) => {
         const live = new Set(result.ports.map((port) => port.pid))
-        const kept = Object.keys(current).filter((pid) => live.has(Number(pid)))
-        if (kept.length === Object.keys(current).length) return current
-        return Object.fromEntries(kept.map((pid) => [pid, true as const]))
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([pid]) => live.has(Number(pid)))
+        ) as Record<number, true>
+        return Object.keys(next).length === Object.keys(current).length ? current : next
       })
       setNote(result.supported ? null : result.note)
       setError(null)
@@ -175,7 +176,7 @@ export function PortsPage() {
       </ul>
       {confirm && (
         <div className="border-t border-line bg-surface px-3 py-3" role="dialog" aria-label="Stop Process">
-          <h3 className="text-[13px] font-semibold text-foreground">
+          <h3 className="break-words text-[13px] font-semibold text-foreground">
             {confirm.force ? "Force Stop" : "Stop"} {confirm.port.processName} on :{confirm.port.port}?
           </h3>
           <p className="mt-1 text-[12px] leading-4 text-muted-foreground">

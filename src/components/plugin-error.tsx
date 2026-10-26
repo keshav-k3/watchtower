@@ -25,7 +25,7 @@ export function PluginError({ message }: PluginErrorProps) {
   return (
     <div role="alert" className="flex min-w-0 items-center gap-2 text-[12px] leading-4 text-destructive">
       <HugeiconsIcon icon={AlertCircleIcon} className="size-3.5 shrink-0" />
-      <div className="min-w-0 flex-1 cursor-text select-text truncate">{formatMessage(message)}</div>
+      <div className="min-w-0 flex-1 cursor-text select-text break-words">{formatMessage(message)}</div>
     </div>
   )
 }

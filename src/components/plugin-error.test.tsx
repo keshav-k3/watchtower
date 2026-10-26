@@ -12,4 +12,12 @@ describe("PluginError", () => {
     render(<PluginError message="Check `config.json` file" />)
     expect(screen.getByText("config.json")).toBeInTheDocument()
   })
+
+  it("wraps a long message instead of cutting it off", () => {
+    const long = "Usage request failed (HTTP 503) at https://api.example.com/v1/usage/very/long/path"
+    render(<PluginError message={long} />)
+    const text = screen.getByText(long)
+    expect(text.className).toContain("break-words")
+    expect(text.className).not.toContain("truncate")
+  })
 })
