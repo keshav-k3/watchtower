@@ -99,29 +99,52 @@ describe("usePanelVisibility", () => {
       resolveRead = resolve
     }))
     const { unmount } = renderHook(() => usePanelVisibility())
-    unmount()
-    resolveRead?.(false)
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalled()
     })
+    unmount()
+    resolveRead?.(false)
+    await Promise.resolve()
     expect(usePanelVisibilityStore.getState().visible).toBe(true)
   })
 
   it("stops listening if the hook unmounts before the listener is attached", async () => {
     let resolveListen: ((unlisten: () => void) => void) | undefined
     const unlisten = vi.fn()
-    invokeMock.mockResolvedValue(true)
     listenMock.mockReturnValue(new Promise((resolve) => {
       resolveListen = resolve
     }))
     const { unmount } = renderHook(() => usePanelVisibility())
     await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalled()
+      expect(listenMock).toHaveBeenCalled()
     })
     unmount()
     resolveListen?.(unlisten)
     await waitFor(() => {
       expect(unlisten).toHaveBeenCalled()
     })
+    expect(invokeMock).not.toHaveBeenCalled()
+  })
+
+  it("listens before reading, and a change during the read wins", async () => {
+    let handler: ((event: { payload: unknown }) => void) | undefined
+    let resolveRead: ((value: boolean) => void) | undefined
+    listenMock.mockImplementation(async (_event: string, next: (event: { payload: unknown }) => void) => {
+      handler = next
+      return () => {}
+    })
+    invokeMock.mockReturnValue(new Promise((resolve) => {
+      resolveRead = resolve
+    }))
+    renderHook(() => usePanelVisibility())
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalled()
+    })
+    expect(listenMock.mock.invocationCallOrder[0]).toBeLessThan(invokeMock.mock.invocationCallOrder[0])
+    handler?.({ payload: false })
+    resolveRead?.(true)
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(usePanelVisibilityStore.getState().visible).toBe(false)
   })
 })

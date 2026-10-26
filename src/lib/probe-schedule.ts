@@ -20,18 +20,16 @@ type RefreshState = {
 
 // Refresh when opening the panel only after we already have a saved result
 // that is older than the normal interval. The first load stays with bootstrap.
+// A provider that never loaded (signed out, failing) does not count: it would
+// re-probe every provider on every open. The normal poll still retries it.
 export function shouldRefreshOnShow(
   states: RefreshState[],
   baseMs: number,
   nowMs: number
 ): boolean {
-  if (states.length === 0) return false
-  const known = states.some((state) => state.lastUpdatedAt != null)
-  if (!known) return false
-  return states.some((state) => {
-    if (state.lastUpdatedAt == null) return true
-    return nowMs - state.lastUpdatedAt >= baseMs
-  })
+  return states.some(
+    (state) => state.lastUpdatedAt != null && nowMs - state.lastUpdatedAt >= baseMs
+  )
 }
 
 // Delay until the footer label text would change, instead of waking every second.

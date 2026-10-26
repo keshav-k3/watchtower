@@ -58,12 +58,19 @@ describe("shouldRefreshOnShow", () => {
     expect(shouldRefreshOnShow([{ lastUpdatedAt: 0 }], base, base)).toBe(true)
   })
 
-  it("refreshes when one provider has never loaded and another has", () => {
+  it("does not refresh on open just because a provider never loaded", () => {
     expect(
       shouldRefreshOnShow(
         [{ lastUpdatedAt: 9_000 }, { lastUpdatedAt: null }],
         base,
         10_000
+      )
+    ).toBe(false)
+    expect(
+      shouldRefreshOnShow(
+        [{ lastUpdatedAt: 0 }, { lastUpdatedAt: null }],
+        base,
+        base
       )
     ).toBe(true)
   })

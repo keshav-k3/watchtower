@@ -11,25 +11,32 @@ export function usePanelVisibility() {
     let cancelled = false
     let unlisten: (() => void) | undefined
 
+    // Listen first, then read: the backend only emits on changes, so a
+    // show or hide between a read and a later listen would be lost.
     const sync = async () => {
+      let sawEvent = false
       try {
-        const current = await invoke<boolean>("panel_visible")
-        if (!cancelled && typeof current === "boolean") setVisible(current)
-      } catch (error) {
-        console.error("Failed to read panel visibility:", error)
-      }
-
-      if (cancelled) return
-
-      try {
-        unlisten = await listen<boolean>("panel:visibility", (event) => {
-          if (typeof event.payload === "boolean") setVisible(event.payload)
+        const stop = await listen<boolean>("panel:visibility", (event) => {
+          if (typeof event.payload !== "boolean") return
+          sawEvent = true
+          setVisible(event.payload)
         })
+        if (cancelled) {
+          stop()
+          return
+        }
+        unlisten = stop
       } catch (error) {
         console.error("Failed to listen for panel visibility:", error)
       }
 
-      if (cancelled) unlisten?.()
+      try {
+        const current = await invoke<boolean>("panel_visible")
+        // An event that arrived while reading is newer than the read.
+        if (!cancelled && !sawEvent && typeof current === "boolean") setVisible(current)
+      } catch (error) {
+        console.error("Failed to read panel visibility:", error)
+      }
     }
 
     void sync()
