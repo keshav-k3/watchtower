@@ -60,39 +60,37 @@ export function CodexScopedProviderCard({ lines = [], ...props }: CodexScopedPro
     })
   }
 
-  return (
-    <div>
-      {accountLabels.length >= 2 && (
-        <div className="flex justify-end pt-1.5">
-          <div
-            role="group"
-            aria-label="Codex Account"
-            className="inline-flex items-center rounded-full border border-line bg-surface p-0.5"
-          >
-            {["Both", ...accountLabels].map((option) => {
-              const value = option === "Both" ? DEFAULT_CODEX_ACCOUNT_VIEW : option
-              const active = activeView === value
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => selectView(value)}
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] leading-4 transition-colors",
-                    active
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {option}
-                </button>
-              )
-            })}
-          </div>
+  const accessory =
+    accountLabels.length >= 2 ? (
+      <div className="mb-1.5 flex justify-end">
+        <div
+          role="group"
+          aria-label="Codex Account"
+          className="inline-flex items-center rounded-full border border-line bg-surface p-0.5"
+        >
+          {["Both", ...accountLabels].map((option) => {
+            const value = option === "Both" ? DEFAULT_CODEX_ACCOUNT_VIEW : option
+            const active = activeView === value
+            return (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={active}
+                onClick={() => selectView(value)}
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[11px] leading-4 transition-colors",
+                  active
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {option}
+              </button>
+            )
+          })}
         </div>
-      )}
-      <ProviderCard {...props} lines={filteredLines} />
-    </div>
-  )
+      </div>
+    ) : undefined
+
+  return <ProviderCard {...props} lines={filteredLines} accessory={accessory} />
 }

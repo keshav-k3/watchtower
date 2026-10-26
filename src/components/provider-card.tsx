@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react"
+import { Fragment, useMemo, type ReactNode } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ExternalLinkIcon,
@@ -44,6 +44,7 @@ interface ProviderCardProps {
   resetTimerDisplayMode?: ResetTimerDisplayMode
   timeFormatMode?: TimeFormatMode
   onResetTimerDisplayModeToggle?: () => void
+  accessory?: ReactNode
 }
 
 const PACE_VISUALS: Record<PaceStatus, { dotClass: string }> = {
@@ -121,6 +122,7 @@ export function ProviderCard({
   resetTimerDisplayMode = "relative",
   timeFormatMode = "auto",
   onResetTimerDisplayModeToggle,
+  accessory,
 }: ProviderCardProps) {
   const cooldownRemainingMs = useMemo(() => {
     if (!lastManualRefreshAt) return 0
@@ -287,6 +289,7 @@ export function ProviderCard({
             )}
           </div>
         </div>
+        {accessory}
         {visibleLinks.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
             {visibleLinks.map((link) => (
