@@ -122,6 +122,13 @@ describe("AppShell", () => {
     expect(document.querySelector("[data-slot=app-logo]")).toBeTruthy()
   })
 
+  it("shows a notice inside the panel, right under the header", () => {
+    render(<AppShell {...createProps()} notice={<div role="status">Codex limits were reset</div>} />)
+
+    const notice = screen.getByRole("status")
+    expect(notice.previousElementSibling?.tagName).toBe("HEADER")
+  })
+
   it("wires about dialog open and close through the footer", async () => {
     render(<AppShell {...createProps()} />)
 

@@ -77,7 +77,7 @@ export function useCodexResetNotifications(lines: MetricLine[] | null) {
   return (
     <div
       role="status"
-      className="mx-3 mb-1 flex items-center gap-2 border-y border-line bg-surface px-2 py-1.5"
+      className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-1.5"
     >
       <HugeiconsIcon icon={CheckmarkSquare02Icon} className="size-3.5 shrink-0 text-foreground" />
       <p className="min-w-0 flex-1 break-words text-[12px] leading-4 text-foreground">{message}</p>

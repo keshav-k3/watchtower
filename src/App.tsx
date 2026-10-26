@@ -225,9 +225,8 @@ function App() {
   const resetNotice = useCodexResetNotifications(pluginStates.codex?.data?.lines ?? null)
 
   return (
-    <>
-    {resetNotice}
     <AppShell
+      notice={resetNotice}
       onRefreshAll={handleRefreshAll}
       navPlugins={navPlugins}
       pluginsMeta={pluginsMeta}
@@ -247,7 +246,6 @@ function App() {
         onGlobalShortcutChange: handleGlobalShortcutChange,
       }}
     />
-    </>
   )
 }
 

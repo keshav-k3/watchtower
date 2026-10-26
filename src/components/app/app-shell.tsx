@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { RefreshIcon } from "@hugeicons-pro/core-solid-rounded"
@@ -33,6 +34,7 @@ type AppShellProps = {
   onNavReorder: (orderedIds: string[]) => void
   onProviderToggle: (pluginId: string) => void
   appContentProps: AppContentActionProps
+  notice?: ReactNode
 }
 
 export function AppShell({
@@ -48,6 +50,7 @@ export function AppShell({
   onPluginContextAction,
   isPluginRefreshAvailable,
   onNavReorder,
+  notice,
   onProviderToggle,
   appContentProps,
 }: AppShellProps) {
@@ -127,6 +130,7 @@ export function AppShell({
                 />
               </div>
             </header>
+            {notice}
             <div className="relative flex-1 min-h-0">
               <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-none">
                 <AppContent

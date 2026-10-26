@@ -22,8 +22,8 @@ export function Switch({ checked, onCheckedChange, ...props }: SwitchProps) {
       <span
         aria-hidden="true"
         className={cn(
-          "absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-transform",
-          checked ? "translate-x-[13px] bg-background" : "translate-x-0.5 bg-muted-foreground"
+          "absolute left-[2px] top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-transform",
+          checked ? "translate-x-3 bg-background" : "translate-x-0 bg-muted-foreground"
         )}
       />
     </button>
