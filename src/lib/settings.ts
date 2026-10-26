@@ -49,7 +49,16 @@ export const DEFAULT_MENUBAR_ICON_STYLE: MenubarIconStyle = "watchtower";
 export const DEFAULT_MENUBAR_METRIC: MenubarMetric = "default";
 export const DEFAULT_GLOBAL_SHORTCUT: GlobalShortcut = "CommandOrControl+W";
 export const DEFAULT_START_ON_LOGIN = true;
-export const DEFAULT_PROVIDER_ORDER = ["cursor", "codex", "claude", "opencode", "gemini"];
+export const DEFAULT_PROVIDER_ORDER = [
+  "cursor",
+  "codex",
+  "claude",
+  "opencode",
+  "gemini",
+  "kiro",
+  "kimi",
+  "devin",
+];
 const DEV_ONLY_PLUGIN_IDS = new Set(["mock"]);
 
 const AUTO_UPDATE_INTERVALS: AutoUpdateIntervalMinutes[] = [5, 15, 30, 60];
@@ -360,5 +369,92 @@ export async function loadStartOnLogin(): Promise<boolean> {
 
 export async function saveStartOnLogin(value: boolean): Promise<void> {
   await store.set(START_ON_LOGIN_KEY, value);
+  await store.save();
+}
+
+export type CodexAccountRecord = {
+  label: string;
+  home: string;
+};
+
+export type CodexAccountSettings = {
+  showAll: boolean;
+  accounts: CodexAccountRecord[];
+};
+
+const CODEX_ACCOUNTS_KEY = "codexAccounts";
+const CODEX_RESET_NOTIFICATIONS_KEY = "codexResetNotifications";
+const CODEX_RESET_SNAPSHOT_KEY = "codexResetSnapshot";
+
+export const DEFAULT_CODEX_ACCOUNT_SETTINGS: CodexAccountSettings = {
+  showAll: false,
+  accounts: [],
+};
+export const DEFAULT_CODEX_RESET_NOTIFICATIONS = true;
+
+export function normalizeCodexAccountSettings(value: unknown): CodexAccountSettings {
+  if (!value || typeof value !== "object") return { showAll: false, accounts: [] };
+  const raw = value as { showAll?: unknown; accounts?: unknown };
+  const accounts = Array.isArray(raw.accounts)
+    ? raw.accounts.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const row = entry as { label?: unknown; home?: unknown };
+        if (typeof row.label !== "string" || typeof row.home !== "string") return [];
+        const label = row.label.trim();
+        const home = row.home.trim();
+        if (!label || !home) return [];
+        return [{ label, home }];
+      })
+    : [];
+  return { showAll: raw.showAll === true, accounts };
+}
+
+export async function loadCodexAccountSettings(): Promise<CodexAccountSettings> {
+  const stored = await store.get<unknown>(CODEX_ACCOUNTS_KEY);
+  return normalizeCodexAccountSettings(stored);
+}
+
+export async function saveCodexAccountSettings(settings: CodexAccountSettings): Promise<void> {
+  await store.set(CODEX_ACCOUNTS_KEY, normalizeCodexAccountSettings(settings));
+  await store.save();
+}
+
+export async function loadCodexResetNotifications(): Promise<boolean> {
+  const stored = await store.get<unknown>(CODEX_RESET_NOTIFICATIONS_KEY);
+  if (typeof stored === "boolean") return stored;
+  return DEFAULT_CODEX_RESET_NOTIFICATIONS;
+}
+
+export async function saveCodexResetNotifications(enabled: boolean): Promise<void> {
+  await store.set(CODEX_RESET_NOTIFICATIONS_KEY, enabled);
+  await store.save();
+}
+
+export type StoredCodexWindow = {
+  account: string;
+  kind: "session" | "weekly";
+  usedPercent: number;
+  resetAtMs: number | null;
+};
+
+function isStoredCodexWindow(value: unknown): value is StoredCodexWindow {
+  if (!value || typeof value !== "object") return false;
+  const row = value as StoredCodexWindow;
+  return (
+    typeof row.account === "string" &&
+    (row.kind === "session" || row.kind === "weekly") &&
+    typeof row.usedPercent === "number" &&
+    (row.resetAtMs === null || typeof row.resetAtMs === "number")
+  );
+}
+
+export async function loadCodexResetSnapshot(): Promise<StoredCodexWindow[] | null> {
+  const stored = await store.get<unknown>(CODEX_RESET_SNAPSHOT_KEY);
+  if (!Array.isArray(stored)) return null;
+  return stored.filter(isStoredCodexWindow);
+}
+
+export async function saveCodexResetSnapshot(snapshot: StoredCodexWindow[]): Promise<void> {
+  await store.set(CODEX_RESET_SNAPSHOT_KEY, snapshot);
   await store.save();
 }

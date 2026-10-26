@@ -770,6 +770,23 @@ describe("ProviderCard", () => {
     expect(screen.queryByText("Hidden")).not.toBeInTheDocument()
   })
 
+  it("keeps a labelled account metric on the overview", () => {
+    render(
+      <ProviderCard
+        name="Codex"
+        displayMode="used"
+        scopeFilter="overview"
+        skeletonLines={[{ type: "progress", label: "Session", scope: "overview" }]}
+        lines={[
+          { type: "progress", label: "Work · Session", used: 20, limit: 100, format: { kind: "percent" } },
+          { type: "text", label: "Work · Credits", value: "Hidden" },
+        ]}
+      />
+    )
+    expect(screen.getByText("Work · Session")).toBeInTheDocument()
+    expect(screen.queryByText("Work · Credits")).not.toBeInTheDocument()
+  })
+
   it("shows all lines when scopeFilter=all", () => {
     render(
       <ProviderCard

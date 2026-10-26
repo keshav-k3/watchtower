@@ -1,6 +1,7 @@
 import { useShallow } from "zustand/react/shallow"
 import { OverviewPage } from "@/pages/overview"
 import { ProviderDetailPage } from "@/pages/provider-detail"
+import { PortsPage } from "@/pages/ports"
 import { SettingsPage } from "@/pages/settings"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
 import type { PluginMeta } from "@/lib/plugin-types"
@@ -67,6 +68,10 @@ export function AppContent({
         onChooseProviders={() => setActiveView("settings")}
       />
     )
+  }
+
+  if (activeView === "ports") {
+    return <PortsPage />
   }
 
   if (activeView === "settings") {

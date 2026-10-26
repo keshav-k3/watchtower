@@ -121,3 +121,32 @@ grant_type=refresh_token
 ```
 
 Response returns new `access_token`, and optionally new `refresh_token` and `id_token`.
+
+## More than one Codex login
+
+A second Codex login is a second folder with its own `auth.json`. People usually point a shell alias at it:
+
+```sh
+alias codex-work='CODEX_HOME="$HOME/.codex-work" codex'
+```
+
+Watchtower reads `CODEX_HOME=...` assignments from `~/.zshrc`, `~/.zprofile`, `~/.bashrc`, `~/.bash_profile`, `~/.profile`, and `~/.config/fish/config.fish`. It keeps a folder only when that folder contains `auth.json`.
+
+`codex --profile` and `[profiles.*]` in `config.toml` change settings for the same login. They are not separate accounts. Settings explains that when a profile table is present.
+
+In Settings, **Show All Accounts** lists every detected home plus any folder you add by hand, each with its own label. With one `~/.codex` login, or with the switch off, the Codex rows stay unlabeled and match the single-account view.
+
+Each labelled account has its own reset alert.
+
+## Reset alerts
+
+Watchtower compares each Codex session and weekly window with the previous sample.
+
+It shows "Codex limits were reset" when usage drops sharply and either:
+
+- the reset time moves earlier than the one already scheduled, or
+- the reset time moves forward into a new window.
+
+The first sample after install is saved and does not alert. **Reset Alerts** in Settings turns the notification off. The in-app message still explains what happened, and macOS also gets a notification when notification permission is allowed.
+
+Posts from @thsottiaux are not fetched. The X API needs a paid token, and the free timeline and RSS addresses checked for this change did not return a usable feed. The usage comparison above does not need an X account.

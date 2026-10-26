@@ -7,6 +7,11 @@ mod panel;
 mod plugin_engine;
 mod power;
 mod tray;
+mod tray_click;
+#[cfg(target_os = "macos")]
+mod tray_macos;
+mod ports;
+mod codex_accounts;
 #[cfg(target_os = "macos")]
 mod webkit_config;
 mod widget_publish;
@@ -552,7 +557,7 @@ pub fn run() {
                     Target::new(TargetKind::LogDir { file_name: None }),
                 ])
                 .max_file_size(10_000_000) // 10 MB
-                .level(log::LevelFilter::Trace) // Allow all levels; runtime filter via tray menu
+                .level(log::LevelFilter::Trace) // Allow all levels; runtime filter via saved logLevel
                 .level_for("hyper", log::LevelFilter::Warn)
                 .level_for("reqwest", log::LevelFilter::Warn)
                 .level_for("tao", log::LevelFilter::Info)
@@ -562,6 +567,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             init_panel,
             hide_panel,
@@ -572,7 +578,10 @@ pub fn run() {
             panel_visible,
             power_status,
             get_log_path,
-            update_global_shortcut
+            update_global_shortcut,
+            ports::list_listening_ports,
+            ports::stop_listening_process,
+            codex_accounts::sync_codex_accounts
         ])
         .setup(move |app| {
             #[cfg(target_os = "macos")]

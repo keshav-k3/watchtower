@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "kimi",
+  "name": "Kimi",
+  "version": "0.0.1",
+  "entry": "plugin.js",
+  "icon": "icon.svg",
+  "brandColor": "#000000",
+  "lines": [
+    { "type": "progress", "label": "Session", "scope": "overview", "primaryOrder": 1 },
+    { "type": "progress", "label": "Monthly", "scope": "overview", "primaryOrder": 2 },
+    { "type": "progress", "label": "Weekly", "scope": "detail" },
+    { "type": "progress", "label": "Daily", "scope": "detail" }
+  ]
+}

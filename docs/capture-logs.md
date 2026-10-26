@@ -8,10 +8,12 @@ Use this when Watchtower is not working and you need to share debug info.
 
 ## 1) Set log level to Debug
 
-1. In your macOS menu bar, find the Watchtower icon.
-2. Right-click it (or hold `Control` and click).
-3. Open `Debug Level`.
-4. Select `Debug`.
+1. Quit Watchtower.
+2. Open Finder and press `Shift` + `Command` + `G`.
+3. Paste `~/Library/Application Support/com.keshavk3.watchtower` and press Enter.
+4. Open `settings.json`.
+5. Set `"logLevel"` to `"debug"`.
+6. Open Watchtower again.
 
 If Watchtower does not open at all, skip this step and continue.
 
@@ -57,4 +59,4 @@ Logs are redacted for common secrets, but still review before sharing in public.
 
 ## Optional: switch log level back
 
-After sending logs, set `Debug Level` back to `Error`.
+After sending logs, set `"logLevel"` back to `"error"` in the same `settings.json` file and open Watchtower again.

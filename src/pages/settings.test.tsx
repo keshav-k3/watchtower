@@ -7,6 +7,10 @@ const { globalShortcutSectionMock } = vi.hoisted(() => ({
   globalShortcutSectionMock: vi.fn(),
 }))
 
+vi.mock("@/components/codex-accounts-section", () => ({
+  CodexAccountsSection: () => <div data-testid="codex-accounts-section" />,
+}))
+
 vi.mock("@/components/global-shortcut-section", () => ({
   GlobalShortcutSection: (props: unknown) => {
     globalShortcutSectionMock(props)
@@ -25,6 +29,7 @@ describe("SettingsPage", () => {
     )
 
     expect(screen.getByTestId("global-shortcut-section")).toBeInTheDocument()
+    expect(screen.getByTestId("codex-accounts-section")).toBeInTheDocument()
     expect(globalShortcutSectionMock).toHaveBeenCalledWith({
       globalShortcut: "CommandOrControl+W",
       onGlobalShortcutChange,

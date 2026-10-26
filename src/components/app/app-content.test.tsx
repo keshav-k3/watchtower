@@ -25,6 +25,10 @@ vi.mock("@/pages/provider-detail", () => ({
   },
 }))
 
+vi.mock("@/pages/ports", () => ({
+  PortsPage: () => <div data-testid="ports-page" />,
+}))
+
 vi.mock("@/pages/settings", () => ({
   SettingsPage: (props: unknown) => {
     settingsPageMock(props)
@@ -89,6 +93,12 @@ describe("AppContent", () => {
     expect(providerDetailPageMock).not.toHaveBeenCalled()
     const settingsProps = settingsPageMock.mock.calls[0][0] as { onProviderToggle: (id: string) => void }
     settingsProps.onProviderToggle("codex")
+  })
+
+  it("renders the ports page", () => {
+    useAppUiStore.getState().setActiveView("ports")
+    render(<AppContent {...createProps()} />)
+    expect(screen.getByTestId("ports-page")).toBeInTheDocument()
   })
 
   it("renders provider detail for provider views", () => {

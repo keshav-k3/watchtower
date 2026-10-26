@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare02Icon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
+import { DashboardSquare02Icon, ServerStackIcon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
@@ -212,7 +212,14 @@ export function SideNav({
         </DndContext>
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col items-center gap-1">
+        <NavButton
+          isActive={activeView === "ports"}
+          onClick={() => onViewChange("ports")}
+          aria-label="Ports"
+        >
+          <HugeiconsIcon icon={ServerStackIcon} className="size-4" />
+        </NavButton>
         <NavButton
           isActive={activeView === "settings"}
           onClick={() => onViewChange("settings")}

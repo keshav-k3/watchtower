@@ -1,33 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChangelogDialog } from "./changelog-dialog";
 import { Button } from "@/components/ui/button";
 
 interface AboutDialogProps {
   version: string;
   onClose: () => void;
-}
-
-function ExternalLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  const handleClick = () => {
-    openUrl(href).catch(console.error);
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-    >
-      {children}
-    </button>
-  );
 }
 
 export function AboutDialog({ version, onClose }: AboutDialogProps) {
@@ -129,26 +106,7 @@ export function AboutDialog({ version, onClose }: AboutDialogProps) {
         </div>
 
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>
-            Built by{" "}
-            <ExternalLink href="https://itsbyrob.in/x">Keshav K</ExternalLink>
-          </p>
-          <p>
-            Open source on{" "}
-            <ExternalLink href="https://github.com/keshav-k3/watchtower">
-              GitHub
-            </ExternalLink>
-          </p>
-          <p className="text-xs pt-1">
-            Maintainers:{" "}
-            <ExternalLink href="https://github.com/validatedev">
-              validatedev
-            </ExternalLink>
-            ,{" "}
-            <ExternalLink href="https://github.com/davidarny">
-              davidarny
-            </ExternalLink>
-          </p>
+          <p>Built by Keshav Kk</p>
         </div>
       </div>
     </div>

@@ -1,6 +1,10 @@
 # Watchtower
 
-Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode and Gemini.
+Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode, Gemini, Kiro, Kimi, and Devin.
+
+## Develop
+
+See [docs/local-development.md](docs/local-development.md) for prerequisites, `bun run tauri dev`, and tests on macOS.
 
 <p align="center">
   <img src="./screenshot.png" alt="Watchtower AI usage monitor" />

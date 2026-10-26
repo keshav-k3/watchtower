@@ -13,6 +13,7 @@ import { type PluginContextAction } from "@/components/side-nav"
 import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
+import { useCodexResetNotifications } from "@/hooks/use-codex-reset-notifications"
 
 const TRAY_PROBE_DEBOUNCE_MS = 500
 
@@ -56,6 +57,7 @@ function App() {
     setTimeFormatMode,
     setGlobalShortcut,
     setStartOnLogin,
+    setCodexResetNotifications,
   } = useAppPreferencesStore(
     useShallow((state) => ({
       autoUpdateInterval: state.autoUpdateInterval,
@@ -67,6 +69,7 @@ function App() {
       menubarIconStyle: state.menubarIconStyle,
       setMenubarIconStyle: state.setMenubarIconStyle,
       menubarMetric: state.menubarMetric,
+      setCodexResetNotifications: state.setCodexResetNotifications,
       setMenubarMetric: state.setMenubarMetric,
       resetTimerDisplayMode: state.resetTimerDisplayMode,
       setResetTimerDisplayMode: state.setResetTimerDisplayMode,
@@ -126,6 +129,7 @@ function App() {
     setTimeFormatMode,
     setGlobalShortcut,
     setStartOnLogin,
+    setCodexResetNotifications,
     setLoadingForPlugins,
     setErrorForPlugins,
     startBatch,
@@ -218,7 +222,11 @@ function App() {
     ]
   )
 
+  const resetNotice = useCodexResetNotifications(pluginStates.codex?.data?.lines ?? null)
+
   return (
+    <>
+    {resetNotice}
     <AppShell
       onRefreshAll={handleRefreshAll}
       navPlugins={navPlugins}
@@ -239,6 +247,7 @@ function App() {
         onGlobalShortcutChange: handleGlobalShortcutChange,
       }}
     />
+    </>
   )
 }
 

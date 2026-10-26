@@ -138,6 +138,7 @@ describe("global shortcut save and apply flow", () => {
         setStartOnLogin: vi.fn(),
         setMenubarIconStyle: vi.fn(),
         setMenubarMetric: vi.fn(),
+        setCodexResetNotifications: vi.fn(),
         setLoadingForPlugins: vi.fn(),
         setErrorForPlugins: vi.fn(),
         startBatch: vi.fn().mockResolvedValue(undefined),

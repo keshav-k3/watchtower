@@ -84,6 +84,9 @@ describe("SideNav", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Settings" }))
     expect(onViewChange).toHaveBeenCalledWith("settings")
+
+    await userEvent.click(screen.getByRole("button", { name: "Ports" }))
+    expect(onViewChange).toHaveBeenCalledWith("ports")
   })
 
   it("extends the sidebar rail and uses a settings icon", () => {

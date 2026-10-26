@@ -183,11 +183,11 @@ describe("PanelFooter", () => {
 
     render(<Harness />)
     await userEvent.click(screen.getByRole("button", { name: /Watchtower/ }))
-    expect(screen.getByText("Open source on")).toBeInTheDocument()
+    expect(screen.getByText("Built by Keshav Kk")).toBeInTheDocument()
 
     // Close via Escape to exercise AboutDialog onClose path.
     await userEvent.keyboard("{Escape}")
-    expect(screen.queryByText("Open source on")).not.toBeInTheDocument()
+    expect(screen.queryByText("Built by Keshav Kk")).not.toBeInTheDocument()
   })
 
   it("moves the seconds countdown when the panel is open", () => {

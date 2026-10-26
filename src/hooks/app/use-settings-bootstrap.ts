@@ -17,6 +17,7 @@ import {
   DEFAULT_START_ON_LOGIN,
   DEFAULT_TIME_FORMAT_MODE,
   getEnabledPluginIds,
+  loadCodexResetNotifications,
   loadGlobalShortcut,
   loadThemeMode,
   migrateLegacyTraySettings,
@@ -34,6 +35,7 @@ import {
   type ThemeMode,
   type TimeFormatMode,
 } from "@/lib/settings"
+import { syncCodexAccounts } from "@/lib/codex-accounts"
 
 type UseSettingsBootstrapArgs = {
   setPluginSettings: (value: PluginSettings | null) => void
@@ -47,6 +49,7 @@ type UseSettingsBootstrapArgs = {
   setStartOnLogin: (value: boolean) => void
   setMenubarIconStyle: (value: MenubarIconStyle) => void
   setMenubarMetric: (value: MenubarMetric) => void
+  setCodexResetNotifications: (value: boolean) => void
   setLoadingForPlugins: (ids: string[]) => void
   setErrorForPlugins: (ids: string[], error: string) => void
   startBatch: (pluginIds?: string[]) => Promise<string[] | undefined>
@@ -65,6 +68,7 @@ export function useSettingsBootstrap({
   setStartOnLogin,
   setMenubarIconStyle,
   setMenubarMetric,
+  setCodexResetNotifications,
   setLoadingForPlugins,
   setErrorForPlugins,
   startBatch,
@@ -133,6 +137,17 @@ export function useSettingsBootstrap({
 
         const storedMenubarIconStyle = DEFAULT_MENUBAR_ICON_STYLE
         const storedMenubarMetric = DEFAULT_MENUBAR_METRIC
+        let storedCodexResetNotifications = true
+        try {
+          storedCodexResetNotifications = await loadCodexResetNotifications()
+        } catch (error) {
+          console.error("Failed to load Codex reset notifications:", error)
+        }
+        try {
+          await syncCodexAccounts()
+        } catch (error) {
+          console.error("Failed to sync Codex accounts:", error)
+        }
 
         if (!isMounted) {
           /* v8 ignore next */
@@ -148,6 +163,7 @@ export function useSettingsBootstrap({
         setStartOnLogin(storedStartOnLogin)
         setMenubarIconStyle(storedMenubarIconStyle)
         setMenubarMetric(storedMenubarMetric)
+        setCodexResetNotifications(storedCodexResetNotifications)
 
         const enabledIds = getEnabledPluginIds(normalized)
         if (hydrateCachedUsage) {

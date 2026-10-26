@@ -22,6 +22,7 @@ import { cn, clamp01, formatCountNumber, formatFixedPrecisionNumber } from "@/li
 import { calculateDeficit, calculatePaceStatus, type PaceStatus } from "@/lib/pace-status"
 import { buildPaceDetailText, formatDeficitText, formatRunsOutText, getPaceStatusText } from "@/lib/pace-tooltip"
 import { formatResetAbsoluteLabel, formatResetRelativeLabel, formatResetTooltipText } from "@/lib/reset-tooltip"
+import { isOverviewLine } from "@/lib/overview-lines"
 
 interface ProviderCardProps {
   id: string
@@ -138,7 +139,7 @@ export function ProviderCard({
     : skeletonLines.filter(line => line.scope === "overview")
   const filteredLines = scopeFilter === "all"
     ? lines
-    : lines.filter(line => overviewLabels.has(line.label))
+    : lines.filter(line => isOverviewLine(line.label, overviewLabels))
   const visibleLines = filteredLines.filter(
     (line) => !(plan && line.type === "badge" && line.label.toLowerCase() === "plan")
   )

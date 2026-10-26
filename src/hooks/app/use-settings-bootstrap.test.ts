@@ -23,6 +23,8 @@ const {
   migrateRenamedPluginIdsMock,
   normalizePluginSettingsMock,
   savePluginSettingsMock,
+  loadCodexResetNotificationsMock,
+  syncCodexAccountsMock,
 } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
   isTauriMock: vi.fn(),
@@ -45,6 +47,8 @@ const {
   migrateRenamedPluginIdsMock: vi.fn(),
   normalizePluginSettingsMock: vi.fn(),
   savePluginSettingsMock: vi.fn(),
+  loadCodexResetNotificationsMock: vi.fn(),
+  syncCodexAccountsMock: vi.fn(),
 }))
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -83,6 +87,11 @@ vi.mock("@/lib/settings", () => ({
   migrateRenamedPluginIds: migrateRenamedPluginIdsMock,
   normalizePluginSettings: normalizePluginSettingsMock,
   savePluginSettings: savePluginSettingsMock,
+  loadCodexResetNotifications: loadCodexResetNotificationsMock,
+}))
+
+vi.mock("@/lib/codex-accounts", () => ({
+  syncCodexAccounts: syncCodexAccountsMock,
 }))
 
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
@@ -100,6 +109,7 @@ function createArgs() {
     setStartOnLogin: vi.fn(),
     setMenubarIconStyle: vi.fn(),
     setMenubarMetric: vi.fn(),
+    setCodexResetNotifications: vi.fn(),
     setLoadingForPlugins: vi.fn(),
     setErrorForPlugins: vi.fn(),
     startBatch: vi.fn().mockResolvedValue(undefined),
@@ -129,6 +139,10 @@ describe("useSettingsBootstrap", () => {
     migrateRenamedPluginIdsMock.mockReset()
     normalizePluginSettingsMock.mockReset()
     savePluginSettingsMock.mockReset()
+    loadCodexResetNotificationsMock.mockReset()
+    syncCodexAccountsMock.mockReset()
+    loadCodexResetNotificationsMock.mockResolvedValue(false)
+    syncCodexAccountsMock.mockResolvedValue({ accounts: [], profileNote: null })
 
     isTauriMock.mockReturnValue(true)
     isAutostartEnabledMock.mockResolvedValue(true)
@@ -210,10 +224,28 @@ describe("useSettingsBootstrap", () => {
       expect(args.setStartOnLogin).toHaveBeenCalledWith(true)
       expect(args.setMenubarIconStyle).toHaveBeenCalledWith("watchtower")
       expect(args.setMenubarMetric).toHaveBeenCalledWith("default")
+      expect(args.setCodexResetNotifications).toHaveBeenCalledWith(false)
+      expect(syncCodexAccountsMock).toHaveBeenCalled()
       expect(invokeMock).toHaveBeenCalledWith("update_global_shortcut", {
         shortcut: "CommandOrControl+Shift+O",
       })
     })
+  })
+
+  it("logs Codex preference failures without aborting bootstrap", async () => {
+    const args = createArgs()
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    loadCodexResetNotificationsMock.mockRejectedValueOnce(new Error("load"))
+    syncCodexAccountsMock.mockRejectedValueOnce(new Error("sync"))
+
+    renderHook(() => useSettingsBootstrap(args))
+
+    await waitFor(() => {
+      expect(args.setCodexResetNotifications).toHaveBeenCalledWith(true)
+      expect(args.startBatch).toHaveBeenCalled()
+    })
+    expect(consoleSpy).toHaveBeenCalled()
+    consoleSpy.mockRestore()
   })
 
   it("normalizes stored settings and saves the first-launch result", async () => {
