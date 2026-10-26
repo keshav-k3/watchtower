@@ -55,7 +55,7 @@ describe("CodexAccountsSection", () => {
   it("adds and removes an account and toggles both switches", async () => {
     render(<CodexAccountsSection />)
     expect(await screen.findByText("/tmp/codex")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Remove Codex" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Add Account" }))
     expect(screen.getByText("Enter a label.")).toBeInTheDocument()
@@ -68,14 +68,15 @@ describe("CodexAccountsSection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add Account" }))
     expect(await screen.findByText("No auth.json in this folder.")).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("button", { name: "Show All Accounts: Off" }))
+    await userEvent.click(screen.getByRole("switch", { name: "Show All Accounts" }))
     expect(await screen.findByText("Codex config profiles share one login.")).toBeInTheDocument()
+    expect(screen.getByRole("switch", { name: "Show All Accounts" })).toHaveAttribute("aria-checked", "true")
 
-    await userEvent.click(screen.getByRole("button", { name: "Reset Alerts: On" }))
-    expect(screen.getByRole("button", { name: "Reset Alerts: Off" })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("switch", { name: "Reset Alerts" }))
+    expect(screen.getByRole("switch", { name: "Reset Alerts" })).toHaveAttribute("aria-checked", "false")
     expect(useAppPreferencesStore.getState().codexResetNotifications).toBe(false)
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove Work" }))
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }))
     expect(await screen.findByText("/tmp/codex")).toBeInTheDocument()
     expect(screen.queryByText("/tmp/work")).not.toBeInTheDocument()
   })
@@ -101,11 +102,11 @@ describe("CodexAccountsSection", () => {
     render(<CodexAccountsSection />)
     expect(await screen.findByText("/tmp/codex")).toBeInTheDocument()
     failSave = true
-    await userEvent.click(screen.getByRole("button", { name: "Show All Accounts: Off" }))
+    await userEvent.click(screen.getByRole("switch", { name: "Show All Accounts" }))
     expect(await screen.findByText("Codex accounts could not be saved.")).toBeInTheDocument()
 
     storeState.set("throwOnSet", "codexResetNotifications")
-    await userEvent.click(screen.getByRole("button", { name: "Reset Alerts: On" }))
+    await userEvent.click(screen.getByRole("switch", { name: "Reset Alerts" }))
     await vi.waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith(
         "Failed to save Codex reset notifications:",

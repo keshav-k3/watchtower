@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { CheckmarkSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import {
   codexWindowsFromLines,
@@ -7,6 +9,8 @@ import {
 } from "@/lib/codex-reset"
 import { loadCodexResetSnapshot, saveCodexResetSnapshot } from "@/lib/settings"
 import type { MetricLine } from "@/lib/plugin-types"
+
+const AUTO_DISMISS_MS = 8000
 
 async function sendNativeNotification(message: string) {
   try {
@@ -62,23 +66,28 @@ export function useCodexResetNotifications(lines: MetricLine[] | null) {
     void sendNativeNotification(text)
   }, [enabled, lines, ready])
 
+  useEffect(() => {
+    if (!message) return
+    const timer = window.setTimeout(() => setMessage(null), AUTO_DISMISS_MS)
+    return () => window.clearTimeout(timer)
+  }, [message])
+
   if (!message) return null
 
   return (
     <div
       role="status"
-      className="mx-5 mb-2 rounded-[12px] border border-line bg-card px-3 py-2 text-sm shadow-lg"
+      className="mx-3 mb-1 flex items-center gap-2 border-y border-line bg-surface px-2 py-1.5"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-medium text-foreground">{message}</p>
-        <button
-          type="button"
-          className="text-xs text-muted-foreground"
-          onClick={() => setMessage(null)}
-        >
-          Dismiss
-        </button>
-      </div>
+      <HugeiconsIcon icon={CheckmarkSquare02Icon} className="size-3.5 shrink-0 text-foreground" />
+      <p className="min-w-0 flex-1 break-words text-[12px] leading-4 text-foreground">{message}</p>
+      <button
+        type="button"
+        className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        onClick={() => setMessage(null)}
+      >
+        Dismiss
+      </button>
     </div>
   )
 }
