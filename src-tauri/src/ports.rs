@@ -146,15 +146,49 @@ pub fn stop_refusal(pid: u32, name: &str, self_pid: u32) -> Option<&'static str>
 
 /// Watchtower never stops root or system-account processes, even if the
 /// panel was bypassed. An unknown pid is refused too, because its owner
-/// cannot be checked.
-pub fn system_refusal(info: Option<&ProcessInfo>, current_user: &str) -> Option<&'static str> {
+/// cannot be checked. A process owned by another account is refused as well.
+pub fn system_refusal(
+    info: Option<&ProcessInfo>,
+    current_user: &str,
+    current_uid: Option<u32>,
+) -> Option<&'static str> {
     match info {
         None => Some("That process is no longer running or could not be checked."),
         Some(info) if is_system_process(&info.user, info.uid, current_user) => {
             Some("That process is a system service and cannot be stopped from Watchtower.")
         }
+        Some(info) if current_uid.is_some_and(|uid| uid != info.uid) => {
+            Some("That process belongs to another user and cannot be stopped from Watchtower.")
+        }
         Some(_) => None,
     }
+}
+
+fn base_name(name: &str) -> &str {
+    name.trim().rsplit(['/', '\\']).next().unwrap_or(name).trim()
+}
+
+/// The list can be a few seconds old. If the pid now runs a different
+/// program, the original process exited and the pid was reused.
+pub fn reuse_refusal(info: Option<&ProcessInfo>, expected: Option<&str>) -> Option<&'static str> {
+    let (Some(info), Some(expected)) = (info, expected) else {
+        return None;
+    };
+    if expected.trim().is_empty() || base_name(&info.command) == base_name(expected) {
+        None
+    } else {
+        Some("That process has changed since the list was loaded. Refresh and try again.")
+    }
+}
+
+#[cfg(unix)]
+fn current_uid() -> Option<u32> {
+    Some(unsafe { libc::getuid() })
+}
+
+#[cfg(not(unix))]
+fn current_uid() -> Option<u32> {
+    None
 }
 
 pub fn project_label(cwd: &Path) -> Option<String> {
@@ -309,12 +343,13 @@ fn collect_unix_ports() -> ListeningPortsResponse {
 }
 
 #[cfg(unix)]
-pub fn signal_process(pid: u32, force: bool) -> Result<(), String> {
+pub fn signal_process(pid: u32, force: bool, expected: Option<&str>) -> Result<(), String> {
     let info = ps_processes().get(&pid).cloned();
     let name = info.as_ref().map(|info| info.command.clone()).unwrap_or_default();
-    if let Some(reason) = stop_refusal(pid, &name, std::process::id()).or_else(|| {
-        system_refusal(info.as_ref(), &current_user())
-    }) {
+    if let Some(reason) = stop_refusal(pid, &name, std::process::id())
+        .or_else(|| system_refusal(info.as_ref(), &current_user(), current_uid()))
+        .or_else(|| reuse_refusal(info.as_ref(), expected))
+    {
         log::warn!("refusing to stop pid {}: {}", pid, reason);
         return Err(reason.to_string());
     }
@@ -331,7 +366,7 @@ pub fn signal_process(pid: u32, force: bool) -> Result<(), String> {
 }
 
 #[cfg(not(unix))]
-pub fn signal_process(_pid: u32, _force: bool) -> Result<(), String> {
+pub fn signal_process(_pid: u32, _force: bool, _expected: Option<&str>) -> Result<(), String> {
     Err("Stopping a listening process is available on macOS and Linux.".to_string())
 }
 
@@ -341,8 +376,12 @@ pub fn list_listening_ports() -> ListeningPortsResponse {
 }
 
 #[tauri::command]
-pub fn stop_listening_process(pid: u32, force: bool) -> Result<(), String> {
-    signal_process(pid, force)
+pub fn stop_listening_process(
+    pid: u32,
+    force: bool,
+    expected_process: Option<String>,
+) -> Result<(), String> {
+    signal_process(pid, force, expected_process.as_deref())
 }
 
 #[cfg(test)]
@@ -384,10 +423,16 @@ mod tests {
         let root = ProcessInfo { uid: 0, user: "root".into(), command: "sshd".into() };
         let daemon = ProcessInfo { uid: 88, user: "_windowserver".into(), command: "WindowServer".into() };
         let mine = ProcessInfo { uid: 501, user: "keshav".into(), command: "node".into() };
-        assert!(system_refusal(Some(&root), "keshav").is_some());
-        assert!(system_refusal(Some(&daemon), "keshav").is_some());
-        assert!(system_refusal(None, "keshav").is_some());
-        assert_eq!(system_refusal(Some(&mine), "keshav"), None);
+        let other = ProcessInfo { uid: 502, user: "alice".into(), command: "node".into() };
+        assert!(system_refusal(Some(&root), "keshav", Some(501)).is_some());
+        assert!(system_refusal(Some(&daemon), "keshav", Some(501)).is_some());
+        assert!(system_refusal(None, "keshav", Some(501)).is_some());
+        assert_eq!(system_refusal(Some(&mine), "keshav", Some(501)), None);
+        assert!(system_refusal(Some(&other), "keshav", Some(501))
+            .unwrap()
+            .contains("another user"));
+        // An empty $USER must not let a root process through.
+        assert!(system_refusal(Some(&root), "", Some(501)).is_some());
     }
 
     #[test]
@@ -465,14 +510,34 @@ mod tests {
     fn sigterm_stops_a_child_process() {
         let mut child = Command::new("sleep").arg("30").spawn().unwrap();
         let pid = child.id();
-        signal_process(pid, false).unwrap();
+        signal_process(pid, false, Some("sleep")).unwrap();
         let status = child.wait().unwrap();
         assert!(!status.success() || status.code().is_none());
     }
 
     #[test]
     fn refuses_to_signal_this_process() {
-        let error = signal_process(std::process::id(), true).unwrap_err();
+        let error = signal_process(std::process::id(), true, None).unwrap_err();
         assert!(error.contains("itself"));
+    }
+
+    #[test]
+    fn refuses_a_pid_that_now_runs_a_different_program() {
+        let node = ProcessInfo { uid: 501, user: "keshav".into(), command: "/usr/local/bin/node".into() };
+        assert_eq!(reuse_refusal(Some(&node), Some("node")), None);
+        assert_eq!(reuse_refusal(Some(&node), None), None);
+        assert_eq!(reuse_refusal(None, Some("node")), None);
+        assert!(reuse_refusal(Some(&node), Some("python3")).unwrap().contains("changed"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn sigterm_is_refused_when_the_pid_was_reused() {
+        let mut child = Command::new("sleep").arg("30").spawn().unwrap();
+        let pid = child.id();
+        let error = signal_process(pid, false, Some("node")).unwrap_err();
+        assert!(error.contains("changed"));
+        child.kill().unwrap();
+        let _ = child.wait();
     }
 }

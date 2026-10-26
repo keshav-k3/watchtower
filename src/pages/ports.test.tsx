@@ -76,13 +76,13 @@ describe("PortsPage", () => {
     invokeMock.mockResolvedValueOnce(undefined)
     const dialog = screen.getByRole("dialog", { name: "Stop Process" })
     await userEvent.click(within(dialog).getByRole("button", { name: "Stop" }))
-    expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: false })
+    expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: false, expectedProcess: "node" })
 
     const forceButton = await screen.findByRole("button", { name: "Force Stop" })
     await userEvent.click(forceButton)
     invokeMock.mockResolvedValueOnce(undefined)
     await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Force Stop" }))
-    expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: true })
+    expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: true, expectedProcess: "node" })
   })
 
   it("refreshes while the view is open", async () => {

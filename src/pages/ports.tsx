@@ -64,7 +64,11 @@ export function PortsPage() {
     const pending = confirm
     setStopping(true)
     try {
-      await invoke("stop_listening_process", { pid: pending.port.pid, force: pending.force })
+      await invoke("stop_listening_process", {
+        pid: pending.port.pid,
+        force: pending.force,
+        expectedProcess: pending.port.processName,
+      })
       if (!pending.force) {
         setTermSent((current) => ({ ...current, [pending.port.pid]: true }))
       } else {
