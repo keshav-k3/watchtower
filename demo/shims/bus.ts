@@ -210,7 +210,7 @@ export async function isEnabled() {
 export async function enable() {}
 export async function disable() {}
 export async function getVersion() {
-  return "0.6.31"
+  return "1.0.0"
 }
 export class PhysicalSize {
   width: number

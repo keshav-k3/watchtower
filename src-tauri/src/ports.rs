@@ -144,6 +144,19 @@ pub fn stop_refusal(pid: u32, name: &str, self_pid: u32) -> Option<&'static str>
     }
 }
 
+/// Watchtower never stops root or system-account processes, even if the
+/// panel was bypassed. An unknown pid is refused too, because its owner
+/// cannot be checked.
+pub fn system_refusal(info: Option<&ProcessInfo>, current_user: &str) -> Option<&'static str> {
+    match info {
+        None => Some("That process is no longer running or could not be checked."),
+        Some(info) if is_system_process(&info.user, info.uid, current_user) => {
+            Some("That process is a system service and cannot be stopped from Watchtower.")
+        }
+        Some(_) => None,
+    }
+}
+
 pub fn project_label(cwd: &Path) -> Option<String> {
     if let Some(name) = package_name(cwd) {
         return Some(name);
@@ -297,11 +310,11 @@ fn collect_unix_ports() -> ListeningPortsResponse {
 
 #[cfg(unix)]
 pub fn signal_process(pid: u32, force: bool) -> Result<(), String> {
-    let name = ps_processes()
-        .get(&pid)
-        .map(|info| info.command.clone())
-        .unwrap_or_default();
-    if let Some(reason) = stop_refusal(pid, &name, std::process::id()) {
+    let info = ps_processes().get(&pid).cloned();
+    let name = info.as_ref().map(|info| info.command.clone()).unwrap_or_default();
+    if let Some(reason) = stop_refusal(pid, &name, std::process::id()).or_else(|| {
+        system_refusal(info.as_ref(), &current_user())
+    }) {
         log::warn!("refusing to stop pid {}: {}", pid, reason);
         return Err(reason.to_string());
     }
@@ -364,6 +377,17 @@ mod tests {
         let cwd = parse_lsof_cwd("p4321\nfcwd\nn/Users/keshav/app\n").unwrap();
         assert_eq!(cwd, "/Users/keshav/app");
         assert!(parse_lsof_cwd("p1\n").is_none());
+    }
+
+    #[test]
+    fn refuses_to_stop_root_system_or_unknown_processes() {
+        let root = ProcessInfo { uid: 0, user: "root".into(), command: "sshd".into() };
+        let daemon = ProcessInfo { uid: 88, user: "_windowserver".into(), command: "WindowServer".into() };
+        let mine = ProcessInfo { uid: 501, user: "keshav".into(), command: "node".into() };
+        assert!(system_refusal(Some(&root), "keshav").is_some());
+        assert!(system_refusal(Some(&daemon), "keshav").is_some());
+        assert!(system_refusal(None, "keshav").is_some());
+        assert_eq!(system_refusal(Some(&mine), "keshav"), None);
     }
 
     #[test]
