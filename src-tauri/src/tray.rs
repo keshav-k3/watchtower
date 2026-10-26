@@ -12,21 +12,23 @@ use crate::tray_click::{
 
 const LOG_LEVEL_STORE_KEY: &str = "logLevel";
 
-fn get_stored_log_level(app_handle: &AppHandle) -> log::LevelFilter {
-    let store = match app_handle.store("settings.json") {
-        Ok(s) => s,
-        Err(_) => return log::LevelFilter::Error,
+/// 1.0 removed the Debug Level menu, so a level picked in 0.6.x could no
+/// longer be changed. Drop the old choice and log at the default level.
+fn effective_log_level(stored: Option<&serde_json::Value>) -> (log::LevelFilter, bool) {
+    (log::LevelFilter::Error, stored.is_some())
+}
+
+fn load_log_level(app_handle: &AppHandle) -> log::LevelFilter {
+    let Ok(store) = app_handle.store("settings.json") else {
+        return log::LevelFilter::Error;
     };
-    let value = store.get(LOG_LEVEL_STORE_KEY);
-    let level_str = value.and_then(|v| v.as_str().map(|s| s.to_string()));
-    match level_str.as_deref() {
-        Some("error") => log::LevelFilter::Error,
-        Some("warn") => log::LevelFilter::Warn,
-        Some("info") => log::LevelFilter::Info,
-        Some("debug") => log::LevelFilter::Debug,
-        Some("trace") => log::LevelFilter::Trace,
-        _ => log::LevelFilter::Error, // Default: least verbose
+    let (level, clear) = effective_log_level(store.get(LOG_LEVEL_STORE_KEY).as_ref());
+    if clear {
+        log::info!("clearing the 0.6.x log level setting; the Debug Level menu was removed");
+        store.delete(LOG_LEVEL_STORE_KEY);
+        let _ = store.save();
     }
+    level
 }
 
 fn map_button(button: MouseButton) -> TrayButton {
@@ -50,8 +52,7 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
         .resolve("icons/tray-icon.png", BaseDirectory::Resource)?;
     let icon = Image::from_path(tray_icon_path)?;
 
-    // Load persisted log level
-    let current_level = get_stored_log_level(app_handle);
+    let current_level = load_log_level(app_handle);
     log::set_max_level(current_level);
 
     let show_stats = MenuItem::with_id(app_handle, "show_stats", "Show Stats", true, None::<&str>)?;
@@ -129,4 +130,19 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::effective_log_level;
+
+    #[test]
+    fn a_saved_0_6_log_level_is_cleared_and_not_applied() {
+        let trace = serde_json::json!("trace");
+        assert_eq!(
+            effective_log_level(Some(&trace)),
+            (log::LevelFilter::Error, true)
+        );
+        assert_eq!(effective_log_level(None), (log::LevelFilter::Error, false));
+    }
 }
