@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ListeningPort } from "@/pages/ports"
@@ -164,5 +164,32 @@ describe("PortsPage", () => {
       await Promise.resolve()
     })
     expect(await screen.findByRole("button", { name: "Force Stop" })).toBeInTheDocument()
+  })
+
+  it("forgets a SIGTERM mark once the pid leaves the list", async () => {
+    let listed = [nodePort]
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "stop_listening_process") return undefined
+      return { supported: true, note: null, ports: listed }
+    })
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    render(<PortsPage />)
+    await screen.findByText("3000")
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
+    await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Stop" }))
+    expect(await screen.findByRole("button", { name: "Force Stop" })).toBeInTheDocument()
+
+    listed = [selfPort]
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+    })
+    await waitFor(() => expect(screen.queryByText("3000")).not.toBeInTheDocument())
+    listed = [nodePort]
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(await screen.findByRole("button", { name: "Stop" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Force Stop" })).not.toBeInTheDocument()
+    vi.useRealTimers()
   })
 })

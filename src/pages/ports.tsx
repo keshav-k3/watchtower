@@ -39,6 +39,13 @@ export function PortsPage() {
     try {
       const result = await invoke<ListeningPortsResponse>("list_listening_ports")
       setPorts(result.ports)
+      // Forget SIGTERM marks for pids that are gone, so a reused pid starts at Stop again.
+      setTermSent((current) => {
+        const live = new Set(result.ports.map((port) => port.pid))
+        const kept = Object.keys(current).filter((pid) => live.has(Number(pid)))
+        if (kept.length === Object.keys(current).length) return current
+        return Object.fromEntries(kept.map((pid) => [pid, true as const]))
+      })
       setNote(result.supported ? null : result.note)
       setError(null)
     } catch (refreshError) {
