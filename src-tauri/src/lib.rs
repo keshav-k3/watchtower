@@ -8,6 +8,8 @@ mod plugin_engine;
 mod tray;
 #[cfg(target_os = "macos")]
 mod webkit_config;
+mod widget_publish;
+mod widget_snapshot;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
@@ -334,6 +336,7 @@ async fn start_probe_batch(
 
                 match result {
                     Ok(output) => {
+                        widget_publish::record_probe(&data_dir, &plugin, &output);
                         let has_error = output.lines.iter().any(|line| {
                             matches!(line, plugin_engine::runtime::MetricLine::Badge { label, .. } if label == "Error")
                         });
@@ -357,11 +360,17 @@ async fn start_probe_batch(
                     }
                     Err(_) => {
                         log::error!("probe {} panicked", plugin_id);
+                        widget_publish::record_failure(
+                            &data_dir,
+                            &plugin.manifest.id,
+                            &plugin.manifest.name,
+                        );
                     }
                 }
 
                 if counter.fetch_sub(1, Ordering::SeqCst) == 1 {
                     log::info!("probe batch {} complete", completion_bid);
+                    widget_publish::reload_timelines();
                     let _ = completion_handle.emit(
                         "probe:batch-complete",
                         ProbeBatchComplete {
@@ -582,6 +591,7 @@ pub fn run() {
             let (_, plugins) = plugin_engine::initialize_plugins(&app_data_dir, &resource_dir);
             let known_plugin_ids: Vec<String> =
                 plugins.iter().map(|p| p.manifest.id.clone()).collect();
+            widget_publish::init(&app_data_dir, &plugins);
             app.manage(Mutex::new(AppState {
                 plugins,
                 app_data_dir: app_data_dir.clone(),

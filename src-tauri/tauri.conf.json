@@ -7,6 +7,7 @@
     "beforeDevCommand": "bun run bundle:plugins && bun run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run bundle:plugins && bun run build",
+    "beforeBundleCommand": "bash src-tauri/macos/WatchtowerWidget/build-widget.sh",
     "frontendDist": "../dist"
   },
   "app": {
@@ -31,6 +32,11 @@
     "active": true,
     "targets": "all",
     "macOS": {
+      "entitlements": "./Entitlements.plist",
+      "files": {
+        "PlugIns/WatchtowerWidget.appex": "macos/WatchtowerWidget/build/Release/WatchtowerWidget.appex",
+        "Frameworks/libWatchtowerWidgetBridge.dylib": "macos/WatchtowerWidget/build/Release/libWatchtowerWidgetBridge.dylib"
+      },
       "dmg": {
         "appPosition": {
           "x": 180,
