@@ -25,6 +25,7 @@ pub fn init(app_handle: &AppHandle) -> tauri::Result<()> {
     }
     window.show()?;
     window.set_focus()?;
+    super::note_panel_visibility(app_handle, true);
     Ok(())
 }
 
@@ -40,6 +41,7 @@ pub fn show_panel(app_handle: &AppHandle) {
     }
     let _ = window.show();
     let _ = window.set_focus();
+    super::note_panel_visibility(app_handle, true);
 }
 
 pub fn hide_panel(app_handle: &AppHandle) {
@@ -49,6 +51,7 @@ pub fn hide_panel(app_handle: &AppHandle) {
     if let Some(window) = main_window(app_handle) {
         let _ = window.hide();
     }
+    super::note_panel_visibility(app_handle, false);
 }
 
 pub fn toggle_panel(app_handle: &AppHandle) {
@@ -58,6 +61,7 @@ pub fn toggle_panel(app_handle: &AppHandle) {
     match window.is_visible() {
         Ok(true) => {
             let _ = window.hide();
+            super::note_panel_visibility(app_handle, false);
         }
         _ => show_panel(app_handle),
     }
@@ -69,11 +73,13 @@ pub fn handle_tray_click(app_handle: &AppHandle, icon_position: Position, icon_s
     };
     if window.is_visible().unwrap_or(false) {
         let _ = window.hide();
+        super::note_panel_visibility(app_handle, false);
         return;
     }
     let _ = window.show();
     position_panel_at_tray_icon(app_handle, icon_position, icon_size);
     let _ = window.set_focus();
+    super::note_panel_visibility(app_handle, true);
 }
 
 pub fn position_panel_at_tray_icon(

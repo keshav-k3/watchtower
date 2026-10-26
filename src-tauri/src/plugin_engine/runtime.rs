@@ -2,8 +2,29 @@ use crate::plugin_engine::host_api;
 use crate::plugin_engine::manifest::LoadedPlugin;
 use rquickjs::{Array, Context, Ctx, Error, Object, Promise, Runtime, Value};
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+
+thread_local! {
+    static JS_RUNTIME: RefCell<Option<Runtime>> = const { RefCell::new(None) };
+}
+
+fn js_runtime() -> Option<Runtime> {
+    JS_RUNTIME.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        if slot.is_none() {
+            *slot = Runtime::new().ok();
+        }
+        slot.clone()
+    })
+}
+
+fn reset_js_runtime() {
+    JS_RUNTIME.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+}
 
 const PROBE_TIMEOUT_SECS: u64 = 30;
 
@@ -91,15 +112,19 @@ fn run_probe_with_timeout(
         .unwrap_or_else(Instant::now);
     let deadline = host_api::ProbeDeadline::at(deadline_at);
 
-    let rt = match Runtime::new() {
-        Ok(rt) => rt,
-        Err(_) => return fallback,
+    let started = Instant::now();
+    let rt = match js_runtime() {
+        Some(rt) => rt,
+        None => return fallback,
     };
     rt.set_interrupt_handler(Some(Box::new(move || Instant::now() >= deadline_at)));
 
     let ctx = match Context::full(&rt) {
         Ok(ctx) => ctx,
-        Err(_) => return fallback,
+        Err(_) => {
+            reset_js_runtime();
+            return fallback;
+        }
     };
 
     let plugin_id = plugin.manifest.id.clone();
@@ -108,7 +133,7 @@ fn run_probe_with_timeout(
     let icon_url = plugin.icon_data_url.clone();
     let app_data = app_data_dir.clone();
 
-    ctx.with(|ctx| {
+    let output = ctx.with(|ctx| {
         if host_api::inject_host_api_with_deadline(
             &ctx,
             &plugin_id,
@@ -229,7 +254,16 @@ fn run_probe_with_timeout(
             lines,
             icon_url,
         }
-    })
+    });
+    if deadline.has_elapsed() {
+        reset_js_runtime();
+    }
+    log::debug!(
+        "probe {} finished in {}ms",
+        plugin.manifest.id,
+        started.elapsed().as_millis()
+    );
+    output
 }
 
 fn parse_lines(result: &Object) -> Result<Vec<MetricLine>, String> {
@@ -786,6 +820,66 @@ mod tests {
         );
         let output = run_probe(&plugin, &temp_app_dir("async"), "0.0.0");
         assert_eq!(error_text(output), "boom");
+    }
+
+    #[test]
+    fn repeated_probes_keep_returning_lines() {
+        let plugin = test_plugin(
+            r#"
+            globalThis.__watchtower_plugin = {
+                probe(ctx) {
+                    return { lines: [ctx.line.text({ label: "Ok", value: "1" })] };
+                }
+            };
+            "#,
+        );
+        let dir = temp_app_dir("reuse");
+        let started = Instant::now();
+        for _ in 0..8 {
+            let output = run_probe(&plugin, &dir, "0.0.0");
+            match output.lines.first() {
+                Some(MetricLine::Text { label, value, .. }) => {
+                    assert_eq!(label, "Ok");
+                    assert_eq!(value, "1");
+                }
+                other => panic!("expected text line, got {:?}", other),
+            }
+        }
+        let elapsed = started.elapsed();
+        eprintln!("PERF repeated_probes_ms {}", elapsed.as_millis());
+        assert!(
+            elapsed < Duration::from_secs(15),
+            "eight probes took {:?}",
+            elapsed
+        );
+    }
+
+    #[test]
+    fn probe_after_timeout_still_returns_lines() {
+        let spinning = test_plugin(
+            r#"
+            globalThis.__watchtower_plugin = {
+                probe() { while (true) {} }
+            };
+            "#,
+        );
+        let healthy = test_plugin(
+            r#"
+            globalThis.__watchtower_plugin = {
+                probe(ctx) {
+                    return { lines: [ctx.line.text({ label: "Ok", value: "1" })] };
+                }
+            };
+            "#,
+        );
+        let dir = temp_app_dir("after-timeout");
+        let timed_out = run_probe_with_timeout(&spinning, &dir, "0.0.0", Duration::from_millis(5));
+        assert!(error_text(timed_out).contains("timed out"));
+        let output = run_probe(&healthy, &dir, "0.0.0");
+        match output.lines.first() {
+            Some(MetricLine::Text { value, .. }) => assert_eq!(value, "1"),
+            other => panic!("expected a line after timeout, got {:?}", other),
+        }
     }
 
     #[test]

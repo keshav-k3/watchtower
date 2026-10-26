@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
@@ -188,5 +188,48 @@ describe("PanelFooter", () => {
     // Close via Escape to exercise AboutDialog onClose path.
     await userEvent.keyboard("{Escape}")
     expect(screen.queryByText("Open source on")).not.toBeInTheDocument()
+  })
+
+  it("moves the seconds countdown when the panel is open", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+    const { unmount } = render(
+      <PanelFooter
+        version="0.0.0"
+        autoUpdateNextAt={1_000_000 + 30_000}
+        updateStatus={idle}
+        onUpdateInstall={noop}
+        panelVisible
+        {...footerProps}
+      />
+    )
+    expect(screen.getByText("Next update in 30s")).toBeTruthy()
+    act(() => {
+      vi.advanceTimersByTime(1_000)
+    })
+    expect(screen.getByText("Next update in 29s")).toBeTruthy()
+    unmount()
+    vi.useRealTimers()
+  })
+
+  it("keeps the countdown still while the panel is hidden", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+    const { unmount } = render(
+      <PanelFooter
+        version="0.0.0"
+        autoUpdateNextAt={1_000_000 + 90_000}
+        updateStatus={idle}
+        onUpdateInstall={noop}
+        panelVisible={false}
+        {...footerProps}
+      />
+    )
+    act(() => {
+      vi.advanceTimersByTime(30_000)
+    })
+    expect(screen.getByText("Next update in 2m")).toBeTruthy()
+    unmount()
+    vi.useRealTimers()
   })
 })

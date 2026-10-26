@@ -50,6 +50,7 @@ type UseSettingsBootstrapArgs = {
   setLoadingForPlugins: (ids: string[]) => void
   setErrorForPlugins: (ids: string[], error: string) => void
   startBatch: (pluginIds?: string[]) => Promise<string[] | undefined>
+  hydrateCachedUsage?: (entries: unknown) => void
 }
 
 export function useSettingsBootstrap({
@@ -67,6 +68,7 @@ export function useSettingsBootstrap({
   setLoadingForPlugins,
   setErrorForPlugins,
   startBatch,
+  hydrateCachedUsage,
 }: UseSettingsBootstrapArgs) {
   const applyStartOnLogin = useCallback(async (value: boolean) => {
     if (!isTauri()) return
@@ -148,6 +150,15 @@ export function useSettingsBootstrap({
         setMenubarMetric(storedMenubarMetric)
 
         const enabledIds = getEnabledPluginIds(normalized)
+        if (hydrateCachedUsage) {
+          try {
+            const cached = await invoke<unknown>("get_cached_usage")
+            if (isMounted) hydrateCachedUsage(cached)
+          } catch (error) {
+            console.error("Failed to load cached usage:", error)
+          }
+        }
+        if (!isMounted) return
         setLoadingForPlugins(enabledIds)
         try {
           await startBatch(enabledIds)
@@ -183,6 +194,7 @@ export function useSettingsBootstrap({
     setStartOnLogin,
     setThemeMode,
     setTimeFormatMode,
+    hydrateCachedUsage,
     startBatch,
   ])
 

@@ -78,6 +78,7 @@ describe("useProbe", () => {
         manualRefreshIdsRef,
         setLoadingForPlugins: setLoadingForPluginsMock,
         setErrorForPlugins: setErrorForPluginsMock,
+        hydrateCachedUsage: vi.fn(),
         handleProbeResult: handleProbeResultMock,
       }
     })
@@ -122,6 +123,8 @@ describe("useProbe", () => {
     expect(useProbeAutoUpdateMock).toHaveBeenCalledWith({
       pluginSettings,
       autoUpdateInterval: 15,
+      panelVisible: true,
+      isDataStale: expect.any(Function),
       setLoadingForPlugins: setLoadingForPluginsMock,
       setErrorForPlugins: setErrorForPluginsMock,
       isPluginLoading: expect.any(Function),
@@ -142,6 +145,7 @@ describe("useProbe", () => {
       setLoadingForPlugins: setLoadingForPluginsMock,
       setErrorForPlugins: setErrorForPluginsMock,
       startBatch: startBatchMock,
+      hydrateCachedUsage: expect.any(Function),
       autoUpdateNextAt: 123,
       setAutoUpdateNextAt: setAutoUpdateNextAtMock,
       handleRetryPlugin: handleRetryPluginMock,
@@ -183,5 +187,40 @@ describe("useProbe", () => {
     const { isPluginLoading } = useProbeAutoUpdateMock.mock.calls[0][0]
     expect(isPluginLoading("codex")).toBe(true)
     expect(isPluginLoading("missing")).toBe(false)
+  })
+
+  it("treats saved results as stale only after the normal interval", () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000_000)
+
+    renderHook(() =>
+      useProbe({
+        pluginSettings: null,
+        autoUpdateInterval: 5,
+      })
+    )
+    expect(useProbeAutoUpdateMock.mock.calls[0][0].isDataStale()).toBe(false)
+
+    renderHook(() =>
+      useProbe({
+        pluginSettings: { order: ["codex", "claude"], disabled: [] },
+        autoUpdateInterval: 5,
+      })
+    )
+    const { isDataStale } = useProbeAutoUpdateMock.mock.calls[1][0]
+    const { pluginStatesRef } = useProbeRefreshActionsMock.mock.calls[1][0]
+    expect(isDataStale()).toBe(false)
+
+    pluginStatesRef.current = {
+      codex: { lastUpdatedAt: 1_000_000 - 60_000 },
+      claude: { lastUpdatedAt: 1_000_000 - 60_000 },
+    }
+    expect(isDataStale()).toBe(false)
+
+    pluginStatesRef.current = {
+      codex: { lastUpdatedAt: 1_000_000 - 5 * 60_000 },
+      claude: { lastUpdatedAt: null },
+    }
+    expect(isDataStale()).toBe(true)
+    nowSpy.mockRestore()
   })
 })

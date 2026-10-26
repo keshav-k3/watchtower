@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow"
 import { AppShell } from "@/components/app/app-shell"
 import { useAppPluginViews } from "@/hooks/app/use-app-plugin-views"
 import { useProbe } from "@/hooks/app/use-probe"
+import { usePanelVisibility } from "@/hooks/use-panel-visibility"
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
 import { useSettingsSystemActions } from "@/hooks/app/use-settings-system-actions"
 import { useSettingsTheme } from "@/hooks/app/use-settings-theme"
@@ -88,6 +89,7 @@ function App() {
     autoUpdateNextAt,
     handleRetryPlugin,
     handleRefreshAll,
+    hydrateCachedUsage,
   } = useProbe({
     pluginSettings,
     autoUpdateInterval,
@@ -110,6 +112,8 @@ function App() {
     }
   }, [scheduleTrayIconUpdate])
 
+  usePanelVisibility()
+
   useSettingsBootstrap({
     setPluginSettings,
     setPluginsMeta,
@@ -125,6 +129,7 @@ function App() {
     setLoadingForPlugins,
     setErrorForPlugins,
     startBatch,
+    hydrateCachedUsage,
   })
 
   useSettingsTheme(themeMode)

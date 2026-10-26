@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { usePanelVisibilityStore } from "@/stores/panel-visibility-store"
 
 type UseNowTickerOptions = {
   enabled?: boolean
@@ -31,6 +32,9 @@ export function useNowTicker({
   const [documentVisible, setDocumentVisible] = useState(() =>
     pauseWhenHidden ? isDocumentVisible() : true
   )
+  const panelAllowsTicks = usePanelVisibilityStore((state) =>
+    pauseWhenHidden ? state.visible : true
+  )
 
   useEffect(() => {
     if (!pauseWhenHidden || typeof document === "undefined") {
@@ -52,7 +56,7 @@ export function useNowTicker({
   }, [enabled, pauseWhenHidden])
 
   useEffect(() => {
-    if (!enabled || !documentVisible) return undefined
+    if (!enabled || !documentVisible || !panelAllowsTicks) return undefined
 
     setNow(Date.now())
     const interval = window.setInterval(tickNow.bind(null, setNow), intervalMs)
@@ -71,7 +75,7 @@ export function useNowTicker({
       window.clearInterval(interval)
       window.clearTimeout(timeout)
     }
-  }, [enabled, intervalMs, stopAfterMs, resetKey, documentVisible])
+  }, [enabled, intervalMs, stopAfterMs, resetKey, documentVisible, panelAllowsTicks])
 
   return now
 }

@@ -113,6 +113,7 @@ pub fn show_panel(app_handle: &AppHandle) {
     if let Some(panel) = get_or_init_panel!(app_handle) {
         panel.show_and_make_key();
         position_panel_from_tray(app_handle);
+        super::note_panel_visibility(app_handle, true);
     }
 }
 
@@ -120,6 +121,7 @@ pub fn hide_panel(app_handle: &AppHandle) {
     if let Ok(panel) = app_handle.get_webview_panel("main") {
         panel.hide();
     }
+    super::note_panel_visibility(app_handle, false);
 }
 
 pub fn handle_tray_click(app_handle: &AppHandle, icon_position: Position, icon_size: Size) {
@@ -130,6 +132,7 @@ pub fn handle_tray_click(app_handle: &AppHandle, icon_position: Position, icon_s
     if panel.is_visible() {
         log::debug!("tray click: hiding panel");
         panel.hide();
+        super::note_panel_visibility(app_handle, false);
         return;
     }
     log::debug!("tray click: showing panel");
@@ -137,6 +140,7 @@ pub fn handle_tray_click(app_handle: &AppHandle, icon_position: Position, icon_s
     // macOS quirk: must show window before positioning to another monitor
     panel.show_and_make_key();
     position_panel_at_tray_icon(app_handle, icon_position, icon_size);
+    super::note_panel_visibility(app_handle, true);
 }
 
 /// Toggle panel visibility. If visible, hide it. If hidden, show it.
@@ -149,10 +153,12 @@ pub fn toggle_panel(app_handle: &AppHandle) {
     if panel.is_visible() {
         log::debug!("toggle_panel: hiding panel");
         panel.hide();
+        super::note_panel_visibility(app_handle, false);
     } else {
         log::debug!("toggle_panel: showing panel");
         panel.show_and_make_key();
         position_panel_from_tray(app_handle);
+        super::note_panel_visibility(app_handle, true);
     }
 }
 
@@ -203,6 +209,7 @@ pub fn init(app_handle: &tauri::AppHandle) -> tauri::Result<()> {
     event_handler.window_did_resign_key(move |_notification| {
         if let Ok(panel) = handle.get_webview_panel("main") {
             panel.hide();
+            super::note_panel_visibility(&handle, false);
         }
     });
 

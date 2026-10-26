@@ -127,4 +127,64 @@ describe("useProbeState", () => {
 
     expect(result.current.pluginStates.codex?.error).toBeNull()
   })
+
+  it("hydrates saved usage without replacing a newer result", () => {
+    const { result } = renderHook(() => useProbeState({}))
+
+    act(() => {
+      result.current.hydrateCachedUsage("not-a-list")
+    })
+    expect(result.current.pluginStates).toEqual({})
+
+    act(() => {
+      result.current.hydrateCachedUsage([
+        {
+          providerId: "codex",
+          displayName: "Codex",
+          plan: "Pro",
+          lines: [{ type: "text", label: "Usage", value: "10%" }],
+          fetchedAt: "2026-03-26T08:15:30.000Z",
+        },
+      ])
+    })
+    expect(result.current.pluginStates.codex?.data?.plan).toBe("Pro")
+    expect(result.current.pluginStates.codex?.loading).toBe(false)
+    const hydrated = result.current.pluginStates
+    act(() => {
+      result.current.hydrateCachedUsage([
+        {
+          providerId: "codex",
+          displayName: "Codex",
+          plan: "Pro",
+          lines: [{ type: "text", label: "Usage", value: "10%" }],
+          fetchedAt: "2026-03-26T08:15:30.000Z",
+        },
+      ])
+    })
+    expect(result.current.pluginStates).toBe(hydrated)
+
+    act(() => {
+      result.current.setLoadingForPlugins(["codex"])
+    })
+    const loadedAt = Date.parse("2026-03-26T08:15:30.000Z")
+    act(() => {
+      result.current.hydrateCachedUsage([
+        {
+          providerId: "codex",
+          displayName: "Codex",
+          lines: [],
+          fetchedAt: "2026-03-26T08:15:30.000Z",
+        },
+        {
+          providerId: "claude",
+          displayName: "Claude",
+          lines: [],
+          fetchedAt: "2026-03-26T09:00:00.000Z",
+        },
+      ])
+    })
+    expect(result.current.pluginStates.codex?.loading).toBe(true)
+    expect(result.current.pluginStates.codex?.lastUpdatedAt).toBe(loadedAt)
+    expect(result.current.pluginStates.claude?.data?.displayName).toBe("Claude")
+  })
 })
