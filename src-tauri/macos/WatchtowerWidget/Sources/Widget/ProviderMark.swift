@@ -8,7 +8,7 @@ func providerInk(_ provider: WidgetProvider) -> Color {
         return Color(red: 217.0 / 255.0, green: 119.0 / 255.0, blue: 87.0 / 255.0)
     case "gemini":
         return Color(red: 66.0 / 255.0, green: 133.0 / 255.0, blue: 244.0 / 255.0)
-    case "cursor", "codex", "opencode":
+    case "cursor", "codex", "opencode", "kimi", "devin", "grok-bot":
         return .primary
     default:
         if let hex = provider.brandColor, let color = Color(hex: hex) {
@@ -21,7 +21,7 @@ func providerInk(_ provider: WidgetProvider) -> Color {
 func providerWash(_ provider: WidgetProvider?) -> Color {
     guard let provider else { return .gray }
     switch provider.id {
-    case "cursor", "codex", "opencode":
+    case "cursor", "codex", "opencode", "kimi", "devin", "grok-bot":
         return .gray
     default:
         if let hex = provider.brandColor, hexIsDark(hex) {
