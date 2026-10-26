@@ -41,7 +41,7 @@ const high: MetricLine = {
   used: 80,
   limit: 100,
   format: { kind: "percent" },
-  resetsAt: "2026-10-26T18:00:00.000Z",
+  resetsAt: "2099-01-01T18:00:00.000Z",
 }
 
 const reset: MetricLine = {
@@ -50,7 +50,7 @@ const reset: MetricLine = {
   used: 2,
   limit: 100,
   format: { kind: "percent" },
-  resetsAt: "2026-10-26T12:00:00.000Z",
+  resetsAt: "2099-01-01T12:00:00.000Z",
 }
 
 function Harness({ lines }: { lines: MetricLine[] | null }) {
@@ -91,7 +91,7 @@ describe("useCodexResetNotifications", () => {
         account: "Codex",
         kind: "session",
         usedPercent: 80,
-        resetAtMs: Date.parse("2026-10-26T18:00:00.000Z"),
+        resetAtMs: Date.parse("2099-01-01T18:00:00.000Z"),
       },
     ])
     render(<Harness lines={[reset]} />)
@@ -109,7 +109,7 @@ describe("useCodexResetNotifications", () => {
         account: "Codex",
         kind: "session",
         usedPercent: 80,
-        resetAtMs: Date.parse("2026-10-26T18:00:00.000Z"),
+        resetAtMs: Date.parse("2099-01-01T18:00:00.000Z"),
       },
     ])
     const { unmount } = render(<Harness lines={[reset]} />)
@@ -172,6 +172,15 @@ describe("useCodexResetNotifications", () => {
       await Promise.resolve()
     })
     expect(saveSnapshotMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps the last good sample when a probe returns no Codex windows", async () => {
+    const { rerender } = render(<Harness lines={[high]} />)
+    await waitFor(() => expect(saveSnapshotMock).toHaveBeenCalledTimes(1))
+    rerender(<Harness lines={[]} />)
+    expect(saveSnapshotMock).toHaveBeenCalledTimes(1)
+    rerender(<Harness lines={[reset]} />)
+    expect(await screen.findByRole("status")).toHaveTextContent("Codex limits were reset")
   })
 
   it("auto-dismisses the banner after eight seconds", async () => {

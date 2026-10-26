@@ -55,7 +55,10 @@ export function useCodexResetNotifications(lines: MetricLine[] | null) {
   useEffect(() => {
     if (!ready || !lines) return
     const next = codexWindowsFromLines(lines)
-    const alerts = enabled ? detectCodexResets(snapshotRef.current, next) : []
+    // A failed probe has no Codex windows. Keep the last good sample so the
+    // next good one is still compared against it.
+    if (next.length === 0) return
+    const alerts = enabled ? detectCodexResets(snapshotRef.current, next, Date.now()) : []
     snapshotRef.current = next
     void saveCodexResetSnapshot(next).catch((error) => {
       console.error("Failed to save Codex reset history:", error)

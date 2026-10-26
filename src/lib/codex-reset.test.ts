@@ -76,7 +76,7 @@ describe("codex reset detection", () => {
       { account: "Work", kind: "session", usedPercent: 2, resetAtMs: 1_000_000 },
       { account: "Work", kind: "weekly", usedPercent: 39, resetAtMs: 9_000_000 },
     ]
-    expect(detectCodexResets(previous, next)).toEqual(["Codex (Work) limits were reset"])
+    expect(detectCodexResets(previous, next, 0)).toEqual(["Codex (Work) limits were reset"])
   })
 
   it("alerts when a window rolls forward", () => {
@@ -86,7 +86,7 @@ describe("codex reset detection", () => {
     const next: CodexWindowSnapshot[] = [
       { account: "Codex", kind: "weekly", usedPercent: 1, resetAtMs: 2_000_000 },
     ]
-    expect(detectCodexResets(previous, next)).toEqual(["Codex limits were reset"])
+    expect(detectCodexResets(previous, next, 0)).toEqual(["Codex limits were reset"])
     expect(codexResetMessage("")).toBe("Codex limits were reset")
   })
 
@@ -97,7 +97,7 @@ describe("codex reset detection", () => {
     const next: CodexWindowSnapshot[] = [
       { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: 5_000_000 },
     ]
-    expect(detectCodexResets(previous, next)).toEqual([])
+    expect(detectCodexResets(previous, next, 0)).toEqual([])
   })
 
   it("treats a drop to zero without timestamps as a reset", () => {
@@ -107,7 +107,7 @@ describe("codex reset detection", () => {
     const next: CodexWindowSnapshot[] = [
       { account: "Personal", kind: "session", usedPercent: 0, resetAtMs: null },
     ]
-    expect(detectCodexResets(previous, next)).toEqual(["Codex (Personal) limits were reset"])
+    expect(detectCodexResets(previous, next, 0)).toEqual(["Codex (Personal) limits were reset"])
   })
 
   it("accepts a halved window and a blank account prefix", () => {
@@ -137,7 +137,31 @@ describe("codex reset detection", () => {
       { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: 1_000_000 },
       { account: "Codex", kind: "weekly", usedPercent: 10, resetAtMs: null },
     ]
-    expect(detectCodexResets(previous, next)).toEqual(["Codex limits were reset"])
+    expect(detectCodexResets(previous, next, 0)).toEqual(["Codex limits were reset"])
+  })
+
+  it("does not alert when a window rolls over on its normal schedule", () => {
+    const previous: CodexWindowSnapshot[] = [
+      { account: "Work", kind: "session", usedPercent: 80, resetAtMs: 1_000_000 },
+      { account: "Work", kind: "weekly", usedPercent: 60, resetAtMs: 9_000_000 },
+    ]
+    const next: CodexWindowSnapshot[] = [
+      { account: "Work", kind: "session", usedPercent: 0, resetAtMs: 19_000_000 },
+      { account: "Work", kind: "weekly", usedPercent: 61, resetAtMs: 9_000_000 },
+    ]
+    expect(detectCodexResets(previous, next, 1_000_000)).toEqual([])
+    expect(detectCodexResets(previous, next, 950_000)).toEqual([])
+    expect(detectCodexResets(previous, next, 900_000)).toEqual(["Codex (Work) limits were reset"])
+  })
+
+  it("defaults the clock to now", () => {
+    const previous: CodexWindowSnapshot[] = [
+      { account: "Codex", kind: "session", usedPercent: 80, resetAtMs: 1_000 },
+    ]
+    const next: CodexWindowSnapshot[] = [
+      { account: "Codex", kind: "session", usedPercent: 0, resetAtMs: 2_000 },
+    ]
+    expect(detectCodexResets(previous, next)).toEqual([])
   })
 
   it("ignores a new account that has no previous sample", () => {
@@ -147,6 +171,6 @@ describe("codex reset detection", () => {
     const next: CodexWindowSnapshot[] = [
       { account: "Work", kind: "session", usedPercent: 0, resetAtMs: 2 },
     ]
-    expect(detectCodexResets(previous, next)).toEqual([])
+    expect(detectCodexResets(previous, next, 0)).toEqual([])
   })
 })

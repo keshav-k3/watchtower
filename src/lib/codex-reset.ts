@@ -42,7 +42,16 @@ export function codexResetMessage(account: string): string {
   return `Codex (${account}) limits were reset`
 }
 
-function windowWasReset(previous: CodexWindowSnapshot, next: CodexWindowSnapshot): boolean {
+// A window that passed its scheduled reset time rolls over on its own every
+// session or week. Only an early reset (before the scheduled time) is news.
+const SCHEDULE_SLACK_MS = 60_000
+
+function windowWasReset(
+  previous: CodexWindowSnapshot,
+  next: CodexWindowSnapshot,
+  nowMs: number,
+): boolean {
+  if (previous.resetAtMs != null && nowMs >= previous.resetAtMs - SCHEDULE_SLACK_MS) return false
   const drop = previous.usedPercent - next.usedPercent
   const largeDrop = drop >= DROP_POINTS || (previous.usedPercent >= 20 && next.usedPercent <= previous.usedPercent * 0.5)
   if (!largeDrop) return false
@@ -57,6 +66,7 @@ function windowWasReset(previous: CodexWindowSnapshot, next: CodexWindowSnapshot
 export function detectCodexResets(
   previous: CodexWindowSnapshot[] | null,
   next: CodexWindowSnapshot[],
+  nowMs: number = Date.now(),
 ): string[] {
   if (!previous) return []
   const prior = new Map(previous.map((window) => [`${window.account}:${window.kind}`, window]))
@@ -64,7 +74,7 @@ export function detectCodexResets(
   for (const window of next) {
     const before = prior.get(`${window.account}:${window.kind}`)
     if (!before) continue
-    if (windowWasReset(before, window)) accounts.add(window.account)
+    if (windowWasReset(before, window, nowMs)) accounts.add(window.account)
   }
   return Array.from(accounts).map(codexResetMessage)
 }
