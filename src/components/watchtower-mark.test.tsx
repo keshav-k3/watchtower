@@ -10,13 +10,13 @@ describe("WatchtowerMark", () => {
 
     const svg = container.querySelector("svg")
     expect(svg).not.toBeNull()
-    expect(svg).toHaveAttribute("viewBox", "296 106 432 818")
+    expect(svg).toHaveAttribute("viewBox", "234 80 504 884")
     expect(svg).toHaveAttribute("fill", "currentColor")
     expect(svg).toHaveAttribute("aria-hidden", "true")
     expect(svg).toHaveClass("size-4")
 
     const paths = [...(svg?.querySelectorAll("path") ?? [])].map((path) => path.getAttribute("d"))
-    expect(paths).toHaveLength(2)
+    expect(paths).toHaveLength(3)
 
     const source = readFileSync(resolve(process.cwd(), "assets/brand/watchtower-mark.svg"), "utf8")
     for (const d of paths) {
