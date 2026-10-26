@@ -5,6 +5,7 @@ mod local_http_api;
 mod log_path;
 mod panel;
 mod plugin_engine;
+mod power;
 mod tray;
 #[cfg(target_os = "macos")]
 mod webkit_config;
@@ -380,6 +381,23 @@ async fn start_probe_batch(
 }
 
 #[tauri::command]
+fn get_cached_usage() -> Vec<local_http_api::cache::CachedPluginSnapshot> {
+    local_http_api::cache::cached_snapshots()
+}
+
+#[tauri::command]
+fn panel_visible() -> bool {
+    panel::panel_is_visible()
+}
+
+#[tauri::command]
+fn power_status() -> power::PowerStatus {
+    power::PowerStatus {
+        on_battery: power::on_battery(),
+    }
+}
+
+#[tauri::command]
 fn get_log_path(app_handle: tauri::AppHandle) -> Result<String, String> {
     log_path::for_app(&app_handle).map(|path| path.to_string_lossy().to_string())
 }
@@ -503,6 +521,7 @@ fn list_plugins(state: tauri::State<'_, Mutex<AppState>>) -> Vec<PluginMeta> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let boot_started = std::time::Instant::now();
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
     let _guard = runtime.enter();
 
@@ -540,10 +559,13 @@ pub fn run() {
             open_devtools,
             start_probe_batch,
             list_plugins,
+            get_cached_usage,
+            panel_visible,
+            power_status,
             get_log_path,
             update_global_shortcut
         ])
-        .setup(|app| {
+        .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
@@ -592,6 +614,10 @@ pub fn run() {
             local_http_api::start_server();
 
             tray::create(app.handle())?;
+            log::info!(
+                "tray ready in {}ms",
+                boot_started.elapsed().as_millis()
+            );
 
             // Linux keep-visible path: show the panel immediately without
             // waiting for the frontend init_panel call.

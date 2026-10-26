@@ -16,6 +16,7 @@ import { useAppVersion } from "@/hooks/app/use-app-version"
 import { usePanel } from "@/hooks/app/use-panel"
 import { useAppUpdate } from "@/hooks/use-app-update"
 import { useAppUiStore } from "@/stores/app-ui-store"
+import { usePanelVisibilityStore } from "@/stores/panel-visibility-store"
 
 const ARROW_OVERHEAD_PX = 37
 
@@ -80,6 +81,7 @@ export function AppShell({
     displayPlugins,
   })
 
+  const panelVisible = usePanelVisibilityStore((state) => state.visible)
   const appVersion = useAppVersion()
   const { updateStatus, triggerInstall, checkForUpdates } = useAppUpdate()
 
@@ -178,6 +180,7 @@ export function AppShell({
               showAbout={showAbout}
               onShowAbout={() => setShowAbout(true)}
               onCloseAbout={() => setShowAbout(false)}
+              panelVisible={panelVisible}
             />
           </div>
         </div>

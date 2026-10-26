@@ -87,12 +87,15 @@ fn last_non_empty_trimmed_line(text: &str) -> Option<String> {
         .map(|line| line.to_string())
 }
 
+fn ansi_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r"\x1B\[[0-?]*[ -/]*[@-~]").expect("ansi regex")
+    })
+}
+
 fn sanitize_env_value(text: &str) -> Option<String> {
-    let mut cleaned = if let Ok(ansi_re) = regex_lite::Regex::new(r"\x1B\[[0-?]*[ -/]*[@-~]") {
-        ansi_re.replace_all(text, "").to_string()
-    } else {
-        text.to_string()
-    };
+    let mut cleaned = ansi_regex().replace_all(text, "").to_string();
     cleaned.retain(|ch| ch == '\n' || ch == '\r' || ch == '\t' || !ch.is_control());
     last_non_empty_trimmed_line(&cleaned)
 }
@@ -354,97 +357,141 @@ fn redact_url(url: &str) -> String {
     }
 }
 
+fn jwt_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
+            .expect("jwt regex")
+    })
+}
+
+fn api_key_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r#"["']?(sk-|pk-|api_|key_|secret_)[A-Za-z0-9_-]{12,}["']?"#)
+            .expect("api key regex")
+    })
+}
+
+fn devin_session_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r#"devin-session-token\$[^\s"',}\]]+"#).expect("devin session regex")
+    })
+}
+
+fn path_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r#"(/(?:Users|home|opt|private|var|tmp|Applications)/[^\s"')]+)"#)
+            .expect("path regex")
+    })
+}
+
+fn account_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| regex_lite::Regex::new(r#"(account=)([^,\s]+)"#).expect("account regex"))
+}
+
+fn bare_api_key_regex() -> &'static regex_lite::Regex {
+    static REGEX: OnceLock<regex_lite::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex_lite::Regex::new(r#"(sk-|pk-|api_|key_|secret_)[A-Za-z0-9_-]{12,}"#)
+            .expect("bare api key regex")
+    })
+}
+
+struct SensitiveKeyRedactor {
+    key: &'static str,
+    pattern: regex_lite::Regex,
+}
+
+fn sensitive_key_redactors() -> &'static [SensitiveKeyRedactor] {
+    static REDACTORS: OnceLock<Vec<SensitiveKeyRedactor>> = OnceLock::new();
+    REDACTORS.get_or_init(|| {
+        const KEYS: &[&str] = &[
+            "name",
+            "password",
+            "token",
+            "access_token",
+            "refresh_token",
+            "secret",
+            "api_key",
+            "apiKey",
+            "authorization",
+            "bearer",
+            "credential",
+            "session_token",
+            "sessionToken",
+            "auth_token",
+            "authToken",
+            "id_token",
+            "idToken",
+            "accessToken",
+            "refreshToken",
+            "user_id",
+            "userId",
+            "account_id",
+            "accountId",
+            "team_id",
+            "teamId",
+            "org_id",
+            "orgId",
+            "account_display_name",
+            "accountDisplayName",
+            "payment_id",
+            "paymentId",
+            "profile_arn",
+            "profileArn",
+            "email",
+            "login",
+            "analytics_tracking_id",
+        ];
+        KEYS.iter()
+            .map(|key| SensitiveKeyRedactor {
+                key,
+                pattern: regex_lite::Regex::new(&format!(r#""{}":\s*"([^"]+)""#, key))
+                    .expect("sensitive key regex"),
+            })
+            .collect()
+    })
+}
+
 /// Redact sensitive patterns in response body for logging
 fn redact_body(body: &str) -> String {
     let mut result = body.to_string();
 
     // Redact JWTs (eyJ... pattern with dots)
-    let jwt_pattern =
-        regex_lite::Regex::new(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+").unwrap();
-    result = jwt_pattern
+    result = jwt_regex()
         .replace_all(&result, |caps: &regex_lite::Captures| {
             redact_value(&caps[0])
         })
         .to_string();
 
     // Redact common API key patterns (sk-xxx, pk-xxx, api_xxx, etc.)
-    let api_key_pattern =
-        regex_lite::Regex::new(r#"["']?(sk-|pk-|api_|key_|secret_)[A-Za-z0-9_-]{12,}["']?"#)
-            .unwrap();
-    result = api_key_pattern
+    result = api_key_regex()
         .replace_all(&result, |caps: &regex_lite::Captures| {
             let key = caps[0].trim_matches(|c| c == '"' || c == '\'');
             redact_value(key)
         })
         .to_string();
 
-    if let Ok(devin_session_re) =
-        regex_lite::Regex::new(r#"devin-session-token\$[^\s"',}\]]+"#)
-    {
-        result = devin_session_re
+    result = devin_session_regex()
+        .replace_all(&result, |caps: &regex_lite::Captures| redact_value(&caps[0]))
+        .to_string();
+
+    for redactor in sensitive_key_redactors() {
+        let key = redactor.key;
+        result = redactor
+            .pattern
             .replace_all(&result, |caps: &regex_lite::Captures| {
-                redact_value(&caps[0])
+                let value = &caps[1];
+                format!("\"{}\": \"{}\"", key, redact_value(value))
             })
             .to_string();
     }
 
-    // Redact JSON values for sensitive keys
-    let sensitive_keys = [
-        "name",
-        "password",
-        "token",
-        "access_token",
-        "refresh_token",
-        "secret",
-        "api_key",
-        "apiKey",
-        "authorization",
-        "bearer",
-        "credential",
-        "session_token",
-        "sessionToken",
-        "auth_token",
-        "authToken",
-        "id_token",
-        "idToken",
-        "accessToken",
-        "refreshToken",
-        "user_id",
-        "userId",
-        "account_id",
-        "accountId",
-        "team_id",
-        "teamId",
-        "org_id",
-        "orgId",
-        "account_display_name",
-        "accountDisplayName",
-        "payment_id",
-        "paymentId",
-        "profile_arn",
-        "profileArn",
-        "email",
-        "login",
-        "analytics_tracking_id",
-    ];
-    for key in sensitive_keys {
-        // Match "key": "value" or "key":"value"
-        let pattern = format!(r#""{}":\s*"([^"]+)""#, key);
-        if let Ok(re) = regex_lite::Regex::new(&pattern) {
-            result = re
-                .replace_all(&result, |caps: &regex_lite::Captures| {
-                    let value = &caps[1];
-                    format!("\"{}\": \"{}\"", key, redact_value(value))
-                })
-                .to_string();
-        }
-    }
-
-    if let Ok(path_re) =
-        regex_lite::Regex::new(r#"(/(?:Users|home|opt|private|var|tmp|Applications)/[^\s"')]+)"#)
-    {
-        result = path_re.replace_all(&result, "[PATH]").to_string();
-    }
+    result = path_regex().replace_all(&result, "[PATH]").to_string();
 
     result
 }
@@ -452,42 +499,21 @@ fn redact_body(body: &str) -> String {
 /// Lightweight redaction for log messages.
 pub(crate) fn redact_log_message(msg: &str) -> String {
     let mut result = msg.to_string();
-    if let Ok(jwt_re) = regex_lite::Regex::new(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
-    {
-        result = jwt_re
-            .replace_all(&result, |caps: &regex_lite::Captures| {
-                redact_value(&caps[0])
-            })
-            .to_string();
-    }
-    if let Ok(api_re) = regex_lite::Regex::new(r#"(sk-|pk-|api_|key_|secret_)[A-Za-z0-9_-]{12,}"#) {
-        result = api_re
-            .replace_all(&result, |caps: &regex_lite::Captures| {
-                redact_value(&caps[0])
-            })
-            .to_string();
-    }
-    if let Ok(devin_session_re) =
-        regex_lite::Regex::new(r#"devin-session-token\$[^\s"',}\]]+"#)
-    {
-        result = devin_session_re
-            .replace_all(&result, |caps: &regex_lite::Captures| {
-                redact_value(&caps[0])
-            })
-            .to_string();
-    }
-    if let Ok(account_re) = regex_lite::Regex::new(r#"(account=)([^,\s]+)"#) {
-        result = account_re
-            .replace_all(&result, |caps: &regex_lite::Captures| {
-                format!("{}{}", &caps[1], redact_value(&caps[2]))
-            })
-            .to_string();
-    }
-    if let Ok(path_re) =
-        regex_lite::Regex::new(r#"(/(?:Users|home|opt|private|var|tmp|Applications)/[^\s"')]+)"#)
-    {
-        result = path_re.replace_all(&result, "[PATH]").to_string();
-    }
+    result = jwt_regex()
+        .replace_all(&result, |caps: &regex_lite::Captures| redact_value(&caps[0]))
+        .to_string();
+    result = bare_api_key_regex()
+        .replace_all(&result, |caps: &regex_lite::Captures| redact_value(&caps[0]))
+        .to_string();
+    result = devin_session_regex()
+        .replace_all(&result, |caps: &regex_lite::Captures| redact_value(&caps[0]))
+        .to_string();
+    result = account_regex()
+        .replace_all(&result, |caps: &regex_lite::Captures| {
+            format!("{}{}", &caps[1], redact_value(&caps[2]))
+        })
+        .to_string();
+    result = path_regex().replace_all(&result, "[PATH]").to_string();
     result
 }
 
@@ -859,25 +885,9 @@ fn inject_http<'js>(
                 else {
                     return Err(probe_timeout_error(&ctx_inner));
                 };
-                let mut builder = reqwest::blocking::Client::builder()
-                    .timeout(timeout)
-                    .connect_timeout(timeout)
-                    .redirect(reqwest::redirect::Policy::none());
-
-                // Apply pre-resolved proxy (localhost bypass already configured)
-                if let Some(resolved) = crate::config::get_resolved_proxy() {
-                    builder = builder.proxy(resolved.proxy.clone());
-                    log::debug!("[http] proxy active");
-                } else {
-                    log::debug!("[http] proxy not used");
-                }
-
-                if req.dangerously_ignore_tls.unwrap_or(false) {
-                    builder = builder.danger_accept_invalid_certs(true);
-                }
-                let client = builder
-                    .build()
-                    .map_err(|e| Exception::throw_message(&ctx_inner, &e.to_string()))?;
+                let client = crate::plugin_engine::http_client::shared_client(
+                    req.dangerously_ignore_tls.unwrap_or(false),
+                );
 
                 let method = req.method.as_deref().unwrap_or("GET");
                 let method = reqwest::Method::from_bytes(method.as_bytes()).map_err(|e| {
@@ -886,7 +896,7 @@ fn inject_http<'js>(
                         &format!("invalid http method '{}': {}", method, e),
                     )
                 })?;
-                let mut builder = client.request(method, &req.url);
+                let mut builder = client.request(method, &req.url).timeout(timeout);
                 builder = builder.headers(header_map);
                 if let Some(body) = req.body_text {
                     builder = builder.body(body);
@@ -1961,7 +1971,10 @@ where
 }
 
 fn collect_ccusage_runners() -> Vec<(CcusageRunnerKind, String)> {
-    collect_ccusage_runners_with(resolve_ccusage_runner_binary)
+    static CACHED: OnceLock<Vec<(CcusageRunnerKind, String)>> = OnceLock::new();
+    CACHED
+        .get_or_init(|| collect_ccusage_runners_with(resolve_ccusage_runner_binary))
+        .clone()
 }
 
 fn append_ccusage_common_args(
@@ -3492,6 +3505,45 @@ mod tests {
     }
 
     #[test]
+    fn redact_and_client_setup_repeat() {
+        let body = r#"{"token":"secret-token-value-1234","email":"person@example.com","password":"hunter2hunter2hunter2"} eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U sk-abcdefghijklmnopqrstuvwxyz"#;
+        let started = std::time::Instant::now();
+        for _ in 0..200 {
+            let redacted = redact_body(body);
+            assert!(redacted.contains("[REDACTED]") || redacted.contains("..."));
+        }
+        eprintln!("PERF redact_body_200_ms {}", started.elapsed().as_millis());
+
+        let clients_started = std::time::Instant::now();
+        for _ in 0..8 {
+            let _client = crate::plugin_engine::http_client::shared_client(false);
+        }
+        eprintln!(
+            "PERF shared_client_8_ms {}",
+            clients_started.elapsed().as_millis()
+        );
+
+        let runners_started = std::time::Instant::now();
+        let first = collect_ccusage_runners();
+        let first_ms = runners_started.elapsed().as_millis();
+        let second_started = std::time::Instant::now();
+        let second = collect_ccusage_runners();
+        let second_ms = second_started.elapsed().as_millis();
+        eprintln!(
+            "PERF ccusage_lookup_ms {} then {} count {}",
+            first_ms,
+            second_ms,
+            first.len()
+        );
+        assert_eq!(first, second);
+        assert!(
+            second_ms < 50,
+            "cached runner lookup took {}ms",
+            second_ms
+        );
+    }
+
+    #[test]
     fn redact_body_redacts_jwt() {
         let body = r#"{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"}"#;
         let redacted = redact_body(body);
@@ -4453,6 +4505,7 @@ esac
         let mut permissions = script.metadata().expect("script metadata").permissions();
         permissions.set_mode(0o755);
         std::fs::set_permissions(&script_path, permissions).expect("make script executable");
+        drop(script);
 
         let opts = CcusageQueryOpts {
             provider: Some("codex".to_string()),
@@ -4571,6 +4624,7 @@ wait
         let mut permissions = script.metadata().expect("script metadata").permissions();
         permissions.set_mode(0o755);
         std::fs::set_permissions(&script_path, permissions).expect("make script executable");
+        drop(script);
 
         let opts = CcusageQueryOpts::default();
         let start = Instant::now();

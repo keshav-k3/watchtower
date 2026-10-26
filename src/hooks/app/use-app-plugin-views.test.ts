@@ -184,4 +184,70 @@ describe("useAppPluginViews", () => {
 
     expect(result.current.selectedPlugin?.meta.id).toBe("codex")
   })
+
+  it("reuses a display row when its values do not change", () => {
+    const meta = createPluginMeta("codex", "Codex")
+    const state = {
+      data: null,
+      loading: false,
+      error: null,
+      lastManualRefreshAt: null,
+      lastUpdatedAt: null,
+    }
+    const pluginSettings: PluginSettings = { order: ["codex"], disabled: [] }
+    const { result, rerender } = renderHook(
+      ({
+        states,
+        settings,
+        metas,
+      }: {
+        states: Record<string, typeof state>
+        settings: PluginSettings | null
+        metas: PluginMeta[]
+      }) =>
+        useAppPluginViews({
+          activeView: "home",
+          setActiveView: vi.fn(),
+          pluginSettings: settings,
+          pluginsMeta: metas,
+          pluginStates: states,
+        }),
+      { initialProps: { states: { codex: state }, settings: pluginSettings, metas: [meta] } }
+    )
+
+    const first = result.current.displayPlugins[0]
+    rerender({ states: { codex: { ...state } }, settings: pluginSettings, metas: [meta] })
+    expect(result.current.displayPlugins[0]).toBe(first)
+
+    rerender({ states: {}, settings: null, metas: [meta] })
+    expect(result.current.displayPlugins).toEqual([])
+
+    const changes = [
+      { data: { providerId: "codex", displayName: "Codex", lines: [], iconUrl: "" } },
+      { loading: true },
+      { error: "offline" },
+      { lastManualRefreshAt: 5 },
+      { lastUpdatedAt: 6 },
+    ]
+    for (const patch of changes) {
+      rerender({ states: { codex: state }, settings: pluginSettings, metas: [meta] })
+      const baseline = result.current.displayPlugins[0]
+      rerender({
+        states: { codex: { ...state, ...patch } },
+        settings: pluginSettings,
+        metas: [meta],
+      })
+      expect(result.current.displayPlugins[0]).not.toBe(baseline)
+    }
+
+    rerender({ states: { codex: state }, settings: pluginSettings, metas: [meta] })
+    const beforeRename = result.current.displayPlugins[0]
+    rerender({
+      states: { codex: state },
+      settings: pluginSettings,
+      metas: [createPluginMeta("codex", "Codex 2")],
+    })
+    expect(result.current.displayPlugins[0]?.meta.name).toBe("Codex 2")
+    expect(result.current.displayPlugins[0]).not.toBe(beforeRename)
+  })
 })

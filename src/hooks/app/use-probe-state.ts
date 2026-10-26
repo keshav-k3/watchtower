@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PluginOutput } from "@/lib/plugin-types"
+import { cachedUsageToStates } from "@/lib/cached-usage"
 import type { PluginState } from "@/hooks/app/types"
 
 type UseProbeStateArgs = {
@@ -52,6 +53,36 @@ export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
         }
       }
       return next
+    })
+  }, [updatePluginStates])
+
+  const hydrateCachedUsage = useCallback((entries: unknown) => {
+    const hydrated = cachedUsageToStates(entries)
+    const ids = Object.keys(hydrated)
+    if (ids.length === 0) return
+    updatePluginStates((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const id of ids) {
+        const incoming = hydrated[id]
+        const existing = prev[id]
+        if (
+          existing?.data &&
+          existing.lastUpdatedAt != null &&
+          incoming.lastUpdatedAt != null &&
+          existing.lastUpdatedAt >= incoming.lastUpdatedAt
+        ) {
+          continue
+        }
+        changed = true
+        next[id] = {
+          ...incoming,
+          loading: existing?.loading ?? false,
+          error: existing?.error ?? null,
+          lastManualRefreshAt: existing?.lastManualRefreshAt ?? null,
+        }
+      }
+      return changed ? next : prev
     })
   }, [updatePluginStates])
 
@@ -108,6 +139,7 @@ export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
     manualRefreshIdsRef,
     setLoadingForPlugins,
     setErrorForPlugins,
+    hydrateCachedUsage,
     handleProbeResult,
   }
 }

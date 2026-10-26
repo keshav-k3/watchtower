@@ -441,4 +441,104 @@ describe("useSettingsBootstrap", () => {
 
     consoleSpy.mockRestore()
   })
+
+  it("hydrates cached usage before the first probe", async () => {
+    const args = createArgs()
+    const hydrateCachedUsage = vi.fn()
+    const cached = [{ providerId: "codex", lines: [], fetchedAt: "2026-01-01T00:00:00.000Z" }]
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_cached_usage") return cached
+      if (command === "list_plugins") {
+        return [
+          {
+            id: "codex",
+            name: "Codex",
+            iconUrl: "/codex.svg",
+            brandColor: "#000000",
+            lines: [],
+            primaryCandidates: [],
+          },
+        ]
+      }
+      return undefined
+    })
+
+    renderHook(() => useSettingsBootstrap({ ...args, hydrateCachedUsage }))
+
+    await waitFor(() => {
+      expect(hydrateCachedUsage).toHaveBeenCalledWith(cached)
+      expect(args.setLoadingForPlugins).toHaveBeenCalledWith(["codex"])
+    })
+    expect(hydrateCachedUsage.mock.invocationCallOrder[0]).toBeLessThan(
+      args.setLoadingForPlugins.mock.invocationCallOrder[0]
+    )
+  })
+
+  it("logs a cache read failure and still starts probes", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const args = createArgs()
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_cached_usage") throw new Error("cache failed")
+      if (command === "list_plugins") {
+        return [
+          {
+            id: "codex",
+            name: "Codex",
+            iconUrl: "/codex.svg",
+            brandColor: "#000000",
+            lines: [],
+            primaryCandidates: [],
+          },
+        ]
+      }
+      return undefined
+    })
+
+    renderHook(() => useSettingsBootstrap({ ...args, hydrateCachedUsage: vi.fn() }))
+
+    await waitFor(() => {
+      expect(args.startBatch).toHaveBeenCalledWith(["codex"])
+    })
+    expect(consoleSpy).toHaveBeenCalledWith("Failed to load cached usage:", expect.any(Error))
+    consoleSpy.mockRestore()
+  })
+
+  it("does not hydrate cached usage after unmount", async () => {
+    let resolveCache: ((value: unknown[]) => void) | undefined
+    const args = createArgs()
+    const hydrateCachedUsage = vi.fn()
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "list_plugins") {
+        return [
+          {
+            id: "codex",
+            name: "Codex",
+            iconUrl: "/codex.svg",
+            brandColor: "#000000",
+            lines: [],
+            primaryCandidates: [],
+          },
+        ]
+      }
+      if (command === "get_cached_usage") {
+        return new Promise((resolve) => {
+          resolveCache = resolve
+        })
+      }
+      return undefined
+    })
+
+    const { unmount } = renderHook(() =>
+      useSettingsBootstrap({ ...args, hydrateCachedUsage })
+    )
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("get_cached_usage")
+    })
+    unmount()
+    resolveCache?.([])
+    await waitFor(() => {
+      expect(args.startBatch).not.toHaveBeenCalled()
+    })
+    expect(hydrateCachedUsage).not.toHaveBeenCalled()
+  })
 })
