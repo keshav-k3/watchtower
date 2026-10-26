@@ -164,6 +164,16 @@ describe("codex reset detection", () => {
     expect(detectCodexResets(previous, next)).toEqual([])
   })
 
+  it("ignores a large drop that does not land near zero", () => {
+    const previous: CodexWindowSnapshot[] = [
+      { account: "Codex", kind: "session", usedPercent: 40, resetAtMs: 5_000_000 },
+    ]
+    const next: CodexWindowSnapshot[] = [
+      { account: "Codex", kind: "session", usedPercent: 20, resetAtMs: 4_000_000 },
+    ]
+    expect(detectCodexResets(previous, next, 0)).toEqual([])
+  })
+
   it("ignores a new account that has no previous sample", () => {
     const previous: CodexWindowSnapshot[] = [
       { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: 1 },

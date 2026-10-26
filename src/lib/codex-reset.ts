@@ -9,6 +9,7 @@ export type CodexWindowSnapshot = {
 
 const ACCOUNT_MARKER = " · "
 const DROP_POINTS = 15
+const RESET_CEILING = 10
 
 export function codexWindowsFromLines(lines: MetricLine[]): CodexWindowSnapshot[] {
   const windows: CodexWindowSnapshot[] = []
@@ -55,6 +56,9 @@ function windowWasReset(
   const drop = previous.usedPercent - next.usedPercent
   const largeDrop = drop >= DROP_POINTS || (previous.usedPercent >= 20 && next.usedPercent <= previous.usedPercent * 0.5)
   if (!largeDrop) return false
+  // A reset brings usage back to (nearly) zero. A drop that lands higher
+  // is the provider recomputing usage, not a reset.
+  if (next.usedPercent > RESET_CEILING) return false
   if (previous.resetAtMs != null && next.resetAtMs != null) {
     if (next.resetAtMs + 60_000 < previous.resetAtMs) return true
     if (next.resetAtMs > previous.resetAtMs + 60_000) return true
