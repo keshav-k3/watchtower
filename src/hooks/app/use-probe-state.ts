@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import type { PluginOutput } from "@/lib/plugin-types"
 import { cachedUsageToStates } from "@/lib/cached-usage"
 import type { PluginState } from "@/hooks/app/types"
@@ -10,10 +10,12 @@ type UseProbeStateArgs = {
 export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
   const [pluginStates, setPluginStates] = useState<Record<string, PluginState>>({})
 
+  // updatePluginStates is the only writer and keeps this ref current
+  // synchronously. Don't copy rendered state back into it from an effect:
+  // a passive effect from an older render can run after newer probe results
+  // were written, roll the ref back, and leave fast-failing providers stuck
+  // on loading forever.
   const pluginStatesRef = useRef(pluginStates)
-  useEffect(() => {
-    pluginStatesRef.current = pluginStates
-  }, [pluginStates])
 
   const manualRefreshIdsRef = useRef<Set<string>>(new Set())
 
