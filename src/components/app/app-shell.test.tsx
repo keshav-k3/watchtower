@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const panelState = vi.hoisted(() => ({
   canScrollDown: false,
-  maxPanelHeightPx: 320 as number | null,
+  panelHeightPx: 320 as number | null,
 }))
 
 vi.mock("@/components/app/app-content", () => ({
@@ -42,7 +42,7 @@ vi.mock("@/hooks/app/use-panel", () => ({
     containerRef: { current: null },
     scrollRef: { current: null },
     canScrollDown: panelState.canScrollDown,
-    maxPanelHeightPx: panelState.maxPanelHeightPx,
+    panelHeightPx: panelState.panelHeightPx,
   }),
 }))
 
@@ -111,29 +111,22 @@ function createProps() {
 describe("AppShell", () => {
   beforeEach(() => {
     panelState.canScrollDown = false
-    panelState.maxPanelHeightPx = 320
+    panelState.panelHeightPx = 320
     useAppUiStore.getState().resetState()
   })
 
-  it("keeps provider settings usable when the panel height is capped", async () => {
+  it("leaves a plain logo slot instead of a truncated wordmark", () => {
     render(<AppShell {...createProps()} />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-
-    const popover = screen.getByText("Providers").parentElement?.parentElement
-
-    expect(popover).toHaveClass("max-h-[calc(100%-4rem)]")
-    expect(popover).toHaveClass("overflow-y-auto")
+    expect(screen.queryByRole("heading", { name: "Watchtower" })).not.toBeInTheDocument()
+    expect(document.querySelector("[data-slot=app-logo]")).toBeTruthy()
   })
 
-  it("toggles provider settings from the header button", async () => {
-    render(<AppShell {...createProps()} />)
+  it("shows a notice inside the panel, right under the header", () => {
+    render(<AppShell {...createProps()} notice={<div role="status">Codex limits were reset</div>} />)
 
-    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-    expect(screen.getByText("Providers")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Provider Settings" }))
-    expect(screen.queryByText("Providers")).not.toBeInTheDocument()
+    const notice = screen.getByRole("status")
+    expect(notice.previousElementSibling?.tagName).toBe("HEADER")
   })
 
   it("wires about dialog open and close through the footer", async () => {
@@ -170,29 +163,24 @@ describe("AppShell", () => {
     expect(screen.getByTestId("side-nav").parentElement?.className).toContain("items-stretch")
   })
 
-  it("places the theme toggle between refresh and settings", async () => {
+  it("places the theme toggle after refresh", async () => {
     const props = createProps()
     render(<AppShell {...props} />)
 
     const refresh = screen.getByRole("button", { name: "Refresh" })
     const theme = screen.getByRole("button", { name: "Switch To Light Theme" })
-    const settings = screen.getByRole("button", { name: "Provider Settings" })
     const buttons = screen.getAllByRole("button")
     const headerButtons = buttons.filter((button) =>
-      ["Refresh", "Switch To Light Theme", "Provider Settings"].includes(
-        button.getAttribute("aria-label") ?? ""
-      )
+      ["Refresh", "Switch To Light Theme"].includes(button.getAttribute("aria-label") ?? "")
     )
 
     expect(headerButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
       "Refresh",
       "Switch To Light Theme",
-      "Provider Settings",
     ])
-    expect(theme.className).toContain("size-8")
-    expect(settings.className).toContain("size-8")
+    expect(theme.className).toContain("size-7")
+    expect(theme.className).toContain("bg-transparent")
     expect(refresh.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(theme.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("light")
@@ -204,18 +192,26 @@ describe("AppShell", () => {
     render(<AppShell {...props} />)
 
     const theme = screen.getByRole("button", { name: "Switch To Dark Theme" })
-    expect(theme.className).toContain("size-8")
-    expect(theme.className).toContain("bg-surface")
+    expect(theme.className).toContain("size-7")
+    expect(theme.className).toContain("bg-transparent")
 
     await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")
   })
 
-  it("omits the max-height style when panel height is unavailable", () => {
-    panelState.maxPanelHeightPx = null
+  it("gives the panel a fixed height so every page keeps the same size", () => {
+    const { container } = render(<AppShell {...createProps()} />)
+    const panel = container.querySelector<HTMLElement>(".rounded-xl")
+
+    expect(panel?.style.height).toBe("283px")
+    expect(panel?.style.maxHeight).toBe("")
+  })
+
+  it("omits the height style when panel height is unavailable", () => {
+    panelState.panelHeightPx = null
     const { container } = render(<AppShell {...createProps()} />)
 
-    expect(container.querySelector("[style*='max-height']")).toBeNull()
+    expect(container.querySelector("[style*='height']")).toBeNull()
   })
 
   it("shows the scroll fade when more content is available below", () => {

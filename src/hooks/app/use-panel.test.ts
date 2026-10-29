@@ -863,7 +863,7 @@ describe("usePanel", () => {
     rerender({ activeView: "a" })
 
     await waitFor(() => {
-      expect(result.current.maxPanelHeightPx).toBe(640)
+      expect(result.current.panelHeightPx).toBe(640)
     })
 
     document.body.removeChild(container)
@@ -897,7 +897,7 @@ describe("usePanel", () => {
     rerender({ activeView: "a" })
 
     await waitFor(() => {
-      expect(result.current.maxPanelHeightPx).toBe(800)
+      expect(result.current.panelHeightPx).toBe(720)
     })
 
     document.body.removeChild(container)
@@ -936,7 +936,7 @@ describe("usePanel", () => {
     rerender({ activeView: "a" })
 
     await waitFor(() => {
-      expect(result.current.maxPanelHeightPx).toBe(480)
+      expect(result.current.panelHeightPx).toBe(480)
     })
 
     document.body.removeChild(container)
@@ -977,9 +977,10 @@ describe("usePanel", () => {
     document.body.removeChild(container)
   })
 
-  it("resizes again when the container ResizeObserver fires", async () => {
+  it("keeps the window the same height when page content grows or shrinks", async () => {
     const setSize = vi.fn().mockResolvedValue(undefined)
     getCurrentWindowMock.mockReturnValue({ setSize })
+    currentMonitorMock.mockResolvedValue({ size: { height: 1200 } })
 
     const { result, rerender } = renderHook(
       ({ activeView }) =>
@@ -990,11 +991,11 @@ describe("usePanel", () => {
           setShowAbout: vi.fn(),
           displayPlugins: [],
         }),
-      { initialProps: { activeView: "home" as const } }
+      { initialProps: { activeView: "home" as string } }
     )
 
     const container = document.createElement("div")
-    Object.defineProperty(container, "scrollHeight", { configurable: true, value: 200 })
+    Object.defineProperty(container, "scrollHeight", { configurable: true, value: 950 })
     document.body.appendChild(container)
 
     act(() => {
@@ -1004,22 +1005,54 @@ describe("usePanel", () => {
     rerender({ activeView: "a" })
 
     await waitFor(() => {
-      expect(setSize).toHaveBeenCalled()
+      expect(setSize).toHaveBeenCalledTimes(1)
     })
+    expect(setSize.mock.calls[0][0].height).toBe(720)
 
-    setSize.mockClear()
-    Object.defineProperty(container, "scrollHeight", { configurable: true, value: 450 })
-
+    // Navigate to a short page, then let the content observer fire.
+    Object.defineProperty(container, "scrollHeight", { configurable: true, value: 200 })
+    rerender({ activeView: "settings" })
     act(() => {
       triggerResizeObservers()
     })
-
-    await waitFor(() => {
-      expect(setSize).toHaveBeenCalled()
+    await act(async () => {
+      await Promise.resolve()
     })
 
-    const physicalSize = setSize.mock.calls.at(-1)?.[0]
-    expect(physicalSize.height).toBe(450)
+    expect(setSize).toHaveBeenCalledTimes(1)
+    expect(result.current.panelHeightPx).toBe(720)
+
+    document.body.removeChild(container)
+  })
+
+  it("caps the fixed height to the monitor on small screens", async () => {
+    const setSize = vi.fn().mockResolvedValue(undefined)
+    getCurrentWindowMock.mockReturnValue({ setSize })
+    currentMonitorMock.mockResolvedValue({ size: { height: 700 } })
+
+    const { result, rerender } = renderHook(
+      ({ activeView }) =>
+        usePanel({
+          activeView,
+          setActiveView: vi.fn(),
+          showAbout: false,
+          setShowAbout: vi.fn(),
+          displayPlugins: [],
+        }),
+      { initialProps: { activeView: "home" as string } }
+    )
+
+    const container = document.createElement("div")
+    document.body.appendChild(container)
+    act(() => {
+      result.current.containerRef.current = container
+    })
+    rerender({ activeView: "a" })
+
+    await waitFor(() => {
+      expect(result.current.panelHeightPx).toBe(560)
+    })
+    expect(setSize.mock.calls.at(-1)?.[0].height).toBe(560)
 
     document.body.removeChild(container)
   })

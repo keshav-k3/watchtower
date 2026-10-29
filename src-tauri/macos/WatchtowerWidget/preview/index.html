@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Watchtower Usage — Preview</title>
+  <style>
+    :root {
+      --claude: #d97757;
+      --gemini: #4285f4;
+      --mono: #1c1c1e;
+      --ink: #1c1c1e;
+      --paper: rgba(255, 255, 255, 0.8);
+      --secondary: rgba(28, 28, 30, 0.62);
+      --tertiary: rgba(28, 28, 30, 0.42);
+      --track: rgba(28, 28, 30, 0.1);
+      --page: #e7e2d9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      padding: 36px 28px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body[data-theme="dark"] {
+      --mono: #f4f4f5;
+      --ink: #f5f5f7;
+      --paper: rgba(18, 18, 20, 0.78);
+      --secondary: rgba(255, 255, 255, 0.64);
+      --tertiary: rgba(255, 255, 255, 0.42);
+      --track: rgba(255, 255, 255, 0.12);
+      --page: #242320;
+    }
+
+    body[data-theme="tinted"] {
+      --mono: #f7f7f8;
+      --ink: #fff;
+      --paper: rgba(255, 255, 255, 0.16);
+      --secondary: rgba(255, 255, 255, 0.78);
+      --tertiary: rgba(255, 255, 255, 0.58);
+      --track: rgba(255, 255, 255, 0.22);
+      --meter: #fff;
+      --page: transparent;
+      background:
+        radial-gradient(820px 480px at 12% 18%, #f3b07a, transparent 60%),
+        radial-gradient(640px 460px at 88% 78%, #6d8dff, transparent 55%),
+        radial-gradient(480px 360px at 72% 12%, #efe2d2, transparent 50%),
+        #8ea0b5;
+    }
+
+    .banner, .note {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+      color: var(--secondary);
+    }
+
+    .banner { font-weight: 600; color: var(--ink); }
+
+    .stage {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    body[data-shot="small"] .widget:not(.small),
+    body[data-shot="medium"] .widget:not(.medium),
+    body[data-shot="large"] .widget:not(.large) { display: none; }
+
+    body[data-shot="small"] .small,
+    body[data-shot="medium"] .medium,
+    body[data-shot="large"] .large { zoom: 2; }
+
+    .widget {
+      position: relative;
+      padding: 16px;
+      border-radius: 22px;
+      background:
+        linear-gradient(165deg, color-mix(in srgb, var(--wash) 22%, transparent), transparent 58%),
+        var(--paper);
+      color: var(--ink);
+      box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.12),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.38);
+      display: flex;
+      flex-direction: column;
+    }
+
+    body[data-theme="tinted"] .widget {
+      background: rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(28px) saturate(1.45);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+        0 18px 50px rgba(0, 0, 0, 0.18);
+    }
+
+    .small { width: 170px; height: 170px; }
+    .medium { width: 360px; height: 170px; }
+    .large { width: 360px; height: 376px; }
+
+    .mark {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      background: var(--ink-mark, var(--mono));
+      -webkit-mask: var(--src) center / contain no-repeat;
+      mask: var(--src) center / contain no-repeat;
+    }
+
+    .mark.lg { width: 16px; height: 16px; }
+    .mark.claude { --ink-mark: var(--claude); }
+    .mark.gemini {
+      background: conic-gradient(from 25deg, #4285f4, #a142f4, #ea4335, #fbbc04, #34a853, #4285f4);
+    }
+    body[data-theme="tinted"] .mark.gemini {
+      background: conic-gradient(from 25deg, #4285f4, #a142f4, #ea4335, #fbbc04, #34a853, #4285f4);
+    }
+
+    .topline, .head, .top, .sub, .next {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .name { font-size: 13px; font-weight: 500; }
+    .flag {
+      display: none;
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--tertiary);
+    }
+    body[data-stale="1"] .flag { display: inline; }
+
+    .hero {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .figure { display: flex; align-items: baseline; gap: 1px; }
+    .num {
+      font-size: 40px;
+      font-weight: 300;
+      letter-spacing: -0.045em;
+      font-variant-numeric: tabular-nums;
+      line-height: 0.95;
+      color: var(--meter, var(--ink));
+    }
+    .unit { font-size: 14px; font-weight: 500; color: var(--secondary); }
+    .label { margin-top: 2px; font-size: 11px; font-weight: 500; color: var(--secondary); }
+    .reset { margin-top: 10px; font-size: 11px; color: var(--tertiary); }
+
+    .ring {
+      width: 34px;
+      height: 34px;
+      margin-left: auto;
+      border-radius: 50%;
+      background: conic-gradient(from -90deg, var(--meter, var(--accent)) calc(var(--p) * 1%), var(--track) 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+    }
+    body[data-stale="1"] .ring {
+      background: conic-gradient(from -90deg, var(--tertiary) calc(var(--p) * 1%), var(--track) 0);
+    }
+
+    .head { font-size: 13px; font-weight: 600; }
+    .soon, .pct, .bigpct, .when {
+      font-variant-numeric: tabular-nums;
+    }
+    .soon { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--secondary); }
+
+    .rows { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+    .row {
+      display: grid;
+      grid-template-columns: 14px 72px 1fr 32px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .pct { text-align: right; color: var(--meter, var(--ink)); }
+    .bar { height: 3px; border-radius: 99px; background: var(--track); overflow: hidden; }
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--meter, var(--accent));
+    }
+    body[data-stale="1"] .small .bar > span { background: var(--tertiary); }
+
+    .lrows { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+    .lrow { display: grid; gap: 3px; }
+    .top { font-size: 13px; font-weight: 500; }
+    .grow { flex: 1; }
+    .bigpct { font-size: 13px; font-weight: 500; color: var(--meter, var(--ink)); }
+    .pctmark { font-size: 11px; font-weight: 500; color: var(--secondary); }
+    .sub { justify-content: space-between; font-size: 11px; color: var(--tertiary); }
+    .foot { margin-top: auto; padding-top: 10px; display: grid; gap: 3px; }
+    .foot .kicker {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--tertiary);
+    }
+    .next { font-size: 11px; }
+    .next .dim { color: var(--secondary); }
+    .when { margin-left: auto; color: var(--secondary); }
+  </style>
+</head>
+<body data-theme="light" data-shot="all" data-stale="0">
+  <p class="banner">Preview. Not a running macOS build.</p>
+  <main class="stage">
+    <article class="widget small" style="--wash:#d97757; --accent:#d97757">
+      <div class="topline">
+        <span class="mark lg claude" style="--src:url('../Assets.xcassets/provider-claude.imageset/icon.svg')"></span>
+        <span class="name">Claude</span>
+        <span class="flag">Stale</span>
+      </div>
+      <div class="hero">
+        <div>
+          <div class="figure"><span class="num">72</span><span class="unit">%</span></div>
+          <div class="label">Session</div>
+        </div>
+        <div class="ring" style="--p:72" aria-hidden="true"></div>
+      </div>
+      <div class="reset">Resets 3h</div>
+    </article>
+
+    <article class="widget medium" style="--wash:#d97757">
+      <div class="head"><span>Usage</span><span class="soon">3h</span></div>
+      <div class="rows">
+        <div class="row" style="--accent:#d97757">
+          <span class="mark claude" style="--src:url('../Assets.xcassets/provider-claude.imageset/icon.svg')"></span>
+          <span>Claude</span>
+          <div class="bar"><span style="width:72%"></span></div>
+          <span class="pct">72</span>
+        </div>
+        <div class="row" style="--accent:var(--mono)">
+          <span class="mark" style="--src:url('../Assets.xcassets/provider-codex.imageset/icon.svg')"></span>
+          <span>Codex</span>
+          <div class="bar"><span style="width:63%"></span></div>
+          <span class="pct">63</span>
+        </div>
+        <div class="row" style="--accent:var(--mono)">
+          <span class="mark" style="--src:url('../Assets.xcassets/provider-cursor.imageset/icon.svg')"></span>
+          <span>Cursor</span>
+          <div class="bar"><span style="width:54%"></span></div>
+          <span class="pct">54</span>
+        </div>
+        <div class="row" style="--accent:#4285f4">
+          <span class="mark gemini" style="--src:url('../Assets.xcassets/provider-gemini.imageset/icon.svg')"></span>
+          <span>Gemini</span>
+          <div class="bar"><span style="width:18%"></span></div>
+          <span class="pct">18</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="widget large" style="--wash:#d97757">
+      <div class="head"><span>Usage</span><span class="soon">3h</span></div>
+      <div class="lrows">
+        <div class="lrow" style="--accent:#d97757">
+          <div class="top">
+            <span class="mark claude" style="--src:url('../Assets.xcassets/provider-claude.imageset/icon.svg')"></span>
+            <span>Claude</span>
+            <span class="grow"></span>
+            <span class="figure"><span class="bigpct">72</span><span class="pctmark">%</span></span>
+          </div>
+          <div class="bar"><span style="width:72%"></span></div>
+          <div class="sub"><span>Session · Weekly 41%</span><span>3h</span></div>
+        </div>
+        <div class="lrow" style="--accent:var(--mono)">
+          <div class="top">
+            <span class="mark" style="--src:url('../Assets.xcassets/provider-codex.imageset/icon.svg')"></span>
+            <span>Codex</span>
+            <span class="grow"></span>
+            <span class="figure"><span class="bigpct">63</span><span class="pctmark">%</span></span>
+          </div>
+          <div class="bar"><span style="width:63%"></span></div>
+          <div class="sub"><span>Session · Weekly 28%</span><span>5h</span></div>
+        </div>
+        <div class="lrow" style="--accent:var(--mono)">
+          <div class="top">
+            <span class="mark" style="--src:url('../Assets.xcassets/provider-cursor.imageset/icon.svg')"></span>
+            <span>Cursor</span>
+            <span class="grow"></span>
+            <span class="figure"><span class="bigpct">54</span><span class="pctmark">%</span></span>
+          </div>
+          <div class="bar"><span style="width:54%"></span></div>
+          <div class="sub"><span>Credits</span><span>6h</span></div>
+        </div>
+        <div class="lrow" style="--accent:#4285f4">
+          <div class="top">
+            <span class="mark gemini" style="--src:url('../Assets.xcassets/provider-gemini.imageset/icon.svg')"></span>
+            <span>Gemini</span>
+            <span class="grow"></span>
+            <span class="figure"><span class="bigpct">18</span><span class="pctmark">%</span></span>
+          </div>
+          <div class="bar"><span style="width:18%"></span></div>
+          <div class="sub"><span>Gemini Pro · Gemini Flash 7%</span><span>9h</span></div>
+        </div>
+        <div class="lrow" style="--accent:var(--mono)">
+          <div class="top">
+            <span class="mark" style="--src:url('../Assets.xcassets/provider-opencode.imageset/icon.svg')"></span>
+            <span>OpenCode</span>
+            <span class="grow"></span>
+            <span class="figure"><span class="bigpct">12</span><span class="pctmark">%</span></span>
+          </div>
+          <div class="bar"><span style="width:12%"></span></div>
+          <div class="sub"><span>Session</span><span>11h</span></div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="kicker">Next Reset</div>
+        <div class="next"><span>Claude</span><span class="dim">Session</span><span class="when">3h</span></div>
+        <div class="next"><span>Codex</span><span class="dim">Session</span><span class="when">5h</span></div>
+      </div>
+    </article>
+  </main>
+  <p class="note">Marks are the plugin icons from this repo, used unchanged. Claude, Codex, Cursor, Gemini, and OpenCode.</p>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const frames = [
+      ["light", "all", "0"],
+      ["dark", "all", "0"],
+      ["tinted", "all", "0"],
+      ["light", "small", "0"],
+      ["light", "medium", "0"],
+      ["light", "large", "0"],
+      ["tinted", "small", "1"]
+    ];
+
+    function apply(theme, shot, stale) {
+      document.body.dataset.theme = theme;
+      document.body.dataset.shot = shot;
+      document.body.dataset.stale = stale;
+    }
+
+    if (params.get("walk") === "1") {
+      let index = 0;
+      const step = () => {
+        const frame = frames[index % frames.length];
+        apply(frame[0], frame[1], frame[2]);
+        index += 1;
+      };
+      step();
+      setInterval(step, 3500);
+    } else {
+      apply(params.get("theme") || "light", params.get("shot") || "all", params.get("stale") === "1" ? "1" : "0");
+    }
+  </script>
+</body>
+</html>

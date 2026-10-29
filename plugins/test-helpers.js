@@ -83,6 +83,9 @@ export const makeCtx = () => {
       ccusage: {
         query: vi.fn(() => null),
       },
+      muse: {
+        usage: vi.fn(() => JSON.stringify({ status: "not_installed" })),
+      },
       log: {
         trace: vi.fn(),
         debug: vi.fn(),

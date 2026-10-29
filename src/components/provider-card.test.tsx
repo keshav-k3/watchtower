@@ -556,8 +556,8 @@ describe("ProviderCard", () => {
     expect(markers).toHaveLength(2)
     expect(markers[0]?.style.left).toBe("50%")
     expect(markers[1]?.style.left).toBe("50%")
-    expect(markers[0]).toHaveClass("bg-muted-foreground")
-    expect(markers[1]).toHaveClass("bg-muted-foreground")
+    expect(markers[0]).toHaveClass("bg-muted-foreground", "w-px")
+    expect(markers[1]).toHaveClass("bg-muted-foreground", "w-px")
     vi.useRealTimers()
   })
 
@@ -770,6 +770,23 @@ describe("ProviderCard", () => {
     expect(screen.queryByText("Hidden")).not.toBeInTheDocument()
   })
 
+  it("keeps a labelled account metric on the overview", () => {
+    render(
+      <ProviderCard
+        name="Codex"
+        displayMode="used"
+        scopeFilter="overview"
+        skeletonLines={[{ type: "progress", label: "Session", scope: "overview" }]}
+        lines={[
+          { type: "progress", label: "Work · Session", used: 20, limit: 100, format: { kind: "percent" } },
+          { type: "text", label: "Work · Credits", value: "Hidden" },
+        ]}
+      />
+    )
+    expect(screen.getByText("Work · Session")).toBeInTheDocument()
+    expect(screen.queryByText("Work · Credits")).not.toBeInTheDocument()
+  })
+
   it("shows all lines when scopeFilter=all", () => {
     render(
       <ProviderCard
@@ -882,13 +899,29 @@ describe("ProviderCard", () => {
     )
     // Stale data still visible
     expect(screen.getByText("40%")).toBeInTheDocument()
-    // Inline warning shown (not the full PluginError alert) — error text appears
-    // in both the trigger and the tooltip content via our mocked Tooltip
     expect(screen.getAllByText("Couldn't update data. Try again?").length).toBeGreaterThan(0)
     expect(screen.queryByRole("alert")).toBeNull()
   })
 
-  it("shows full PluginError when errored without stale data", () => {
+  it("retries from the stale error row", async () => {
+    const onRetry = vi.fn()
+    render(
+      <ProviderCard
+        name="StaleErr"
+        displayMode="used"
+        error="Couldn't update data. Try again?"
+        lastUpdatedAt={Date.now() - 60_000}
+        onRetry={onRetry}
+        lines={[
+          { type: "progress", label: "Session", used: 40, limit: 100, format: { kind: "percent" } },
+        ]}
+      />
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }))
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it("shows full PluginError when errored without stale data", async () => {
     render(
       <ProviderCard
         name="ColdErr"
@@ -899,6 +932,7 @@ describe("ProviderCard", () => {
     )
     expect(screen.getByRole("alert")).toBeInTheDocument()
     expect(screen.getByText("Nope")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }))
   })
 
   it("shows relative last-updated timestamp in retry tooltip", () => {
@@ -908,6 +942,7 @@ describe("ProviderCard", () => {
     render(
       <ProviderCard
         name="Updated"
+        plan="Pro"
         displayMode="used"
         onRetry={() => {}}
         lastUpdatedAt={now.getTime() - 120_000}

@@ -1,9 +1,9 @@
 import { useCallback } from "react"
-import { invoke } from "@tauri-apps/api/core"
-import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu"
+import { Menu, MenuItem } from "@tauri-apps/api/menu"
 import {
   DndContext,
   closestCenter,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -12,12 +12,13 @@ import {
 import {
   arrayMove,
   SortableContext,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { CommandIcon, DashboardSquare02Icon } from "@hugeicons-pro/core-solid-rounded"
+import { DashboardSquare02Icon, ServerStackIcon, Settings02Icon } from "@hugeicons-pro/core-solid-rounded"
 
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/components/provider-icon"
@@ -57,14 +58,17 @@ function NavButton({ isActive, onClick, onContextMenu, children, "aria-label": a
       onClick={onClick}
       onContextMenu={onContextMenu}
       aria-label={ariaLabel}
-      className="group/nav flex h-11 w-full items-center justify-center"
+      className="group/nav relative flex h-8 w-full items-center justify-center"
     >
+      {isActive && (
+        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-foreground" />
+      )}
       <span
         className={cn(
-          "grid size-9 place-items-center rounded-[10px] transition-colors duration-150",
+          "grid size-8 place-items-center rounded-md text-muted-foreground transition-colors duration-150",
           isActive
-            ? "bg-surface-raised text-foreground ring-1 ring-line"
-            : "text-muted-foreground group-hover/nav:bg-surface group-hover/nav:text-foreground"
+            ? "text-foreground"
+            : "group-hover/nav:bg-muted group-hover/nav:text-foreground"
         )}
       >
         {children}
@@ -110,7 +114,7 @@ function SortableNavPlugin({ plugin, isActive, onClick, onContextMenu }: Sortabl
           iconUrl={plugin.iconUrl}
           brandColor={plugin.brandColor}
           active={isActive}
-          className="size-5"
+          className="size-4"
         />
       </NavButton>
     </div>
@@ -128,7 +132,8 @@ export function SideNav({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { delay: 300, tolerance: 5 },
-    })
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const handleDragEnd = useCallback(
@@ -158,16 +163,8 @@ export function SideNav({
           enabled: isPluginRefreshAvailable ? isPluginRefreshAvailable(pluginId) : true,
           action: () => onPluginContextAction(pluginId, "reload"),
         })
-        const bottomSeparator = await PredefinedMenuItem.new({ item: "Separator" })
-        const inspectItem = await MenuItem.new({
-          id: `ctx-inspect-${pluginId}`,
-          text: "Inspect Element",
-          action: () => {
-            invoke("open_devtools").catch(console.error)
-          },
-        })
         const menu = await Menu.new({
-          items: [reloadItem, bottomSeparator, inspectItem],
+          items: [reloadItem],
         })
         try {
           await menu.popup()
@@ -175,8 +172,6 @@ export function SideNav({
           await Promise.allSettled([
             menu.close(),
             reloadItem.close(),
-            bottomSeparator.close(),
-            inspectItem.close(),
           ])
         }
       })().catch(console.error)
@@ -185,13 +180,13 @@ export function SideNav({
   )
 
   return (
-    <nav className="wt-dot-grid flex w-[52px] shrink-0 flex-col items-center gap-0.5 self-stretch overflow-y-auto border-r border-sidebar-border bg-sidebar py-3 scrollbar-none">
+    <nav className="flex w-10 shrink-0 flex-col items-center gap-0.5 self-stretch overflow-y-auto border-r border-sidebar-border bg-sidebar py-2 scrollbar-none">
       <NavButton
         isActive={activeView === "home"}
         onClick={() => onViewChange("home")}
         aria-label="Home"
       >
-        <HugeiconsIcon icon={DashboardSquare02Icon} className="size-5" />
+        <HugeiconsIcon icon={DashboardSquare02Icon} className="size-4" />
       </NavButton>
 
       <div className="flex flex-col items-center gap-0.5">
@@ -217,13 +212,22 @@ export function SideNav({
         </DndContext>
       </div>
 
-      <NavButton
-        isActive={activeView === "settings"}
-        onClick={() => onViewChange("settings")}
-        aria-label="Keyboard Shortcut"
-      >
-        <HugeiconsIcon icon={CommandIcon} className="size-5" />
-      </NavButton>
+      <div className="mt-auto flex flex-col items-center gap-1">
+        <NavButton
+          isActive={activeView === "ports"}
+          onClick={() => onViewChange("ports")}
+          aria-label="Ports"
+        >
+          <HugeiconsIcon icon={ServerStackIcon} className="size-4" />
+        </NavButton>
+        <NavButton
+          isActive={activeView === "settings"}
+          onClick={() => onViewChange("settings")}
+          aria-label="Settings"
+        >
+          <HugeiconsIcon icon={Settings02Icon} className="size-4" />
+        </NavButton>
+      </div>
     </nav>
   )
 }

@@ -2,6 +2,10 @@ import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+vi.mock("@/hooks/use-codex-reset-notifications", () => ({
+  useCodexResetNotifications: () => null,
+}))
+
 const state = vi.hoisted(() => ({
   appShellProps: null as any,
   capturedOnProbeResult: null as (() => void) | null,

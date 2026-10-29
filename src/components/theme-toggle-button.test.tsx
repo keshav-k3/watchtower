@@ -39,9 +39,8 @@ describe("ThemeToggleButton", () => {
     render(<ThemeToggleButton themeMode="dark" onThemeModeChange={vi.fn()} />)
 
     const button = screen.getByRole("button", { name: "Switch To Light Theme" })
-    expect(button.className).toContain("size-8")
-    expect(button.className).toContain("bg-surface")
-    expect(button.className).toContain("rounded-[10px]")
-    expect(button.className).toContain("border-line")
+    expect(button.className).toContain("size-7")
+    expect(button.className).toContain("bg-transparent")
+    expect(button.className).toContain("border-0")
   })
 })

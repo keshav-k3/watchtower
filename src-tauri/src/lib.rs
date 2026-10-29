@@ -5,9 +5,17 @@ mod local_http_api;
 mod log_path;
 mod panel;
 mod plugin_engine;
+mod power;
 mod tray;
+mod tray_click;
+#[cfg(target_os = "macos")]
+mod tray_macos;
+mod ports;
+mod codex_accounts;
 #[cfg(target_os = "macos")]
 mod webkit_config;
+mod widget_publish;
+mod widget_snapshot;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
@@ -334,6 +342,7 @@ async fn start_probe_batch(
 
                 match result {
                     Ok(output) => {
+                        widget_publish::record_probe(&data_dir, &plugin, &output);
                         let has_error = output.lines.iter().any(|line| {
                             matches!(line, plugin_engine::runtime::MetricLine::Badge { label, .. } if label == "Error")
                         });
@@ -357,11 +366,17 @@ async fn start_probe_batch(
                     }
                     Err(_) => {
                         log::error!("probe {} panicked", plugin_id);
+                        widget_publish::record_failure(
+                            &data_dir,
+                            &plugin.manifest.id,
+                            &plugin.manifest.name,
+                        );
                     }
                 }
 
                 if counter.fetch_sub(1, Ordering::SeqCst) == 1 {
                     log::info!("probe batch {} complete", completion_bid);
+                    widget_publish::reload_timelines();
                     let _ = completion_handle.emit(
                         "probe:batch-complete",
                         ProbeBatchComplete {
@@ -377,6 +392,24 @@ async fn start_probe_batch(
         batch_id,
         plugin_ids: response_plugin_ids,
     })
+}
+
+#[tauri::command]
+fn get_cached_usage() -> Vec<local_http_api::cache::CachedPluginSnapshot> {
+    local_http_api::cache::cached_snapshots()
+}
+
+#[tauri::command]
+fn panel_visible() -> bool {
+    panel::panel_is_visible()
+}
+
+// Runs pmset on macOS: keep it off the main (UI) thread.
+#[tauri::command(async)]
+fn power_status() -> power::PowerStatus {
+    power::PowerStatus {
+        on_battery: power::on_battery(),
+    }
 }
 
 #[tauri::command]
@@ -503,6 +536,7 @@ fn list_plugins(state: tauri::State<'_, Mutex<AppState>>) -> Vec<PluginMeta> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let boot_started = std::time::Instant::now();
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
     let _guard = runtime.enter();
 
@@ -524,7 +558,7 @@ pub fn run() {
                     Target::new(TargetKind::LogDir { file_name: None }),
                 ])
                 .max_file_size(10_000_000) // 10 MB
-                .level(log::LevelFilter::Trace) // Allow all levels; runtime filter via tray menu
+                .level(log::LevelFilter::Trace) // Allow all levels; runtime filter via saved logLevel
                 .level_for("hyper", log::LevelFilter::Warn)
                 .level_for("reqwest", log::LevelFilter::Warn)
                 .level_for("tao", log::LevelFilter::Info)
@@ -534,16 +568,23 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             init_panel,
             hide_panel,
             open_devtools,
             start_probe_batch,
             list_plugins,
+            get_cached_usage,
+            panel_visible,
+            power_status,
             get_log_path,
-            update_global_shortcut
+            update_global_shortcut,
+            ports::list_listening_ports,
+            ports::stop_listening_process,
+            codex_accounts::sync_codex_accounts
         ])
-        .setup(|app| {
+        .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
@@ -582,6 +623,7 @@ pub fn run() {
             let (_, plugins) = plugin_engine::initialize_plugins(&app_data_dir, &resource_dir);
             let known_plugin_ids: Vec<String> =
                 plugins.iter().map(|p| p.manifest.id.clone()).collect();
+            widget_publish::init(&app_data_dir, &plugins);
             app.manage(Mutex::new(AppState {
                 plugins,
                 app_data_dir: app_data_dir.clone(),
@@ -592,6 +634,10 @@ pub fn run() {
             local_http_api::start_server();
 
             tray::create(app.handle())?;
+            log::info!(
+                "tray ready in {}ms",
+                boot_started.elapsed().as_millis()
+            );
 
             // Linux keep-visible path: show the panel immediately without
             // waiting for the frontend init_panel call.

@@ -1,48 +1,49 @@
 use tauri::image::Image;
-use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::path::BaseDirectory;
-use tauri::tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_store::StoreExt;
 
-use crate::log_path;
 use crate::panel::{handle_tray_click, show_panel};
+use crate::tray_click::{
+    tray_click_intent, uses_manual_tray_menu, TrayButton, TrayButtonState, TrayClickIntent,
+};
 
 const LOG_LEVEL_STORE_KEY: &str = "logLevel";
 
-fn get_stored_log_level(app_handle: &AppHandle) -> log::LevelFilter {
-    let store = match app_handle.store("settings.json") {
-        Ok(s) => s,
-        Err(_) => return log::LevelFilter::Error,
+/// 1.0 removed the Debug Level menu, so a level picked in 0.6.x could no
+/// longer be changed. Drop the old choice and log at the default level.
+fn effective_log_level(stored: Option<&serde_json::Value>) -> (log::LevelFilter, bool) {
+    (log::LevelFilter::Error, stored.is_some())
+}
+
+fn load_log_level(app_handle: &AppHandle) -> log::LevelFilter {
+    let Ok(store) = app_handle.store("settings.json") else {
+        return log::LevelFilter::Error;
     };
-    let value = store.get(LOG_LEVEL_STORE_KEY);
-    let level_str = value.and_then(|v| v.as_str().map(|s| s.to_string()));
-    match level_str.as_deref() {
-        Some("error") => log::LevelFilter::Error,
-        Some("warn") => log::LevelFilter::Warn,
-        Some("info") => log::LevelFilter::Info,
-        Some("debug") => log::LevelFilter::Debug,
-        Some("trace") => log::LevelFilter::Trace,
-        _ => log::LevelFilter::Error, // Default: least verbose
+    let (level, clear) = effective_log_level(store.get(LOG_LEVEL_STORE_KEY).as_ref());
+    if clear {
+        log::info!("clearing the 0.6.x log level setting; the Debug Level menu was removed");
+        store.delete(LOG_LEVEL_STORE_KEY);
+        let _ = store.save();
+    }
+    level
+}
+
+fn map_button(button: MouseButton) -> TrayButton {
+    match button {
+        MouseButton::Left => TrayButton::Left,
+        MouseButton::Right => TrayButton::Right,
+        _ => TrayButton::Other,
     }
 }
 
-fn set_stored_log_level(app_handle: &AppHandle, level: log::LevelFilter) {
-    let level_str = match level {
-        log::LevelFilter::Error => "error",
-        log::LevelFilter::Warn => "warn",
-        log::LevelFilter::Info => "info",
-        log::LevelFilter::Debug => "debug",
-        log::LevelFilter::Trace => "trace",
-        log::LevelFilter::Off => "off",
-    };
-    log::info!("Log level changing to {:?}", level);
-    if let Ok(store) = app_handle.store("settings.json") {
-        store.set(LOG_LEVEL_STORE_KEY, serde_json::json!(level_str));
-        let _ = store.save();
+fn map_state(state: MouseButtonState) -> TrayButtonState {
+    match state {
+        MouseButtonState::Down => TrayButtonState::Down,
+        MouseButtonState::Up => TrayButtonState::Up,
     }
-    log::set_max_level(level);
 }
 
 pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -51,101 +52,17 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
         .resolve("icons/tray-icon.png", BaseDirectory::Resource)?;
     let icon = Image::from_path(tray_icon_path)?;
 
-    // Load persisted log level
-    let current_level = get_stored_log_level(app_handle);
+    let current_level = load_log_level(app_handle);
     log::set_max_level(current_level);
 
     let show_stats = MenuItem::with_id(app_handle, "show_stats", "Show Stats", true, None::<&str>)?;
-
-    // Log level submenu - clone items for use in event handler
-    let log_error = CheckMenuItem::with_id(
-        app_handle,
-        "log_error",
-        "Error",
-        true,
-        current_level == log::LevelFilter::Error,
-        None::<&str>,
-    )?;
-    let log_warn = CheckMenuItem::with_id(
-        app_handle,
-        "log_warn",
-        "Warn",
-        true,
-        current_level == log::LevelFilter::Warn,
-        None::<&str>,
-    )?;
-    let log_info = CheckMenuItem::with_id(
-        app_handle,
-        "log_info",
-        "Info",
-        true,
-        current_level == log::LevelFilter::Info,
-        None::<&str>,
-    )?;
-    let log_debug = CheckMenuItem::with_id(
-        app_handle,
-        "log_debug",
-        "Debug",
-        true,
-        current_level == log::LevelFilter::Debug,
-        None::<&str>,
-    )?;
-    let log_trace = CheckMenuItem::with_id(
-        app_handle,
-        "log_trace",
-        "Trace",
-        true,
-        current_level == log::LevelFilter::Trace,
-        None::<&str>,
-    )?;
-    let log_level_separator = PredefinedMenuItem::separator(app_handle)?;
-    let copy_log_path = MenuItem::with_id(
-        app_handle,
-        "copy_log_path",
-        "Copy Log Path",
-        true,
-        None::<&str>,
-    )?;
-    let log_level_submenu = Submenu::with_items(
-        app_handle,
-        "Debug Level",
-        true,
-        &[
-            &log_error,
-            &log_warn,
-            &log_info,
-            &log_debug,
-            &log_trace,
-            &log_level_separator,
-            &copy_log_path,
-        ],
-    )?;
-
-    // Clone for capture in event handler
-    let log_items = [
-        (log_error.clone(), log::LevelFilter::Error),
-        (log_warn.clone(), log::LevelFilter::Warn),
-        (log_info.clone(), log::LevelFilter::Info),
-        (log_debug.clone(), log::LevelFilter::Debug),
-        (log_trace.clone(), log::LevelFilter::Trace),
-    ];
-
     let separator = PredefinedMenuItem::separator(app_handle)?;
     let about = MenuItem::with_id(app_handle, "about", "About Watchtower", true, None::<&str>)?;
     let quit = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
-    let menu = Menu::with_items(
-        app_handle,
-        &[
-            &show_stats,
-            &log_level_submenu,
-            &separator,
-            &about,
-            &quit,
-        ],
-    )?;
+    let menu = Menu::with_items(app_handle, &[&show_stats, &separator, &about, &quit])?;
 
-    TrayIconBuilder::with_id("tray")
+    let tray = TrayIconBuilder::with_id("tray")
         .icon(icon)
         .icon_as_template(true)
         .tooltip("Watchtower")
@@ -166,52 +83,66 @@ pub fn create(app_handle: &AppHandle) -> tauri::Result<()> {
                     log::info!("quit requested via tray");
                     app_handle.exit(0);
                 }
-                "log_error" | "log_warn" | "log_info" | "log_debug" | "log_trace" => {
-                    let selected_level = match event.id.as_ref() {
-                        "log_error" => log::LevelFilter::Error,
-                        "log_warn" => log::LevelFilter::Warn,
-                        "log_info" => log::LevelFilter::Info,
-                        "log_debug" => log::LevelFilter::Debug,
-                        "log_trace" => log::LevelFilter::Trace,
-                        _ => unreachable!(),
-                    };
-                    set_stored_log_level(app_handle, selected_level);
-                    // Update all checkmarks - only the selected level should be checked
-                    for (item, level) in &log_items {
-                        let _ = item.set_checked(*level == selected_level);
-                    }
-                }
-                "copy_log_path" => match log_path::for_app(app_handle) {
-                    Ok(path) => {
-                        if let Err(error) = app_handle
-                            .clipboard()
-                            .write_text(path.to_string_lossy().to_string())
-                        {
-                            log::error!("failed to copy log path to clipboard: {}", error);
-                        } else {
-                            log::info!("copied log path to clipboard");
-                        }
-                    }
-                    Err(error) => {
-                        log::error!("failed to resolve log path: {}", error);
-                    }
-                },
                 _ => {}
             }
         })
         .on_tray_icon_event(|tray, event| {
-            let app_handle = tray.app_handle();
-
-            if let TrayIconEvent::Click {
-                button_state, rect, ..
+            let TrayIconEvent::Click {
+                button,
+                button_state,
+                rect,
+                ..
             } = event
-            {
-                if button_state == MouseButtonState::Up {
-                    handle_tray_click(app_handle, rect.position, rect.size);
+            else {
+                return;
+            };
+
+            let intent = tray_click_intent(
+                map_button(button),
+                map_state(button_state),
+                uses_manual_tray_menu(),
+            );
+            log::debug!("tray click intent: {:?}", intent);
+            match intent {
+                TrayClickIntent::ShowPanel => {
+                    handle_tray_click(tray.app_handle(), rect.position, rect.size);
                 }
+                TrayClickIntent::ShowMenu => {
+                    #[cfg(target_os = "macos")]
+                    crate::tray_macos::show_tray_menu();
+                }
+                TrayClickIntent::Ignore => {}
             }
         })
         .build(app_handle)?;
 
+    #[cfg(target_os = "macos")]
+    {
+        if let Err(error) = tray.with_inner_tray_icon(|inner| {
+            crate::tray_macos::capture(inner);
+        }) {
+            log::error!("failed to detach the macOS tray menu from left click: {}", error);
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = tray;
+    }
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::effective_log_level;
+
+    #[test]
+    fn a_saved_0_6_log_level_is_cleared_and_not_applied() {
+        let trace = serde_json::json!("trace");
+        assert_eq!(
+            effective_log_level(Some(&trace)),
+            (log::LevelFilter::Error, true)
+        );
+        assert_eq!(effective_log_level(None), (log::LevelFilter::Error, false));
+    }
 }

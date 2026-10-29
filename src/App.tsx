@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow"
 import { AppShell } from "@/components/app/app-shell"
 import { useAppPluginViews } from "@/hooks/app/use-app-plugin-views"
 import { useProbe } from "@/hooks/app/use-probe"
+import { usePanelVisibility } from "@/hooks/use-panel-visibility"
 import { useSettingsBootstrap } from "@/hooks/app/use-settings-bootstrap"
 import { useSettingsSystemActions } from "@/hooks/app/use-settings-system-actions"
 import { useSettingsTheme } from "@/hooks/app/use-settings-theme"
@@ -12,6 +13,7 @@ import { type PluginContextAction } from "@/components/side-nav"
 import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
+import { useCodexResetNotifications } from "@/hooks/use-codex-reset-notifications"
 
 const TRAY_PROBE_DEBOUNCE_MS = 500
 
@@ -55,6 +57,7 @@ function App() {
     setTimeFormatMode,
     setGlobalShortcut,
     setStartOnLogin,
+    setCodexResetNotifications,
   } = useAppPreferencesStore(
     useShallow((state) => ({
       autoUpdateInterval: state.autoUpdateInterval,
@@ -66,6 +69,7 @@ function App() {
       menubarIconStyle: state.menubarIconStyle,
       setMenubarIconStyle: state.setMenubarIconStyle,
       menubarMetric: state.menubarMetric,
+      setCodexResetNotifications: state.setCodexResetNotifications,
       setMenubarMetric: state.setMenubarMetric,
       resetTimerDisplayMode: state.resetTimerDisplayMode,
       setResetTimerDisplayMode: state.setResetTimerDisplayMode,
@@ -88,6 +92,7 @@ function App() {
     autoUpdateNextAt,
     handleRetryPlugin,
     handleRefreshAll,
+    hydrateCachedUsage,
   } = useProbe({
     pluginSettings,
     autoUpdateInterval,
@@ -110,6 +115,8 @@ function App() {
     }
   }, [scheduleTrayIconUpdate])
 
+  usePanelVisibility()
+
   useSettingsBootstrap({
     setPluginSettings,
     setPluginsMeta,
@@ -122,9 +129,11 @@ function App() {
     setTimeFormatMode,
     setGlobalShortcut,
     setStartOnLogin,
+    setCodexResetNotifications,
     setLoadingForPlugins,
     setErrorForPlugins,
     startBatch,
+    hydrateCachedUsage,
   })
 
   useSettingsTheme(themeMode)
@@ -213,8 +222,11 @@ function App() {
     ]
   )
 
+  const resetNotice = useCodexResetNotifications(pluginStates.codex?.data?.lines ?? null)
+
   return (
     <AppShell
+      notice={resetNotice}
       onRefreshAll={handleRefreshAll}
       navPlugins={navPlugins}
       pluginsMeta={pluginsMeta}

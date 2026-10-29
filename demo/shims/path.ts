@@ -1,0 +1,1 @@
+export { resolveResource } from "./bus"

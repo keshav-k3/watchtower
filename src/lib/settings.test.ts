@@ -36,6 +36,15 @@ import {
   saveStartOnLogin,
   saveThemeMode,
   saveTimeFormatMode,
+  loadCodexAccountSettings,
+  loadCodexAccountView,
+  loadCodexResetNotifications,
+  loadCodexResetSnapshot,
+  normalizeCodexAccountSettings,
+  saveCodexAccountSettings,
+  saveCodexAccountView,
+  saveCodexResetNotifications,
+  saveCodexResetSnapshot,
 } from "@/lib/settings"
 import type { PluginMeta } from "@/lib/plugin-types"
 
@@ -130,6 +139,11 @@ describe("settings", () => {
       { id: "cursor", name: "Cursor", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "opencode", name: "OpenCode", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "codex", name: "Codex", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "kiro", name: "Kiro", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "kimi", name: "Kimi", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "devin", name: "Devin", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "grok-bot", name: "Grok Bot", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "muse", name: "Muse Code", iconUrl: "", lines: [], primaryCandidates: [] },
     ]
     const result = normalizePluginSettings(
       { order: ["mock", "gemini", "cursor"], disabled: ["mock", "claude"] },
@@ -427,5 +441,73 @@ describe("settings", () => {
   it("falls back to default for invalid start on login value", async () => {
     storeState.set("startOnLogin", "invalid")
     await expect(loadStartOnLogin()).resolves.toBe(DEFAULT_START_ON_LOGIN)
+  })
+
+  it("normalizes Codex account settings", () => {
+    expect(normalizeCodexAccountSettings(null)).toEqual({ showAll: false, accounts: [] })
+    expect(normalizeCodexAccountSettings({ showAll: true, accounts: "nope" })).toEqual({
+      showAll: true,
+      accounts: [],
+    })
+    expect(normalizeCodexAccountSettings({
+      showAll: true,
+      accounts: [
+        null,
+        { label: " Work ", home: " /tmp/work " },
+        { label: " ", home: "/tmp/blank" },
+        { label: "Empty", home: " " },
+        { home: "/tmp/nolabel" },
+      ],
+    })).toEqual({
+      showAll: true,
+      accounts: [{ label: "Work", home: "/tmp/work" }],
+    })
+  })
+
+  it("saves and loads Codex account settings and reset alerts", async () => {
+    await saveCodexAccountSettings({
+      showAll: true,
+      accounts: [{ label: "Work", home: "/tmp/work" }],
+    })
+    await expect(loadCodexAccountSettings()).resolves.toEqual({
+      showAll: true,
+      accounts: [{ label: "Work", home: "/tmp/work" }],
+    })
+    await expect(loadCodexResetNotifications()).resolves.toBe(true)
+    storeState.set("codexResetNotifications", false)
+    await expect(loadCodexResetNotifications()).resolves.toBe(false)
+    storeState.set("codexResetNotifications", "no")
+    await expect(loadCodexResetNotifications()).resolves.toBe(true)
+    await saveCodexResetNotifications(false)
+    await expect(loadCodexResetNotifications()).resolves.toBe(false)
+
+    await expect(loadCodexResetSnapshot()).resolves.toBeNull()
+    storeState.set("codexResetSnapshot", { nope: true })
+    await expect(loadCodexResetSnapshot()).resolves.toBeNull()
+    await saveCodexResetSnapshot([
+      { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: null },
+      { account: "", kind: "weekly", usedPercent: 1, resetAtMs: 5 },
+    ])
+    storeState.set("codexResetSnapshot", [
+      { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: null },
+      null,
+      { account: 1, kind: "session", usedPercent: 1, resetAtMs: null },
+      { account: "Bad", kind: "other", usedPercent: 1, resetAtMs: 5 },
+      { account: "Bad", kind: "weekly", usedPercent: "1", resetAtMs: 5 },
+      { account: "Bad", kind: "weekly", usedPercent: 1, resetAtMs: "5" },
+    ])
+    await expect(loadCodexResetSnapshot()).resolves.toEqual([
+      { account: "Codex", kind: "session", usedPercent: 10, resetAtMs: null },
+    ])
+  })
+
+  it("saves and loads the Codex account view", async () => {
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    storeState.set("codexAccountView", 42)
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    storeState.set("codexAccountView", "   ")
+    await expect(loadCodexAccountView()).resolves.toBe("both")
+    await saveCodexAccountView("Work")
+    await expect(loadCodexAccountView()).resolves.toBe("Work")
   })
 })

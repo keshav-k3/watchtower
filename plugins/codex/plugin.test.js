@@ -2301,4 +2301,168 @@ describe("codex plugin", () => {
       expect.stringContaining("usage request exception after reloaded auth refresh"),
     )
   })
+
+  const accountAuth = (token) => JSON.stringify({
+    tokens: { access_token: token },
+    last_refresh: new Date().toISOString(),
+  })
+
+  it("keeps a single Codex account unchanged when showAll is off", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: false,
+      accounts: [
+        { label: "Personal", home: "/tmp/personal" },
+        { label: "Work", home: "/tmp/work" },
+      ],
+    }))
+    ctx.host.fs.writeText("~/.codex/auth.json", accountAuth("file-token"))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: { "x-codex-primary-used-percent": "10" },
+      bodyText: JSON.stringify({}),
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(result.lines.find((line) => line.label === "Personal · Session")).toBeUndefined()
+  })
+
+  it("labels each Codex home when showAll is on", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: [
+        { label: "Personal", home: "/tmp/personal" },
+        { label: " Work ", home: "/tmp/work" },
+        { label: "", home: "/tmp/skip" },
+        { label: "Blank", home: "  " },
+        { home: "/tmp/nolabel" },
+        null,
+        { label: "Nope" },
+      ],
+    }))
+    ctx.host.fs.writeText("/tmp/personal/auth.json", accountAuth("personal-token"))
+    ctx.host.fs.writeText("/tmp/work/auth.json", accountAuth("work-token"))
+    ctx.host.http.request.mockImplementation((opts) => {
+      const used = String(opts.headers.Authorization).includes("work") ? "40" : "10"
+      return {
+        status: 200,
+        headers: {
+          "x-codex-primary-used-percent": used,
+          "x-codex-secondary-used-percent": "5",
+        },
+        bodyText: JSON.stringify({
+          plan_type: String(opts.headers.Authorization).includes("work") ? "plus" : "pro",
+        }),
+      }
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Personal · Session").used).toBe(10)
+    expect(result.lines.find((line) => line.label === "Work · Weekly").used).toBe(5)
+    expect(result.plan).toContain("Personal")
+    expect(result.plan).toContain("Work")
+    expect(ctx.host.ccusage.query).toHaveBeenCalledWith(expect.objectContaining({ homePath: "/tmp/work" }))
+  })
+
+  it("reports a Codex home that has no auth file", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: [
+        { label: "Gone", home: "/tmp/gone" },
+        { label: "Work", home: "/tmp/work" },
+      ],
+    }))
+    ctx.host.fs.writeText("/tmp/work/auth.json", accountAuth("work-token"))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: { "x-codex-primary-used-percent": "8" },
+      bodyText: JSON.stringify({}),
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Gone" && line.type === "badge")).toBeTruthy()
+    expect(result.lines.find((line) => line.label === "Work · Session")).toBeTruthy()
+  })
+
+  it("keeps the other Codex account when one home fails", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: [
+        { label: "Personal", home: "/tmp/personal" },
+        { label: "Work", home: "/tmp/work" },
+      ],
+    }))
+    ctx.host.fs.writeText("/tmp/personal/auth.json", JSON.stringify({ tokens: {} }))
+    ctx.host.fs.writeText("/tmp/work/auth.json", accountAuth("work-token"))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: { "x-codex-primary-used-percent": "8" },
+      bodyText: JSON.stringify({}),
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Work · Session").used).toBe(8)
+    expect(result.lines.find((line) => line.label === "Personal" && line.type === "badge")).toBeTruthy()
+    expect(result.plan).toBeNull()
+  })
+
+  it("throws when every extra Codex account fails", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: [
+        { label: "Personal", home: "/tmp/personal" },
+        { label: "Work", home: "/tmp/work" },
+      ],
+    }))
+    ctx.host.fs.writeText("/tmp/personal/auth.json", "{")
+    const readText = ctx.host.fs.readText
+    ctx.host.fs.readText = (path) => {
+      if (path === "/tmp/work/auth.json") throw new Error("unreadable")
+      return readText(path)
+    }
+    ctx.host.fs.writeText("/tmp/work/auth.json", accountAuth("work-token"))
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Not logged in")
+    expect(ctx.host.log.warn).toHaveBeenCalled()
+  })
+
+  it("ignores a Codex account list that does not describe two homes", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: { label: "Personal", home: "/tmp/personal" },
+    }))
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Not logged in")
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", JSON.stringify({
+      showAll: true,
+      accounts: [{ label: "Only", home: "/tmp/only" }],
+    }))
+    expect(() => plugin.probe(ctx)).toThrow("Not logged in")
+  })
+
+  it("ignores a broken Codex account file and uses the default login", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", "{")
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Not logged in")
+  })
+
+  it("logs and ignores an unreadable Codex account file", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ctx.app.pluginDataDir + "/accounts.json", "{}")
+    const readText = ctx.host.fs.readText
+    ctx.host.fs.readText = (path) => {
+      if (String(path).endsWith("accounts.json")) throw new Error("disk")
+      return readText(path)
+    }
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Not logged in")
+    expect(ctx.host.log.warn).toHaveBeenCalledWith(expect.stringContaining("accounts.json read failed"))
+  })
 })

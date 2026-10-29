@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { useNowTicker, tickNow } from "./use-now-ticker"
+import { usePanelVisibilityStore } from "@/stores/panel-visibility-store"
 
 describe("useNowTicker", () => {
   let originalDocumentHiddenDescriptor: PropertyDescriptor | undefined
@@ -15,6 +16,7 @@ describe("useNowTicker", () => {
     } else {
       Reflect.deleteProperty(document, "hidden")
     }
+    usePanelVisibilityStore.getState().setVisible(true)
     vi.useRealTimers()
   })
 
@@ -192,6 +194,26 @@ describe("useNowTicker", () => {
         value: false,
       })
       document.dispatchEvent(new Event("visibilitychange"))
+    })
+    expect(result.current).toBe(visibleNow)
+  })
+
+  it("pauses ticks while the panel is hidden", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-02-03T00:00:00.000Z"))
+    usePanelVisibilityStore.getState().setVisible(false)
+
+    const { result } = renderHook(() => useNowTicker({ intervalMs: 1000 }))
+
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
+    expect(result.current).toBe(Date.parse("2026-02-03T00:00:00.000Z"))
+
+    const visibleNow = Date.parse("2026-02-03T00:00:08.000Z")
+    act(() => {
+      vi.setSystemTime(visibleNow)
+      usePanelVisibilityStore.getState().setVisible(true)
     })
     expect(result.current).toBe(visibleNow)
   })

@@ -402,7 +402,8 @@
     const d = since.getDate()
     const sinceStr = "" + y + (m < 10 ? "0" : "") + m + (d < 10 ? "0" : "") + d
     const queryOpts = { provider: "codex", since: sinceStr }
-    const codexHome = readCodexHome(ctx)
+    const accountHome = typeof ctx.__accountHome === "string" ? ctx.__accountHome.trim() : ""
+    const codexHome = accountHome || readCodexHome(ctx)
     if (codexHome) {
       queryOpts.homePath = codexHome
     }
@@ -958,7 +959,83 @@
     throw ERR_NOT_LOGGED_IN
   }
 
+  function readMultiAccountConfig(ctx) {
+    const path = ctx.app.pluginDataDir + "/accounts.json"
+    if (!ctx.host.fs.exists(path)) return null
+    let parsed = null
+    try {
+      parsed = ctx.util.tryParseJson(ctx.host.fs.readText(path))
+    } catch (e) {
+      ctx.host.log.warn("accounts.json read failed: " + String(e))
+      return null
+    }
+    if (!parsed || parsed.showAll !== true || !Array.isArray(parsed.accounts)) return null
+    const accounts = []
+    for (let i = 0; i < parsed.accounts.length; i += 1) {
+      const account = parsed.accounts[i]
+      if (!account || typeof account.home !== "string" || typeof account.label !== "string") continue
+      const home = account.home.trim()
+      const label = account.label.trim()
+      if (!home || !label) continue
+      accounts.push({ home: home, label: label })
+    }
+    if (accounts.length < 2) return null
+    return accounts
+  }
+
+  function probeAuthFile(ctx, authPath) {
+    if (!ctx.host.fs.exists(authPath)) throw ERR_NOT_LOGGED_IN
+    const auth = tryParseAuthJson(ctx, ctx.host.fs.readText(authPath))
+    if (!hasTokenLikeAuth(auth)) throw ERR_NOT_LOGGED_IN
+    return probeWithAuthState(ctx, { auth: auth, authPath: authPath, source: "file" })
+  }
+
+  function prefixLine(line, label) {
+    const next = {}
+    const keys = Object.keys(line)
+    for (let i = 0; i < keys.length; i += 1) {
+      next[keys[i]] = line[keys[i]]
+    }
+    next.label = label + " · " + line.label
+    return next
+  }
+
+  function probeAccounts(ctx, accounts) {
+    const lines = []
+    const plans = []
+    let successes = 0
+    let firstError = null
+    for (let i = 0; i < accounts.length; i += 1) {
+      const account = accounts[i]
+      try {
+        ctx.__accountHome = account.home
+        const result = probeAuthFile(ctx, joinPath(account.home, AUTH_FILE))
+        successes += 1
+        if (result.plan) plans.push(account.label + " " + result.plan)
+        const accountLines = result.lines
+        for (let j = 0; j < accountLines.length; j += 1) {
+          lines.push(prefixLine(accountLines[j], account.label))
+        }
+      } catch (e) {
+        const message = typeof e === "string" ? e : "Usage request failed."
+        if (!firstError) firstError = message
+        ctx.host.log.warn("codex account failed for " + account.label + ": " + message)
+        lines.push(ctx.line.badge({ label: account.label, text: message, color: "#f59e0b" }))
+      } finally {
+        ctx.__accountHome = null
+      }
+    }
+    if (successes === 0) throw firstError
+    return { plan: plans.length ? plans.join(" · ") : null, lines: lines }
+  }
+
   function probe(ctx) {
+    const accounts = readMultiAccountConfig(ctx)
+    if (!accounts) return probeDefault(ctx)
+    return probeAccounts(ctx, accounts)
+  }
+
+  function probeDefault(ctx) {
     const fileAuth = loadFileAuthCandidates(ctx)
     let lastAuthFallbackError = null
     for (let i = 0; i < fileAuth.candidates.length; i++) {

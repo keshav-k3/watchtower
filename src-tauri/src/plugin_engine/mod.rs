@@ -1,21 +1,22 @@
 pub mod host_api;
+pub mod http_client;
 pub mod manifest;
 pub mod runtime;
 
 use manifest::LoadedPlugin;
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
+
+const BUNDLE_STAMP_FILE: &str = ".bundle-stamp";
 
 const RETIRED_BUNDLED_PLUGIN_IDS: &[&str] = &[
     "windsurf",
     "amp",
     "antigravity",
     "copilot",
-    "devin",
     "factory",
     "grok",
     "jetbrains-ai-assistant",
-    "kimi",
-    "kiro",
     "minimax",
     "opencode-go",
     "perplexity",
@@ -45,7 +46,15 @@ pub fn initialize_plugins(
 
     let bundled_dir = resolve_bundled_dir(resource_dir);
     if bundled_dir.exists() {
-        copy_dir_recursive(&bundled_dir, &install_dir);
+        let stamp = fingerprint_dir(&bundled_dir);
+        let stamp_path = install_dir.join(BUNDLE_STAMP_FILE);
+        let current = std::fs::read_to_string(&stamp_path).unwrap_or_default();
+        if current.trim() != stamp {
+            copy_dir_recursive(&bundled_dir, &install_dir);
+            if let Err(err) = std::fs::write(&stamp_path, &stamp) {
+                log::warn!("failed to write plugin bundle stamp: {}", err);
+            }
+        }
         remove_retired_bundled_plugins(&install_dir);
     }
 
@@ -125,6 +134,43 @@ fn plugin_dir_has_id(plugin_dir: &Path, expected_id: &str) -> bool {
         .get("id")
         .and_then(|id| id.as_str())
         .is_some_and(|id| id == expected_id)
+}
+
+fn fingerprint_dir(dir: &Path) -> String {
+    let mut hasher = Sha256::new();
+    fn walk(hasher: &mut Sha256, root: &Path, dir: &Path) {
+        let mut entries: Vec<_> = match std::fs::read_dir(dir) {
+            Ok(entries) => entries.filter_map(|entry| entry.ok()).collect(),
+            Err(_) => return,
+        };
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let path = entry.path();
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            if file_type.is_symlink() {
+                continue;
+            }
+            let relative = path.strip_prefix(root).unwrap_or(&path);
+            hasher.update(relative.to_string_lossy().as_bytes());
+            hasher.update([0]);
+            if file_type.is_dir() {
+                walk(hasher, root, &path);
+            } else if file_type.is_file()
+                && let Ok(bytes) = std::fs::read(&path)
+            {
+                hasher.update((bytes.len() as u64).to_le_bytes());
+                hasher.update(&bytes);
+            }
+        }
+    }
+    walk(&mut hasher, dir, dir);
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) {
@@ -317,5 +363,31 @@ mod tests {
 
         assert!(mismatched_dir.exists());
         assert!(plugins.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn initialize_plugins_skips_rewriting_an_unchanged_bundle() {
+        let root = TempDir::new("stamp");
+        let _cwd = CurrentDirGuard::enter(root.path());
+        let app_data_dir = root.path().join("app-data");
+        let resource_dir = root.path().join("resources");
+        let bundled_dir = resource_dir.join("bundled_plugins");
+        write_plugin(&bundled_dir, "custom", "Custom");
+
+        let (install_dir, _) = initialize_plugins(&app_data_dir, &resource_dir);
+        let script = install_dir.join("custom").join("plugin.js");
+        let first_modified = fs::metadata(&script).expect("script").modified().expect("mtime");
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        initialize_plugins(&app_data_dir, &resource_dir);
+        let second_modified = fs::metadata(&script).expect("script").modified().expect("mtime");
+        assert_eq!(first_modified, second_modified);
+        assert!(install_dir.join(".bundle-stamp").is_file());
+
+        fs::write(bundled_dir.join("custom").join("plugin.js"), "changed").expect("edit bundle");
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        initialize_plugins(&app_data_dir, &resource_dir);
+        let copied = fs::read_to_string(&script).expect("copied script");
+        assert_eq!(copied, "changed");
     }
 }

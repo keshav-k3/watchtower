@@ -27,6 +27,10 @@ function isProgressLine(line: PluginOutput["lines"][number]): line is ProgressLi
   return line.type === "progress"
 }
 
+function progressLabelMatches(lineLabel: string, candidate: string): boolean {
+  return lineLabel === candidate || lineLabel.endsWith(` · ${candidate}`)
+}
+
 export function getTrayPrimaryBars(args: {
   pluginsMeta: PluginMeta[]
   pluginSettings: PluginSettings | null
@@ -76,13 +80,13 @@ export function getTrayPrimaryBars(args: {
       const weeklyLabel = preferWeekly ? meta.weeklyCandidate : undefined
       const usesWeekly =
         weeklyLabel !== undefined &&
-        data.lines.some((line) => isProgressLine(line) && line.label === weeklyLabel)
+        data.lines.some((line) => isProgressLine(line) && progressLabelMatches(line.label, weeklyLabel))
 
       // Otherwise fall back to the first primary candidate that exists in data.
       const metricLabel = usesWeekly
         ? weeklyLabel
         : meta.primaryCandidates.find((candidate) =>
-            data.lines.some((line) => isProgressLine(line) && line.label === candidate)
+            data.lines.some((line) => isProgressLine(line) && progressLabelMatches(line.label, candidate))
           )
 
       if (metricLabel) {
@@ -90,7 +94,7 @@ export function getTrayPrimaryBars(args: {
         weekly = usesWeekly || undefined
         const metricLine = data.lines.find(
           (line): line is ProgressLine =>
-            isProgressLine(line) && line.label === metricLabel
+            isProgressLine(line) && progressLabelMatches(line.label, metricLabel)
         )
         if (metricLine && metricLine.limit > 0) {
           const shownAmount =

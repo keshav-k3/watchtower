@@ -6,7 +6,7 @@ import { groupLinesByType } from "@/lib/group-lines-by-type"
 function SkeletonText({ label }: { label: string }) {
   return (
     <div className="flex justify-between items-center h-[18px]">
-      <span className="label-mono text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{label}</span>
       <Skeleton className="h-3 w-16" />
     </div>
   )
@@ -15,7 +15,7 @@ function SkeletonText({ label }: { label: string }) {
 function SkeletonBadge({ label }: { label: string }) {
   return (
     <div className="flex justify-between items-center h-[22px]">
-      <span className="label-mono text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{label}</span>
       <Skeleton className="h-[18px] w-16 rounded-[4px]" />
     </div>
   )
@@ -25,14 +25,10 @@ function SkeletonProgress({ label }: { label: string }) {
   return (
     <div>
       <div className="mb-2 flex items-end justify-between">
-        <span className="label-mono pb-1 text-[10px] text-muted-foreground">{label}</span>
+        <span className="pb-1 text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{label}</span>
         <Skeleton className="h-6 w-16" />
       </div>
-      <div className="flex h-2.5 w-full items-stretch gap-[2px]">
-        {Array.from({ length: 28 }).map((_, index) => (
-          <div key={index} className="min-w-px flex-1 rounded-[1px] bg-line" />
-        ))}
-      </div>
+      <div className="h-[3px] w-full rounded-full bg-[var(--meter-track)]" />
       <div className="mt-2 flex justify-end">
         <Skeleton className="h-3 w-24" />
       </div>
@@ -43,7 +39,7 @@ function SkeletonProgress({ label }: { label: string }) {
 function SkeletonBarChart({ label }: { label: string }) {
   return (
     <div className="flex h-[18px] items-center justify-between gap-2">
-      <span className="label-mono min-w-0 truncate text-[10px] text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{label}</span>
       <div className="flex h-4 w-1/2 max-w-[150px] flex-shrink-0 items-end justify-end gap-px">
         {Array.from({ length: 16 }).map((_, index) => (
           <Skeleton

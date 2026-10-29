@@ -528,5 +528,36 @@ describe("getTrayPrimaryBars", () => {
       })
       expect(bars).toEqual([{ id: "a", fraction: 0.2, label: "Session" }])
     })
+
+    it("reads a labelled account line for the tray", () => {
+      const labelled = {
+        a: {
+          data: {
+            providerId: "a",
+            displayName: "A",
+            iconUrl: "",
+            lines: [
+              { type: "progress" as const, label: "Work · Session", used: 25, limit: 100, format: { kind: "percent" as const } },
+              { type: "progress" as const, label: "Work · Weekly", used: 40, limit: 100, format: { kind: "percent" as const } },
+            ],
+          },
+          loading: false,
+          error: null,
+        },
+      }
+      expect(getTrayPrimaryBars({
+        displayMode: "used",
+        pluginsMeta: [metaWithWeekly],
+        pluginSettings: { order: ["a"], disabled: [] },
+        pluginStates: labelled,
+      })).toEqual([{ id: "a", fraction: 0.25, label: "Session" }])
+      expect(getTrayPrimaryBars({
+        displayMode: "used",
+        preferWeekly: true,
+        pluginsMeta: [metaWithWeekly],
+        pluginSettings: { order: ["a"], disabled: [] },
+        pluginStates: labelled,
+      })).toEqual([{ id: "a", fraction: 0.4, label: "Weekly", weekly: true }])
+    })
   })
 })

@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AboutDialog } from "@/components/about-dialog";
 import type { UpdateStatus } from "@/hooks/use-app-update";
-import { useNowTicker } from "@/hooks/use-now-ticker";
+import { nextCountdownDelayMs } from "@/lib/probe-schedule";
 
 interface PanelFooterProps {
   version: string;
@@ -14,6 +14,7 @@ interface PanelFooterProps {
   showAbout: boolean;
   onShowAbout: () => void;
   onCloseAbout: () => void;
+  panelVisible?: boolean;
 }
 
 function VersionDisplay({
@@ -32,7 +33,7 @@ function VersionDisplay({
   switch (updateStatus.status) {
     case "downloading":
       return (
-        <span className="label-mono text-[10px] text-muted-foreground">
+        <span className="text-[11px] text-muted-foreground">
           {updateStatus.progress >= 0
             ? `Downloading update ${updateStatus.progress}%`
             : "Downloading update..."}
@@ -43,7 +44,6 @@ function VersionDisplay({
         <Button
           variant="destructive"
           size="xs"
-          className="update-border-beam"
           onClick={onUpdateInstall}
         >
           Restart to update
@@ -51,7 +51,7 @@ function VersionDisplay({
       );
     case "installing":
       return (
-        <span className="label-mono text-[10px] text-muted-foreground">Installing...</span>
+        <span className="text-[11px] text-muted-foreground">Installing...</span>
       );
     case "error":
       if (updateStatus.message === "Update check failed") {
@@ -59,7 +59,7 @@ function VersionDisplay({
           <button
             type="button"
             onClick={onUpdateCheck}
-            className="label-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={updateStatus.message}
           >
             Updates soon
@@ -67,7 +67,7 @@ function VersionDisplay({
         );
       }
       return (
-        <span className="label-mono text-[10px] text-destructive" title={updateStatus.message}>
+        <span className="text-[11px] text-destructive" title={updateStatus.message}>
           Update failed
         </span>
       );
@@ -76,7 +76,7 @@ function VersionDisplay({
         <button
           type="button"
           onClick={onVersionClick}
-          className="label-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           Watchtower {version}
         </button>
@@ -94,11 +94,21 @@ export function PanelFooter({
   showAbout,
   onShowAbout,
   onCloseAbout,
+  panelVisible = true,
 }: PanelFooterProps) {
-  const now = useNowTicker({
-    enabled: Boolean(autoUpdateNextAt),
-    resetKey: autoUpdateNextAt,
-  });
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!autoUpdateNextAt || !panelVisible) return;
+    let timer = 0;
+    const schedule = () => {
+      const nextNow = Date.now();
+      setNow(nextNow);
+      timer = window.setTimeout(schedule, nextCountdownDelayMs(autoUpdateNextAt - nextNow));
+    };
+    timer = window.setTimeout(schedule, nextCountdownDelayMs(autoUpdateNextAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [autoUpdateNextAt, panelVisible]);
 
   const countdownLabel = useMemo(() => {
     if (!autoUpdateNextAt) return "Paused";
@@ -113,7 +123,7 @@ export function PanelFooter({
 
   return (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-between border-t border-line bg-card/95 pt-1.5">
+      <div className="mx-3 flex h-8 shrink-0 items-center justify-between gap-3 border-t border-line">
         <VersionDisplay
           version={version}
           updateStatus={updateStatus}
@@ -128,13 +138,14 @@ export function PanelFooter({
               event.currentTarget.blur()
               onRefreshAll()
             }}
-            className="label-mono text-[10px] text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
+            className="text-[11px] text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
+            aria-label={`Refresh now, ${countdownLabel}`}
             title="Refresh Now"
           >
             {countdownLabel}
           </button>
         ) : (
-          <span className="label-mono text-[10px] text-muted-foreground tabular-nums">
+          <span className="text-[11px] text-muted-foreground tabular-nums">
             {countdownLabel}
           </span>
         )}

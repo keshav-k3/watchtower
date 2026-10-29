@@ -23,57 +23,53 @@ export function ProviderSettingsPopover({
     .filter((plugin): plugin is PluginMeta => Boolean(plugin))
 
   return (
-    <div
-      className="absolute right-4 top-14 z-30 max-h-[calc(100%-4rem)] w-[214px] overflow-y-auto rounded-[12px] border border-line-bright bg-surface-raised p-2 scrollbar-none"
-      style={{ boxShadow: "var(--panel-shadow)" }}
-    >
-      <div className="px-2 pb-1.5 pt-1">
-        <div className="text-[13px] font-semibold leading-5 text-foreground">Providers</div>
-        <div className="label-mono text-[9px] leading-4 text-muted-foreground/70">Toggle Visibility</div>
-      </div>
-      <div className="space-y-1">
+    <div className="max-h-[calc(100%-4rem)] overflow-y-auto scrollbar-none">
+      <ul className="py-1">
         {providers.map((provider) => {
           const isEnabled = !disabled.has(provider.id)
           return (
-            <button
-              key={provider.id}
-              type="button"
-              className="flex h-10 w-full items-center gap-2.5 rounded-[8px] px-2 text-left transition-colors hover:bg-surface"
-              onClick={() => onProviderToggle(provider.id)}
-            >
-              <ProviderIcon
-                id={provider.id}
-                name={provider.name}
-                iconUrl={provider.iconUrl}
-                brandColor={provider.brandColor}
-                active={isEnabled}
-                className="size-5"
-              />
-              <span className={cn("min-w-0 flex-1 truncate text-[13px] font-semibold", isEnabled ? "text-foreground" : "text-muted-foreground")}>
-                {provider.name}
-              </span>
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "relative h-4 w-7 rounded-full border transition-colors",
-                  isEnabled
-                    ? "border-transparent bg-[var(--display)]"
-                    : "border-line-bright bg-surface"
-                )}
+            <li key={provider.id}>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isEnabled}
+                className="flex min-h-9 w-full items-center gap-2 rounded-md px-1 text-left hover:bg-muted"
+                onClick={() => onProviderToggle(provider.id)}
               >
-                <span
-                  className={cn(
-                    "absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-transform",
-                    isEnabled
-                      ? "translate-x-[13px] bg-background"
-                      : "translate-x-0.5 bg-muted-foreground"
-                  )}
+                <ProviderIcon
+                  id={provider.id}
+                  name={provider.name}
+                  iconUrl={provider.iconUrl}
+                  brandColor={provider.brandColor}
+                  active={isEnabled}
+                  className="size-4"
                 />
-              </span>
-            </button>
+                <span className={cn("min-w-0 flex-1 break-words text-[13px]", isEnabled ? "text-foreground" : "text-muted-foreground")}>
+                  {provider.name}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "relative h-4 w-7 shrink-0 rounded-full border transition-colors",
+                    isEnabled
+                      ? "border-transparent bg-foreground"
+                      : "border-line bg-surface"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-transform",
+                      isEnabled
+                        ? "translate-x-[13px] bg-background"
+                        : "translate-x-0.5 bg-muted-foreground"
+                    )}
+                  />
+                </span>
+              </button>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }

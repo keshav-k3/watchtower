@@ -21,7 +21,7 @@
 
 Most preferences still use fixed defaults. Settings currently exposes the global shortcut only:
 
-- Auto refresh: 5 minutes
+- Auto refresh: every 5 minutes while the panel is open and plugged in. The wait is longer while the panel is closed or the computer is on battery. Opening the panel shows the last saved numbers immediately, then refreshes them when they are older than 5 minutes.
 - Usage mode: Left
 - Reset timers: Relative
 - Time format: Auto

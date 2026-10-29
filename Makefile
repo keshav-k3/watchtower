@@ -12,7 +12,7 @@ help:
 	@printf "  make restart  Restart the background Watchtower process\n"
 	@printf "  make status   Show whether Watchtower is running\n"
 	@printf "  make logs     Tail the Watchtower dev log\n"
-	@printf "  make icons    Regenerate app icons from assets/watchtower-icon.svg\n"
+	@printf "  make icons    Regenerate app icons from assets/brand/watchtower-icon.svg\n"
 	@printf "  make bundle   Rebuild bundled plugins\n"
 	@printf "  make test     Run tests\n"
 	@printf "  make build    Run the production build\n"
@@ -21,8 +21,8 @@ install:
 	bun install
 
 icons:
-	bun run tauri icon assets/watchtower-icon.svg -o src-tauri/icons
-	git checkout HEAD -- src-tauri/icons/tray-icon.png
+	bun run tauri icon assets/brand/watchtower-icon.svg -o src-tauri/icons
+	git checkout HEAD -- src-tauri/icons/tray-icon.png src-tauri/icons/android/values/ic_launcher_background.xml
 
 up:
 	@if pgrep -x watchtower >/dev/null 2>&1; then \

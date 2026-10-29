@@ -3,18 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon } from "@hugeicons-pro/core-solid-rounded"
 import { cn } from "@/lib/utils"
 import type { GlobalShortcut } from "@/lib/settings"
-
-// Convert internal shortcut format to display format
-// e.g., "CommandOrControl+Shift+U" -> "Cmd + Shift + U"
-function formatShortcutForDisplay(shortcut: string): string {
-  return shortcut
-    .replace(/CommandOrControl/g, "Cmd")
-    .replace(/Command/g, "Cmd")
-    .replace(/Control/g, "Ctrl")
-    .replace(/Option/g, "Opt")
-    .replace(/Alt/g, "Opt")
-    .replace(/\+/g, " + ")
-}
+import { formatShortcutForDisplay, recordedModifier } from "@/lib/shortcut-format"
 
 // Modifier codes (using event.code for reliable detection)
 const MODIFIER_CODES = new Set([
@@ -105,20 +94,10 @@ function buildShortcutFromCodes(codes: Set<string>): { display: string; tauri: s
 
   for (const code of codes) {
     if (MODIFIER_CODES.has(code)) {
-      const normalized = normalizeModifierCode(code)
-      if (normalized === "Meta" || normalized === "Control") {
-        if (!modifiers.includes("CommandOrControl")) {
-          modifiers.push("CommandOrControl")
-          displayMods.push("Cmd")
-        }
-      } else if (normalized === "Alt") {
-        if (!modifiers.includes("Alt")) {
-          modifiers.push("Alt")
-          displayMods.push("Opt")
-        }
-      } else if (!modifiers.includes("Shift")) {
-        modifiers.push("Shift")
-        displayMods.push("Shift")
+      const { accelerator, label } = recordedModifier(normalizeModifierCode(code))
+      if (!modifiers.includes(accelerator)) {
+        modifiers.push(accelerator)
+        displayMods.push(label)
       }
     } else {
       // Non-modifier key - use the last one pressed
@@ -243,9 +222,8 @@ export function GlobalShortcutSection({
 
   return (
     <section>
-      <h3 className="text-lg font-semibold mb-0">Global Shortcut</h3>
-      <p className="text-sm text-muted-foreground mb-2">
-        Show panel from anywhere
+      <p className="mb-2 px-1 text-[12px] text-muted-foreground">
+        Show the panel from anywhere
       </p>
       <div className="space-y-2">
         {isRecording ? (
@@ -258,7 +236,7 @@ export function GlobalShortcutSection({
             onKeyUp={handleKeyUp}
             onBlur={handleBlur}
             className={cn(
-              "w-full h-8 px-3 text-sm rounded-md border-2 border-primary bg-muted/50",
+              "w-full h-8 px-3 text-sm rounded-md border border-line bg-muted/50 ring-2 ring-ring",
               "flex items-center outline-none",
               !pendingDisplay && "text-muted-foreground"
             )}
@@ -293,7 +271,7 @@ export function GlobalShortcutSection({
           </div>
         )}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 px-1 text-[11px] text-muted-foreground">
         Press Escape while recording to clear.
       </p>
     </section>

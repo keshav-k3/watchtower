@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.0.0
+
+Watchtower 1.0 is a calmer, faster panel with a new icon, more providers and a few tools you asked for.
+
+### New Features
+- New providers: Kiro (credits), Kimi Code (5-hour session and monthly limits), Devin (ACU usage) and Grok Bot (weekly usage, read from the Grok Bot app's local cache, no network)
+- Codex work and personal accounts: point Watchtower at each Codex home (for `codex -w` and `codex -p`), see both, or switch between Work and Personal
+- Codex reset alerts: a native notification and a small in-panel note when a Codex limit resets, with a toggle in Settings
+- Ports: see which local TCP ports are listening and stop the process behind one, with a confirmation and an optional Force Stop. Root and system processes are never offered
+- macOS widget in small, medium and large sizes for Notification Center and the desktop (one-time Xcode setup, see docs/widget.md)
+- New Watchtower app icon (a white lighthouse inside a usage ring with an amber segment on charcoal) and a matching template menu-bar icon
+
+### Improvements
+- Flat, minimal panel: no title in the header (fixes the clipped "WATCHTOW"), hairline provider rows, thin bars, official brand icons
+- One Settings page behind the sidebar gear
+- Saved usage shows instantly on open, polling slows down while the panel is closed or on battery, and probes share one HTTP client
+
+### Bug Fixes
+- Left-clicking the menu-bar icon opens the panel; the menu now appears only on right click
+- Removed Debug Level from the tray menu
+- About now reads "Built by Keshav Kk"
+- Light mode progress bars show their fill again
+
 ## v0.6.31
 
 ### Bug Fixes

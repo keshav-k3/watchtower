@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import type { PluginOutput } from "@/lib/plugin-types"
+import { cachedUsageToStates } from "@/lib/cached-usage"
 import type { PluginState } from "@/hooks/app/types"
 
 type UseProbeStateArgs = {
@@ -9,10 +10,12 @@ type UseProbeStateArgs = {
 export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
   const [pluginStates, setPluginStates] = useState<Record<string, PluginState>>({})
 
+  // updatePluginStates is the only writer and keeps this ref current
+  // synchronously. Don't copy rendered state back into it from an effect:
+  // a passive effect from an older render can run after newer probe results
+  // were written, roll the ref back, and leave fast-failing providers stuck
+  // on loading forever.
   const pluginStatesRef = useRef(pluginStates)
-  useEffect(() => {
-    pluginStatesRef.current = pluginStates
-  }, [pluginStates])
 
   const manualRefreshIdsRef = useRef<Set<string>>(new Set())
 
@@ -52,6 +55,36 @@ export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
         }
       }
       return next
+    })
+  }, [updatePluginStates])
+
+  const hydrateCachedUsage = useCallback((entries: unknown) => {
+    const hydrated = cachedUsageToStates(entries)
+    const ids = Object.keys(hydrated)
+    if (ids.length === 0) return
+    updatePluginStates((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const id of ids) {
+        const incoming = hydrated[id]
+        const existing = prev[id]
+        if (
+          existing?.data &&
+          existing.lastUpdatedAt != null &&
+          incoming.lastUpdatedAt != null &&
+          existing.lastUpdatedAt >= incoming.lastUpdatedAt
+        ) {
+          continue
+        }
+        changed = true
+        next[id] = {
+          ...incoming,
+          loading: existing?.loading ?? false,
+          error: existing?.error ?? null,
+          lastManualRefreshAt: existing?.lastManualRefreshAt ?? null,
+        }
+      }
+      return changed ? next : prev
     })
   }, [updatePluginStates])
 
@@ -108,6 +141,7 @@ export function useProbeState({ onProbeResult }: UseProbeStateArgs) {
     manualRefreshIdsRef,
     setLoadingForPlugins,
     setErrorForPlugins,
+    hydrateCachedUsage,
     handleProbeResult,
   }
 }

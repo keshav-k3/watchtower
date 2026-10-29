@@ -1,1 +1,4 @@
-<svg data-hk="0000000100000000000100000210" width="24" height="30" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6H6V24H18V6ZM24 30H0V0H24V30Z" fill="currentColor"></path></svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 6 24 30">
+<path fill="#656363" fill-rule="evenodd" d="M24 36H0V6H24V36ZM18 12H6V30H18V12Z"/>
+<path fill="#CFCECD" d="M18 30H6V18H18V30Z"/>
+</svg>

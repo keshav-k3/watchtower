@@ -4,18 +4,10 @@ import { describe, expect, it, vi } from "vitest"
 
 import { AboutDialog } from "@/components/about-dialog"
 
-const openerState = vi.hoisted(() => ({
-  openUrlMock: vi.fn(() => Promise.resolve()),
-}))
-
 const changelogState = vi.hoisted(() => ({
   releases: [] as import("@/hooks/use-changelog").Release[],
   loading: false,
   error: null as string | null,
-}))
-
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: openerState.openUrlMock,
 }))
 
 vi.mock("@/hooks/use-changelog", () => ({
@@ -23,24 +15,28 @@ vi.mock("@/hooks/use-changelog", () => ({
 }))
 
 describe("AboutDialog", () => {
-  it("renders version, links, and maintainers", () => {
+  it("restores focus even when nothing was focused", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, "activeElement")
+    Object.defineProperty(document, "activeElement", {
+      configurable: true,
+      get: () => null,
+    })
+    const { unmount } = render(<AboutDialog version="1.2.3" onClose={() => {}} />)
+    unmount()
+    if (descriptor) {
+      Object.defineProperty(Document.prototype, "activeElement", descriptor)
+    }
+    delete (document as { activeElement?: Element | null }).activeElement
+  })
+
+  it("renders the version and the credit", () => {
     render(<AboutDialog version="1.2.3" onClose={() => {}} />)
     expect(screen.getByText("Watchtower")).toBeInTheDocument()
     expect(screen.getByText("v1.2.3")).toBeInTheDocument()
-    expect(screen.getByText("GitHub")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "validatedev" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "davidarny" })).toBeInTheDocument()
-  })
-
-  it("opens maintainer GitHub profiles on click", async () => {
-    render(<AboutDialog version="1.2.3" onClose={() => {}} />)
-
-    await userEvent.click(screen.getByRole("button", { name: "validatedev" }))
-    expect(openerState.openUrlMock).toHaveBeenCalledWith("https://github.com/validatedev")
-
-    openerState.openUrlMock.mockClear()
-    await userEvent.click(screen.getByRole("button", { name: "davidarny" }))
-    expect(openerState.openUrlMock).toHaveBeenCalledWith("https://github.com/davidarny")
+    expect(screen.getByText("Built by Keshav Kk")).toBeInTheDocument()
+    expect(screen.queryByText("GitHub")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Maintainers/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Keshav K")).not.toBeInTheDocument()
   })
 
   it("closes on Escape", async () => {
@@ -93,21 +89,6 @@ describe("AboutDialog", () => {
     onClose.mockClear()
     await userEvent.click(screen.getByText("Watchtower"))
     expect(onClose).not.toHaveBeenCalled()
-  })
-
-  it("calls openUrl and logs errors on failure", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
-    openerState.openUrlMock.mockImplementationOnce(() => Promise.reject(new Error("fail")))
-
-    render(<AboutDialog version="1.2.3" onClose={() => {}} />)
-    await userEvent.click(screen.getByRole("button", { name: "GitHub" }))
-
-    expect(openerState.openUrlMock).toHaveBeenCalled()
-    // wait microtask for catch
-    await Promise.resolve()
-    expect(consoleSpy).toHaveBeenCalled()
-
-    consoleSpy.mockRestore()
   })
 
   it("closes when document becomes hidden", () => {

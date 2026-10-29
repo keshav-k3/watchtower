@@ -5,6 +5,7 @@ export declare const DashboardSpeed01Icon: IconSvgElement
 export declare const RefreshIcon: IconSvgElement
 export declare const Settings02Icon: IconSvgElement
 export declare const CommandIcon: IconSvgElement
+export declare const ServerStackIcon: IconSvgElement
 export declare const ExternalLinkIcon: IconSvgElement
 export declare const AlertCircleIcon: IconSvgElement
 export declare const HourglassIcon: IconSvgElement
