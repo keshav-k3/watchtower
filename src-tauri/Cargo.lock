@@ -4802,8 +4802,8 @@ dependencies = [
 
 [[package]]
 name = "tauri-nspanel"
-version = "2.1.0"
-source = "git+https://github.com/ahkohd/tauri-nspanel?branch=v2.1#a3122e894383aa068ec5365a42994e3ac94ba1b6"
+version = "2.1.1"
+source = "git+https://github.com/ahkohd/tauri-nspanel?branch=v2.1#3ffa93ed14e0f8e857e43619b4157f2a685d35a4"
 dependencies = [
  "objc2",
  "objc2-app-kit",
