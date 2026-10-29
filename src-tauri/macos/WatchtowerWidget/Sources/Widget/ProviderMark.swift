@@ -83,13 +83,13 @@ struct ProviderMark: View {
         return String(trimmed.prefix(1)).uppercased()
     }
 
-    // `renderingMode` and `widgetAccentedRenderingMode` are Image modifiers,
-    // so apply them before `resizable()` turns the mark into a plain View.
+    // `renderingMode`, `resizable` and `widgetAccentedRenderingMode` are Image
+    // modifiers, so apply them before `scaledToFit()` makes it a plain View.
     @ViewBuilder
     private func branded(_ image: Image) -> some View {
         if #available(macOS 15.0, *) {
-            image.widgetAccentedRenderingMode(.fullColor)
-                .resizable().scaledToFit().foregroundStyle(markStyle)
+            image.resizable().widgetAccentedRenderingMode(.fullColor)
+                .scaledToFit().foregroundStyle(markStyle)
         } else {
             image.resizable().scaledToFit().foregroundStyle(markStyle)
         }
