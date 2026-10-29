@@ -25,3 +25,26 @@ jobs:
 
       - name: Run tests
         run: bun run test:coverage
+
+  macos:
+    name: macOS Rust check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Build frontend and bundled plugins
+        run: bun run bundle:plugins && bun run build
+
+      - name: Check the macOS app compiles
+        run: cargo check --manifest-path src-tauri/Cargo.toml --locked

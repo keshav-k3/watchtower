@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1
+
+### Bug Fixes
+- Fix the macOS build after the dependency updates (tray-icon 0.25)
+
+### Security
+- Update npm and Cargo dependencies; `bun audit` and `cargo audit` are clean
+
 ## v1.0.0
 
 Watchtower 1.0 is a calmer, faster panel with a new icon, more providers and a few tools you asked for.
