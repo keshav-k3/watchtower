@@ -141,4 +141,87 @@ describe("kimi plugin with the Kimi Code CLI (~/.kimi-code)", () => {
     const plugin = await loadPlugin()
     expect(() => plugin.probe(ctx)).toThrow("Not logged in")
   })
+
+  it("falls back to defaults when env, config, and the credentials dir cannot be read", async () => {
+    const ctx = makeCtx()
+    ctx.host.env.get.mockImplementation(() => {
+      throw new Error("env blocked")
+    })
+    ctx.host.fs.writeText(ENV_CRED, freshCreds())
+    ctx.host.fs.writeText(CONFIG, 'base_url = "https://api.kimi.ai/coding/v1"')
+    const readText = ctx.host.fs.readText
+    ctx.host.fs.readText = (path) => {
+      if (path === CONFIG) throw new Error("config locked")
+      return readText(path)
+    }
+    ctx.host.fs.listDir = () => {
+      throw new Error("dir locked")
+    }
+    ctx.host.fs.writeText("~/.kimi-code/credentials/kimi-code.json", freshCreds({ access_token: "slot" }))
+    ctx.host.http.request.mockReturnValue({ status: 200, bodyText: JSON.stringify(USAGES_BODY) })
+
+    const plugin = await loadPlugin()
+    plugin.probe(ctx)
+
+    const call = ctx.host.http.request.mock.calls[0][0]
+    expect(call.url).toBe("https://api.kimi.com/coding/v1/usages")
+    expect(call.headers.Authorization).toBe("Bearer slot")
+    const warnings = ctx.host.log.warn.mock.calls.map((c) => String(c[0]))
+    expect(warnings.some((w) => w.includes("KIMI_CODE_HOME lookup failed"))).toBe(true)
+    expect(warnings.some((w) => w.includes("kimi config read failed"))).toBe(true)
+    expect(warnings.some((w) => w.includes("kimi credentials dir unreadable"))).toBe(true)
+  })
+
+  it("reads a top-level base_url without a provider section and keeps the default OAuth host", async () => {
+    const ctx = makeCtx()
+    ctx.host.env = {}
+    ctx.host.fs.writeText(ENV_CRED, freshCreds({ expires_at: undefined }))
+    ctx.host.fs.writeText(CONFIG, 'base_url = "https://api.kimi.ai/coding/v1"')
+    ctx.host.http.request.mockReturnValue({ status: 200, bodyText: JSON.stringify(USAGES_BODY) })
+
+    const plugin = await loadPlugin()
+    plugin.probe(ctx)
+
+    const urls = ctx.host.http.request.mock.calls.map((c) => c[0].url)
+    expect(urls).toContain("https://api.kimi.ai/coding/v1/usages")
+    expect(urls.some((url) => url.includes("auth.kimi.ai"))).toBe(false)
+  })
+
+  it("reads camelCase ratios, every reset key spelling, and skips windows without a ratio", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ENV_CRED, freshCreds())
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({
+        usages: {
+          limit_5h: { usedRatio: 0.1, resetTime: "2099-10-29T16:00:00Z" },
+          limit_month_total: { used_ratio: 0.2, reset_at: "2099-11-16T00:00:00Z" },
+          limit_7d: { used_ratio: 0.3, resetAt: "2099-11-01T00:00:00Z" },
+        },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const byLabel = Object.fromEntries(result.lines.map((line) => [line.label, line]))
+    expect(byLabel.Session).toMatchObject({ used: 10, resetsAt: "2099-10-29T16:00:00.000Z" })
+    expect(byLabel.Monthly).toMatchObject({ used: 20, resetsAt: "2099-11-16T00:00:00.000Z" })
+    expect(byLabel.Weekly).toMatchObject({ used: 30, resetsAt: "2099-11-01T00:00:00.000Z" })
+  })
+
+  it("shows a window with no reset time and drops one with no ratio", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText(ENV_CRED, freshCreds())
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify({ usages: { limit_5h: { used_ratio: 0.5 }, limit_month_total: { reset_time: "2099-11-16T00:00:00Z" } } }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const session = result.lines.find((line) => line.label === "Session")
+    expect(session).toMatchObject({ used: 50 })
+    expect(session.resetsAt).toBeUndefined()
+    expect(result.lines.find((line) => line.label === "Monthly")).toBeUndefined()
+  })
 })

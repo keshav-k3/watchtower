@@ -13,6 +13,8 @@ describe("isMacPlatform", () => {
     expect(isMacPlatform({ platform: "Win32" })).toBe(false)
     expect(isMacPlatform({ userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15" })).toBe(false)
     expect(isMacPlatform(undefined)).toBe(false)
+    expect(isMacPlatform(null as never)).toBe(false)
+    expect(isMacPlatform({})).toBe(false)
   })
 })
 

@@ -60,6 +60,7 @@ export default defineConfig(async () => ({
         "src-tauri/icons/**",
         // Test-only helpers (not production code)
         "plugins/test-helpers.js",
+        "src/test/**",
         // Entry point bootstrap (side-effect heavy, hard to unit test)
         "src/main.tsx",
         // SSR guard branch untestable in jsdom
