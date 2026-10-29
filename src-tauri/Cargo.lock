@@ -121,7 +121,7 @@ dependencies = [
  "objc2-foundation",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -878,7 +878,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.9",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1050,7 +1050,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1257,7 +1257,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2741,25 +2741,6 @@ dependencies = [
 
 [[package]]
 name = "muda"
-version = "0.19.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dd04e60bc0b07438a6771710ee1698f98f6ebbc7f89b61264af1563b8aeb878"
-dependencies = [
- "crossbeam-channel",
- "dpi",
- "keyboard-types 0.7.0",
- "objc2",
- "objc2-app-kit",
- "objc2-core-foundation",
- "objc2-foundation",
- "once_cell",
- "png",
- "thiserror 2.0.21",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "muda"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cca139e57da4383727f189e43e66e84fa372347027fc996f9f1a007ec0a37996"
@@ -3300,7 +3281,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
@@ -3723,7 +3704,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4069,7 +4050,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4127,7 +4108,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4881,7 +4862,7 @@ dependencies = [
  "libc",
  "log",
  "mime",
- "muda 0.20.0",
+ "muda",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
@@ -4903,7 +4884,7 @@ dependencies = [
  "tauri-utils",
  "thiserror 2.0.21",
  "tokio",
- "tray-icon 0.25.1",
+ "tray-icon",
  "url",
  "webkit2gtk",
  "webview2-com",
@@ -5306,10 +5287,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5657,26 +5638,6 @@ dependencies = [
 
 [[package]]
 name = "tray-icon"
-version = "0.24.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "045979e3f037cd18ad1cb2a419dfda133c5c29c9f3453370079f2255d46c257e"
-dependencies = [
- "crossbeam-channel",
- "dirs 6.0.0",
- "muda 0.19.3",
- "objc2",
- "objc2-app-kit",
- "objc2-core-foundation",
- "objc2-core-graphics",
- "objc2-foundation",
- "once_cell",
- "png",
- "thiserror 2.0.21",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "tray-icon"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2b9c52859a94554803ccd4a24b98f74148ebc73b90676d783f3490b1bff9d72"
@@ -5684,7 +5645,7 @@ dependencies = [
  "crossbeam-channel",
  "dirs 7.0.0",
  "libappindicator",
- "muda 0.20.0",
+ "muda",
  "objc2",
  "objc2-app-kit",
  "objc2-core-foundation",
@@ -5999,7 +5960,7 @@ dependencies = [
  "tauri-plugin-updater",
  "time",
  "tokio",
- "tray-icon 0.24.2",
+ "tray-icon",
  "uuid",
 ]
 
@@ -6220,7 +6181,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6557,7 +6518,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d6f32a0ff4a9f6f01231eb2059cc85479330739333e0e58cadf03b6af2cca10"
 dependencies = [
  "cfg-if",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
