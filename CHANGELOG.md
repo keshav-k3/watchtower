@@ -10,7 +10,7 @@ Watchtower 1.0 is a calmer, faster panel with a new icon, more providers and a f
 - Codex reset alerts: a native notification and a small in-panel note when a Codex limit resets, with a toggle in Settings
 - Ports: see which local TCP ports are listening and stop the process behind one, with a confirmation and an optional Force Stop. Root and system processes are never offered
 - macOS widget in small, medium and large sizes for Notification Center and the desktop (one-time Xcode setup, see docs/widget.md)
-- New Beacon lighthouse app icon and a matching black template menu-bar icon
+- New Watchtower app icon (a white lighthouse inside a usage ring with an amber segment on charcoal) and a matching template menu-bar icon
 
 ### Improvements
 - Flat, minimal panel: no title in the header (fixes the clipped "WATCHTOW"), hairline provider rows, thin bars, official brand icons
