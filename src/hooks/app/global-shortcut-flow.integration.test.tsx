@@ -50,6 +50,7 @@ import {
   loadGlobalShortcut,
   type GlobalShortcut,
 } from "@/lib/settings"
+import { usePlatform } from "@/test/platform"
 
 function ShortcutSettingsHarness() {
   const [globalShortcut, setGlobalShortcut] = useState<GlobalShortcut>(DEFAULT_GLOBAL_SHORTCUT)
@@ -75,6 +76,8 @@ async function recordShortcut(combo: Array<{ key: string; code: string }>) {
 }
 
 describe("global shortcut save and apply flow", () => {
+  usePlatform("MacIntel")
+
   beforeEach(() => {
     storeState.clear()
     storeSaveMock.mockReset()

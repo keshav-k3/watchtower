@@ -3,18 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon } from "@hugeicons-pro/core-solid-rounded"
 import { cn } from "@/lib/utils"
 import type { GlobalShortcut } from "@/lib/settings"
-
-// Convert internal shortcut format to display format
-// e.g., "CommandOrControl+Shift+U" -> "Cmd + Shift + U"
-function formatShortcutForDisplay(shortcut: string): string {
-  return shortcut
-    .replace(/CommandOrControl/g, "Cmd")
-    .replace(/Command/g, "Cmd")
-    .replace(/Control/g, "Ctrl")
-    .replace(/Option/g, "Opt")
-    .replace(/Alt/g, "Opt")
-    .replace(/\+/g, " + ")
-}
+import { formatShortcutForDisplay, recordedModifier } from "@/lib/shortcut-format"
 
 // Modifier codes (using event.code for reliable detection)
 const MODIFIER_CODES = new Set([
@@ -105,20 +94,10 @@ function buildShortcutFromCodes(codes: Set<string>): { display: string; tauri: s
 
   for (const code of codes) {
     if (MODIFIER_CODES.has(code)) {
-      const normalized = normalizeModifierCode(code)
-      if (normalized === "Meta" || normalized === "Control") {
-        if (!modifiers.includes("CommandOrControl")) {
-          modifiers.push("CommandOrControl")
-          displayMods.push("Cmd")
-        }
-      } else if (normalized === "Alt") {
-        if (!modifiers.includes("Alt")) {
-          modifiers.push("Alt")
-          displayMods.push("Opt")
-        }
-      } else if (!modifiers.includes("Shift")) {
-        modifiers.push("Shift")
-        displayMods.push("Shift")
+      const { accelerator, label } = recordedModifier(normalizeModifierCode(code))
+      if (!modifiers.includes(accelerator)) {
+        modifiers.push(accelerator)
+        displayMods.push(label)
       }
     } else {
       // Non-modifier key - use the last one pressed

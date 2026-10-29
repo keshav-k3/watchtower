@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { GlobalShortcutSection } from "@/components/global-shortcut-section"
+import { usePlatform } from "@/test/platform"
 
 function renderSection(globalShortcut: string | null = null) {
   const onGlobalShortcutChange = vi.fn()
@@ -20,6 +21,8 @@ async function startRecording() {
 }
 
 describe("GlobalShortcutSection", () => {
+  usePlatform("MacIntel")
+
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -237,5 +240,54 @@ describe("GlobalShortcutSection", () => {
     fireEvent.blur(textbox)
     expect(onGlobalShortcutChange).not.toHaveBeenCalled()
     expect(screen.queryByRole("textbox", { name: /Press keys/i })).toBeNull()
+  })
+})
+
+describe("GlobalShortcutSection on Linux", () => {
+  usePlatform("Linux x86_64")
+
+  it("shows the default shortcut with Ctrl, not Cmd", () => {
+    renderSection("CommandOrControl+W")
+    expect(screen.getByText("Ctrl + W")).toBeInTheDocument()
+    expect(screen.queryByText(/Cmd/)).not.toBeInTheDocument()
+  })
+
+  it("records Ctrl + Shift + key as a CommandOrControl accelerator labelled Ctrl", async () => {
+    const { onGlobalShortcutChange } = renderSection()
+    const recorder = await startRecording()
+
+    fireEvent.keyDown(recorder, { code: "ControlLeft" })
+    fireEvent.keyDown(recorder, { code: "ShiftLeft" })
+    fireEvent.keyDown(recorder, { code: "KeyK" })
+    expect(screen.getByText("Ctrl + Shift + K")).toBeInTheDocument()
+
+    fireEvent.keyUp(recorder, { code: "KeyK" })
+    fireEvent.keyUp(recorder, { code: "ShiftLeft" })
+    fireEvent.keyUp(recorder, { code: "ControlLeft" })
+    expect(onGlobalShortcutChange).toHaveBeenCalledWith("CommandOrControl+Shift+K")
+  })
+
+  it("records the Super key separately from Ctrl", async () => {
+    const { onGlobalShortcutChange } = renderSection()
+    const recorder = await startRecording()
+
+    fireEvent.keyDown(recorder, { code: "MetaLeft" })
+    fireEvent.keyDown(recorder, { code: "AltLeft" })
+    fireEvent.keyDown(recorder, { code: "KeyU" })
+    expect(screen.getByText("Super + Alt + U")).toBeInTheDocument()
+
+    fireEvent.keyUp(recorder, { code: "KeyU" })
+    fireEvent.keyUp(recorder, { code: "AltLeft" })
+    fireEvent.keyUp(recorder, { code: "MetaLeft" })
+    expect(onGlobalShortcutChange).toHaveBeenCalledWith("Super+Alt+U")
+  })
+})
+
+describe("GlobalShortcutSection on Windows", () => {
+  usePlatform("Win32")
+
+  it("shows Ctrl for the default shortcut", () => {
+    renderSection("CommandOrControl+W")
+    expect(screen.getByText("Ctrl + W")).toBeInTheDocument()
   })
 })
