@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const panelState = vi.hoisted(() => ({
   canScrollDown: false,
-  maxPanelHeightPx: 320 as number | null,
+  panelHeightPx: 320 as number | null,
 }))
 
 vi.mock("@/components/app/app-content", () => ({
@@ -42,7 +42,7 @@ vi.mock("@/hooks/app/use-panel", () => ({
     containerRef: { current: null },
     scrollRef: { current: null },
     canScrollDown: panelState.canScrollDown,
-    maxPanelHeightPx: panelState.maxPanelHeightPx,
+    panelHeightPx: panelState.panelHeightPx,
   }),
 }))
 
@@ -111,7 +111,7 @@ function createProps() {
 describe("AppShell", () => {
   beforeEach(() => {
     panelState.canScrollDown = false
-    panelState.maxPanelHeightPx = 320
+    panelState.panelHeightPx = 320
     useAppUiStore.getState().resetState()
   })
 
@@ -199,11 +199,19 @@ describe("AppShell", () => {
     expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")
   })
 
-  it("omits the max-height style when panel height is unavailable", () => {
-    panelState.maxPanelHeightPx = null
+  it("gives the panel a fixed height so every page keeps the same size", () => {
+    const { container } = render(<AppShell {...createProps()} />)
+    const panel = container.querySelector<HTMLElement>(".rounded-xl")
+
+    expect(panel?.style.height).toBe("283px")
+    expect(panel?.style.maxHeight).toBe("")
+  })
+
+  it("omits the height style when panel height is unavailable", () => {
+    panelState.panelHeightPx = null
     const { container } = render(<AppShell {...createProps()} />)
 
-    expect(container.querySelector("[style*='max-height']")).toBeNull()
+    expect(container.querySelector("[style*='height']")).toBeNull()
   })
 
   it("shows the scroll fade when more content is available below", () => {

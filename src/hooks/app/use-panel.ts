@@ -6,6 +6,10 @@ import type { ActiveView } from "@/components/side-nav"
 import type { DisplayPluginState } from "@/hooks/app/use-app-plugin-views"
 
 const PANEL_WIDTH = 400
+// The panel keeps one height on every page so the window doesn't jump when
+// you switch views. Long pages scroll inside the panel; short pages leave
+// space. On small screens it is capped to a share of the monitor height.
+export const PANEL_HEIGHT_PX = 720
 const MAX_HEIGHT_FALLBACK_PX = 600
 const MAX_HEIGHT_FRACTION_OF_MONITOR = 0.8
 
@@ -41,8 +45,9 @@ export function usePanel({
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollDown, setCanScrollDown] = useState(false)
-  const [maxPanelHeightPx, setMaxPanelHeightPx] = useState<number | null>(null)
-  const maxPanelHeightPxRef = useRef<number | null>(null)
+  const [panelHeightPx, setPanelHeightPx] = useState<number | null>(null)
+  const panelHeightPxRef = useRef<number | null>(null)
+  const appliedSizeRef = useRef<{ width: number; height: number } | null>(null)
   const focusContainer = useCallback(() => {
     window.requestAnimationFrame(() => {
       containerRef.current?.focus({ preventScroll: true })
@@ -157,15 +162,13 @@ export function usePanel({
     const resizeWindow = async () => {
       const factor = window.devicePixelRatio
       const width = Math.ceil(PANEL_WIDTH * factor)
-      const desiredHeightLogical = Math.max(1, container.scrollHeight)
 
-      let maxHeightPhysical: number | null = null
       let maxHeightLogical: number | null = null
 
       try {
         const monitor = await currentMonitor()
         if (monitor) {
-          maxHeightPhysical = Math.floor(monitor.size.height * MAX_HEIGHT_FRACTION_OF_MONITOR)
+          const maxHeightPhysical = Math.floor(monitor.size.height * MAX_HEIGHT_FRACTION_OF_MONITOR)
           maxHeightLogical = Math.floor(maxHeightPhysical / factor)
         }
       } catch {
@@ -175,21 +178,25 @@ export function usePanel({
       if (maxHeightLogical === null) {
         const screenAvailHeight = Number(window.screen?.availHeight) || MAX_HEIGHT_FALLBACK_PX
         maxHeightLogical = Math.floor(screenAvailHeight * MAX_HEIGHT_FRACTION_OF_MONITOR)
-        maxHeightPhysical = Math.floor(maxHeightLogical * factor)
       }
 
-      if (maxPanelHeightPxRef.current !== maxHeightLogical) {
-        maxPanelHeightPxRef.current = maxHeightLogical
-        setMaxPanelHeightPx(maxHeightLogical)
+      const heightLogical = Math.min(PANEL_HEIGHT_PX, maxHeightLogical)
+      if (panelHeightPxRef.current !== heightLogical) {
+        panelHeightPxRef.current = heightLogical
+        setPanelHeightPx(heightLogical)
       }
 
-      const desiredHeightPhysical = Math.ceil(desiredHeightLogical * factor)
-      const height = Math.ceil(Math.min(desiredHeightPhysical, maxHeightPhysical!))
+      const height = Math.ceil(heightLogical * factor)
+      const applied = appliedSizeRef.current
+      if (applied && applied.width === width && applied.height === height) return
 
+      // Claim the size before awaiting so overlapping calls don't resize twice.
+      appliedSizeRef.current = { width, height }
       try {
         const currentWindow = getCurrentWindow()
         await currentWindow.setSize(new PhysicalSize(width, height))
       } catch (e) {
+        appliedSizeRef.current = null
         console.error("Failed to resize window:", e)
       }
     }
@@ -232,6 +239,6 @@ export function usePanel({
     containerRef,
     scrollRef,
     canScrollDown,
-    maxPanelHeightPx,
+    panelHeightPx,
   }
 }

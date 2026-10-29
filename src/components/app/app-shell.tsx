@@ -72,7 +72,7 @@ export function AppShell({
     containerRef,
     scrollRef,
     canScrollDown,
-    maxPanelHeightPx,
+    panelHeightPx,
   } = usePanel({
     activeView,
     setActiveView,
@@ -96,7 +96,7 @@ export function AppShell({
         className="relative flex w-full select-none flex-col overflow-hidden rounded-xl border border-line bg-card"
         style={{
           boxShadow: "var(--panel-shadow)",
-          ...(maxPanelHeightPx ? { maxHeight: `${maxPanelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
+          ...(panelHeightPx ? { height: `${panelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
         }}
       >
         <div className="flex flex-1 min-h-0 flex-row items-stretch">
