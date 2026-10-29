@@ -141,4 +141,56 @@ describe("muse plugin", () => {
     const plugin = await loadPlugin()
     expect(() => plugin.probe(ctx)).toThrow("not available in this Watchtower build")
   })
+
+  it("skips blank percentages and unreadable resets, and reads epoch-ms resetsAt", async () => {
+    const ctx = makeCtx()
+    withUsage(ctx, {
+      tier: "muse_code_plus",
+      window: { usedPercent: "  ", resetsAtMs: NOW + HOUR },
+      weekly: { usedPercent: "20", resetsAt: NOW + 24 * HOUR },
+    })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines).toHaveLength(1)
+    expect(result.lines[0]).toMatchObject({ label: "Weekly", used: 20, resetsAt: new Date(NOW + 24 * HOUR).toISOString() })
+  })
+
+  it("leaves the reset out when resetsAt is not a date", async () => {
+    const ctx = makeCtx()
+    withUsage(ctx, { window: { usedPercent: 10, resetsAt: "soon" } })
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines).toHaveLength(1)
+    expect(result.lines[0]).toMatchObject({ label: "Session", used: 10 })
+    expect(result.lines[0].resetsAt).toBeUndefined()
+  })
+
+  it("treats a non-object usage field as no allowance", async () => {
+    const ctx = makeCtx()
+    withUsage(ctx, { usage: "none" })
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("No Muse Code subscription allowance")
+  })
+
+  it.each([["null"], [""]])("rejects a usage body of %j", async (stdout) => {
+    const ctx = makeCtx()
+    ctx.host.muse.usage.mockReturnValue(JSON.stringify({ status: "ok", stdout: stdout || undefined }))
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Muse usage response invalid")
+  })
+
+  it("asks to retry when the host envelope is not JSON", async () => {
+    const ctx = makeCtx()
+    ctx.host.muse.usage.mockReturnValue("not json")
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Muse usage request failed. Try again.")
+    expect(ctx.host.log.warn).toHaveBeenCalled()
+  })
+
+  it.each([["null"], [JSON.stringify({ status: "failed" })]])("reports a failed request for envelope %s", async (envelope) => {
+    const ctx = makeCtx()
+    ctx.host.muse.usage.mockReturnValue(envelope)
+    const plugin = await loadPlugin()
+    expect(() => plugin.probe(ctx)).toThrow("Check your connection")
+  })
 })
