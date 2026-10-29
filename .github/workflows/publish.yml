@@ -4,13 +4,19 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build (e.g. v1.0.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +27,9 @@ jobs:
             args: "--target x86_64-apple-darwin"
     runs-on: ${{ matrix.platform }}
     env:
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+      HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,6 +89,7 @@ jobs:
           fi
 
       - name: Import Apple Developer Certificate
+        if: ${{ env.HAS_APPLE_CERT == 'true' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -95,7 +104,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm certificate.p12
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build and publish (signed)
+        if: ${{ env.HAS_APPLE_CERT == 'true' && env.HAS_UPDATER_KEY == 'true' }}
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -117,7 +128,38 @@ jobs:
           includeUpdaterJson: true
           args: ${{ matrix.args }}
 
+      # Without signing secrets, ship the same unsigned build the earlier
+      # releases used: no Apple signing or notarization, no updater files.
+      - name: Turn off updater artifacts for the unsigned build
+        if: ${{ env.HAS_APPLE_CERT != 'true' || env.HAS_UPDATER_KEY != 'true' }}
+        run: echo '{"bundle":{"createUpdaterArtifacts":false}}' > src-tauri/tauri.unsigned.conf.json
+
+      - name: Build and publish (unsigned)
+        if: ${{ env.HAS_APPLE_CERT != 'true' || env.HAS_UPDATER_KEY != 'true' }}
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: ${{ env.RELEASE_TAG }}
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: false
+          args: ${{ matrix.args }} --config src-tauri/tauri.unsigned.conf.json
+
+      # The Homebrew cask downloads Watchtower.app.tar.gz (Apple silicon).
+      - name: Upload app tarball for Homebrew
+        if: ${{ contains(matrix.args, 'aarch64') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APP=$(find src-tauri/target -maxdepth 6 -type d -path '*/bundle/macos/Watchtower.app' | head -1)
+          test -n "$APP" || { echo "Watchtower.app not found"; exit 1; }
+          tar -czf Watchtower.app.tar.gz -C "$(dirname "$APP")" Watchtower.app
+          gh release upload "$RELEASE_TAG" Watchtower.app.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
+
       - name: Verify updater assets uploaded
+        if: ${{ env.HAS_APPLE_CERT == 'true' && env.HAS_UPDATER_KEY == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
