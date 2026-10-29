@@ -8,7 +8,10 @@
 - **Base URL:** `https://api.kimi.com/coding/v1`
 - **Auth provider:** `https://auth.kimi.com` (OAuth 2.0)
 - **Client ID:** `17e5f671-d194-4dfb-9706-5516cb48c098`
-- **Token store:** `~/.kimi/credentials/kimi-code.json`
+- **Token store (current Kimi Code CLI):** `~/.kimi-code/credentials/kimi-code.json`, or `kimi-code-env-<id>.json` for a scoped environment. `KIMI_CODE_HOME` moves `~/.kimi-code`.
+- **Token store (older CLI):** `~/.kimi/credentials/kimi-code.json`
+- **Endpoints from config:** if `~/.kimi-code/config.toml` sets `base_url` / `oauth_host` under `[providers."managed:kimi-code"]` (for example `api.kimi.ai` / `auth.kimi.ai`), Watchtower uses those.
+- **Refresh:** access tokens last 15 minutes. Watchtower refreshes only after the token has expired (the CLI refreshes earlier on its own) and writes the new tokens back to the file it read.
 
 ## Endpoints
 
@@ -49,6 +52,21 @@ Returns overall usage and at least one windowed quota.
     "membership": {
       "level": "LEVEL_INTERMEDIATE"
     }
+  }
+}
+```
+
+#### Current response (`usages` block)
+
+Current Kimi Code accounts also return ratio-based windows. These are what the CLI's `/usage` shows: `limit_5h` is the 5h limit and `limit_month_total` is the Monthly limit. Watchtower shows them as Session and Monthly when present.
+
+```jsonc
+{
+  "limits": [ /* same as above */ ],
+  "usages": {
+    "limit_5h": { "used_ratio": 0, "reset_time": "2026-10-29T16:53:37Z" },
+    "limit_month_total": { "used_ratio": 0.7579, "reset_time": "2026-11-16T00:00:00Z" },
+    "limit_month_code": { "used_ratio": 0.7339, "reset_time": "2026-11-16T00:00:00Z" }
   }
 }
 ```

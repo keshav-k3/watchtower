@@ -1,9 +1,19 @@
 (function () {
-  const CRED_PATH = "~/.kimi/credentials/kimi-code.json"
-  const USAGE_URL = "https://api.kimi.com/coding/v1/usages"
-  const REFRESH_URL = "https://auth.kimi.com/api/oauth/token"
+  // Kimi Code CLI (current) keeps its login under ~/.kimi-code (or
+  // $KIMI_CODE_HOME): credentials/kimi-code.json for the official slot, or
+  // credentials/kimi-code-env-<id>.json for a scoped environment. The older
+  // CLI used ~/.kimi/credentials/kimi-code.json.
+  const KIMI_CODE_HOME_DEFAULT = "~/.kimi-code"
+  const LEGACY_CRED_PATH = "~/.kimi/credentials/kimi-code.json"
+  const DEFAULT_API_BASE = "https://api.kimi.com/coding/v1"
+  const DEFAULT_OAUTH_HOST = "https://auth.kimi.com"
   const CLIENT_ID = "17e5f671-d194-4dfb-9706-5516cb48c098"
-  const REFRESH_BUFFER_SEC = 5 * 60
+  // Refresh only once the token has actually expired. The Kimi CLI refreshes
+  // early on its own; refreshing ahead of it could race the CLI over the
+  // same refresh token.
+  const REFRESH_BUFFER_SEC = 0
+  const FIVE_HOURS_MS = 5 * 60 * 60 * 1000
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
   function readNumber(value) {
     const n = Number(value)
@@ -34,21 +44,54 @@
     return label || null
   }
 
-  function loadCredentials(ctx) {
-    if (!ctx.host.fs.exists(CRED_PATH)) {
-      ctx.host.log.warn("credentials file not found: " + CRED_PATH)
-      return null
-    }
-
+  function kimiCodeHome(ctx) {
     try {
-      const text = ctx.host.fs.readText(CRED_PATH)
-      const parsed = ctx.util.tryParseJson(text)
+      if (ctx.host.env && typeof ctx.host.env.get === "function") {
+        const value = ctx.host.env.get("KIMI_CODE_HOME")
+        if (typeof value === "string" && value.trim()) return value.trim().replace(/\/+$/, "")
+      }
+    } catch (e) {
+      ctx.host.log.warn("KIMI_CODE_HOME lookup failed: " + String(e))
+    }
+    return KIMI_CODE_HOME_DEFAULT
+  }
+
+  function readConfigValue(text, key) {
+    const match = new RegExp("^\\s*" + key + "\\s*=\\s*\"([^\"]+)\"", "m").exec(text)
+    return match ? match[1].trim().replace(/\/+$/, "") : null
+  }
+
+  // Endpoints come from the CLI's config.toml when it names them
+  // (e.g. api.kimi.ai / auth.kimi.ai); otherwise use the defaults.
+  function loadEndpoints(ctx, home) {
+    const endpoints = { apiBase: DEFAULT_API_BASE, oauthHost: DEFAULT_OAUTH_HOST }
+    if (!home) return endpoints
+    const configPath = home + "/config.toml"
+    try {
+      if (!ctx.host.fs.exists(configPath)) return endpoints
+      const text = ctx.host.fs.readText(configPath)
+      const sectionStart = text.indexOf('[providers."managed:kimi-code"')
+      const scoped = sectionStart === -1 ? text : text.slice(sectionStart)
+      const baseUrl = readConfigValue(scoped, "base_url")
+      const oauthHost = readConfigValue(scoped, "oauth_host")
+      if (baseUrl && /^https:\/\//.test(baseUrl)) endpoints.apiBase = baseUrl
+      if (oauthHost && /^https:\/\//.test(oauthHost)) endpoints.oauthHost = oauthHost
+    } catch (e) {
+      ctx.host.log.warn("kimi config read failed: " + String(e))
+    }
+    return endpoints
+  }
+
+  function readCredentialFile(ctx, path) {
+    try {
+      if (!ctx.host.fs.exists(path)) return null
+      const parsed = ctx.util.tryParseJson(ctx.host.fs.readText(path))
       if (!parsed || typeof parsed !== "object") {
-        ctx.host.log.warn("credentials file is not valid json")
+        ctx.host.log.warn("credentials file is not valid json: " + path)
         return null
       }
       if (!parsed.access_token && !parsed.refresh_token) {
-        ctx.host.log.warn("credentials missing access_token and refresh_token")
+        ctx.host.log.warn("credentials missing access_token and refresh_token: " + path)
         return null
       }
       return parsed
@@ -58,9 +101,54 @@
     }
   }
 
-  function saveCredentials(ctx, creds) {
+  function credentialCandidates(ctx, home) {
+    const dir = home + "/credentials"
+    const paths = [dir + "/kimi-code.json"]
+    let names = []
     try {
-      ctx.host.fs.writeText(CRED_PATH, JSON.stringify(creds))
+      if (ctx.host.fs.exists(dir)) names = ctx.host.fs.listDir(dir)
+    } catch (e) {
+      ctx.host.log.warn("kimi credentials dir unreadable: " + String(e))
+    }
+    names
+      .filter(function (name) {
+        return /^kimi-code-env-[A-Za-z0-9_-]+\.json$/.test(name)
+      })
+      .sort()
+      .forEach(function (name) {
+        paths.push(dir + "/" + name)
+      })
+    return paths
+  }
+
+  function loadCredentials(ctx) {
+    const home = kimiCodeHome(ctx)
+    let best = null
+    const paths = credentialCandidates(ctx, home)
+    for (let i = 0; i < paths.length; i += 1) {
+      const creds = readCredentialFile(ctx, paths[i])
+      if (!creds) continue
+      const expiresAt = readNumber(creds.expires_at) || 0
+      if (!best || expiresAt > best.expiresAt) {
+        best = { creds, path: paths[i], home, expiresAt }
+      }
+    }
+    if (best) {
+      return { creds: best.creds, path: best.path, endpoints: loadEndpoints(ctx, best.home) }
+    }
+
+    const legacy = readCredentialFile(ctx, LEGACY_CRED_PATH)
+    if (legacy) {
+      return { creds: legacy, path: LEGACY_CRED_PATH, endpoints: loadEndpoints(ctx, null) }
+    }
+
+    ctx.host.log.warn("credentials file not found in " + home + "/credentials or " + LEGACY_CRED_PATH)
+    return null
+  }
+
+  function saveCredentials(ctx, path, creds) {
+    try {
+      ctx.host.fs.writeText(path, JSON.stringify(creds))
     } catch (e) {
       ctx.host.log.warn("failed to persist credentials: " + String(e))
     }
@@ -73,7 +161,8 @@
     return nowSec + REFRESH_BUFFER_SEC >= expiresAt
   }
 
-  function refreshToken(ctx, creds) {
+  function refreshToken(ctx, session) {
+    const creds = session.creds
     if (!creds.refresh_token) {
       ctx.host.log.warn("refresh skipped: no refresh token")
       return null
@@ -84,7 +173,7 @@
     try {
       resp = ctx.util.request({
         method: "POST",
-        url: REFRESH_URL,
+        url: session.endpoints.oauthHost + "/api/oauth/token",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           Accept: "application/json",
@@ -125,14 +214,14 @@
     if (typeof body.scope === "string") creds.scope = body.scope
     if (typeof body.token_type === "string") creds.token_type = body.token_type
 
-    saveCredentials(ctx, creds)
+    saveCredentials(ctx, session.path, creds)
     return creds.access_token
   }
 
-  function fetchUsage(ctx, accessToken) {
+  function fetchUsage(ctx, endpoints, accessToken) {
     return ctx.util.request({
       method: "GET",
-      url: USAGE_URL,
+      url: endpoints.apiBase + "/usages",
       headers: {
         Authorization: "Bearer " + accessToken,
         Accept: "application/json",
@@ -248,17 +337,56 @@
     )
   }
 
+  function readRatioQuota(ctx, raw) {
+    if (!raw || typeof raw !== "object") return null
+    const ratio = readNumber(raw.used_ratio !== undefined ? raw.used_ratio : raw.usedRatio)
+    if (ratio === null) return null
+    return {
+      used: Math.round(Math.max(0, ratio) * 1000) / 10,
+      resetsAt: ctx.util.toIso(raw.reset_time || raw.resetTime || raw.reset_at || raw.resetAt),
+    }
+  }
+
+  // Current Kimi Code API: `usages` holds ratio-based windows, the same ones
+  // the CLI's /usage shows (5h limit, Monthly limit = limit_month_total).
+  function ratioUsageLines(ctx, data) {
+    const usages = data && typeof data.usages === "object" ? data.usages : null
+    if (!usages) return []
+    const rows = [
+      { key: "limit_5h", label: "Session", periodMs: FIVE_HOURS_MS },
+      { key: "limit_month_total", label: "Monthly", periodMs: undefined },
+      { key: "limit_7d", label: "Weekly", periodMs: SEVEN_DAYS_MS },
+    ]
+    const lines = []
+    for (let i = 0; i < rows.length; i += 1) {
+      const quota = readRatioQuota(ctx, usages[rows[i].key])
+      if (!quota) continue
+      lines.push(
+        ctx.line.progress({
+          label: rows[i].label,
+          used: quota.used,
+          limit: 100,
+          format: { kind: "percent" },
+          resetsAt: quota.resetsAt || undefined,
+          periodDurationMs: rows[i].periodMs,
+        })
+      )
+    }
+    return lines
+  }
+
   function probe(ctx) {
-    const creds = loadCredentials(ctx)
-    if (!creds) {
+    const session = loadCredentials(ctx)
+    if (!session) {
       throw "Not logged in. Run `kimi login` to authenticate."
     }
+    const creds = session.creds
 
     const nowSec = Date.now() / 1000
     let accessToken = creds.access_token || ""
 
     if (needsRefresh(creds, nowSec)) {
-      const refreshed = refreshToken(ctx, creds)
+      const refreshed = refreshToken(ctx, session)
       if (refreshed) {
         accessToken = refreshed
       } else if (!accessToken) {
@@ -271,11 +399,11 @@
     try {
       resp = ctx.util.retryOnceOnAuth({
         request: function (token) {
-          return fetchUsage(ctx, token || accessToken)
+          return fetchUsage(ctx, session.endpoints, token || accessToken)
         },
         refresh: function () {
           didRefresh = true
-          const refreshed = refreshToken(ctx, creds)
+          const refreshed = refreshToken(ctx, session)
           if (refreshed) accessToken = refreshed
           return refreshed
         },
@@ -298,6 +426,11 @@
     const data = ctx.util.tryParseJson(resp.bodyText)
     if (!data || typeof data !== "object") {
       throw "Usage response invalid. Try again later."
+    }
+
+    const ratioLines = ratioUsageLines(ctx, data)
+    if (ratioLines.length > 0) {
+      return { plan: parsePlanLabel(data), lines: ratioLines }
     }
 
     const lines = []
