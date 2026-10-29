@@ -48,3 +48,8 @@ jobs:
 
       - name: Check the macOS app compiles
         run: cargo check --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Build the macOS widget
+        env:
+          TAURI_ENV_ARCH: aarch64
+        run: bash src-tauri/macos/WatchtowerWidget/build-widget.sh

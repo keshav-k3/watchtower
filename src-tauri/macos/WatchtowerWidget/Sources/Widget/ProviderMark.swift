@@ -57,7 +57,7 @@ struct ProviderMark: View {
         let asset = "provider-\(provider.id)"
         Group {
             if NSImage(named: NSImage.Name(asset)) != nil {
-                branded(Image(asset).resizable().scaledToFit().renderingMode(.template))
+                branded(Image(asset).renderingMode(.template))
             } else {
                 monogram
             }
@@ -83,13 +83,15 @@ struct ProviderMark: View {
         return String(trimmed.prefix(1)).uppercased()
     }
 
+    // `renderingMode`, `resizable` and `widgetAccentedRenderingMode` are Image
+    // modifiers, so apply them before `scaledToFit()` makes it a plain View.
     @ViewBuilder
-    private func branded(_ image: some View) -> some View {
-        let colored = image.foregroundStyle(markStyle)
+    private func branded(_ image: Image) -> some View {
         if #available(macOS 15.0, *) {
-            colored.widgetAccentedRenderingMode(.fullColor)
+            image.resizable().widgetAccentedRenderingMode(.fullColor)
+                .scaledToFit().foregroundStyle(markStyle)
         } else {
-            colored
+            image.resizable().scaledToFit().foregroundStyle(markStyle)
         }
     }
 

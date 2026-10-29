@@ -1,9 +1,12 @@
 # Changelog
 
-## v1.0.1
+## v1.0.2
+
+v1.0.0 and v1.0.1 were tagged but never released; their macOS builds failed.
 
 ### Bug Fixes
 - Fix the macOS build after the dependency updates (tray-icon 0.25)
+- Fix the widget build (Image modifiers used in the wrong order)
 
 ### Security
 - Update npm and Cargo dependencies; `bun audit` and `cargo audit` are clean
