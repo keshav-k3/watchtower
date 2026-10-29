@@ -5870,7 +5870,7 @@ version = "1.0.0"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
- "dirs 6.0.0",
+ "dirs 7.0.0",
  "libc",
  "log",
  "objc2",
