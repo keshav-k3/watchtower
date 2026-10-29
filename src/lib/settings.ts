@@ -59,6 +59,7 @@ export const DEFAULT_PROVIDER_ORDER = [
   "kimi",
   "devin",
   "grok-bot",
+  "muse",
 ];
 const DEV_ONLY_PLUGIN_IDS = new Set(["mock"]);
 

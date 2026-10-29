@@ -143,6 +143,7 @@ describe("settings", () => {
       { id: "kimi", name: "Kimi", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "devin", name: "Devin", iconUrl: "", lines: [], primaryCandidates: [] },
       { id: "grok-bot", name: "Grok Bot", iconUrl: "", lines: [], primaryCandidates: [] },
+      { id: "muse", name: "Muse Code", iconUrl: "", lines: [], primaryCandidates: [] },
     ]
     const result = normalizePluginSettings(
       { order: ["mock", "gemini", "cursor"], disabled: ["mock", "claude"] },

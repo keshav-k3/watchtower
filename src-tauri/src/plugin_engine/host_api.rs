@@ -665,6 +665,7 @@ pub(crate) fn inject_host_api_with_deadline<'js>(
     inject_sqlite(ctx, &host)?;
     inject_ls(ctx, &host, plugin_id)?;
     inject_ccusage(ctx, &host, plugin_id, deadline)?;
+    inject_muse(ctx, &host, plugin_id, deadline)?;
 
     probe_ctx.set("host", host)?;
     globals.set("__watchtower_ctx", probe_ctx)?;
@@ -2445,6 +2446,189 @@ fn inject_ccusage<'js>(
     )?;
 
     host.set("ccusage", ccusage_obj)?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Muse Code (Meta) subscription allowance via the official `muse usage --json`.
+//
+// Only exposed to the `muse` plugin. The command and its arguments are fixed, so a
+// plugin cannot use this to run anything else. Muse Code (1.4.13+) answers without a
+// model turn; the CLI itself rate-limits its server read.
+// ---------------------------------------------------------------------------
+
+const MUSE_PLUGIN_ID: &str = "muse";
+const MUSE_PROGRAM: &str = "muse";
+const MUSE_USAGE_ARGS: [&str; 2] = ["usage", "--json"];
+const MUSE_TIMEOUT_SECS: u64 = 20;
+const MUSE_MESSAGE_MAX_CHARS: usize = 200;
+
+fn muse_status(status: &str) -> serde_json::Value {
+    serde_json::json!({ "status": status })
+}
+
+fn muse_failure_message(stdout: &str, stderr: &str) -> String {
+    let source = if stderr.trim().is_empty() { stdout } else { stderr };
+    let line = source
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .unwrap_or("");
+    let redacted = redact_log_message(line);
+    redacted.chars().take(MUSE_MESSAGE_MAX_CHARS).collect()
+}
+
+fn classify_muse_usage_output(success: bool, stdout: &str, stderr: &str) -> serde_json::Value {
+    let mentions_login = |text: &str| {
+        let lower = text.to_lowercase();
+        lower.contains("not logged in") || lower.contains("muse login")
+    };
+    if mentions_login(stderr) || (!success && mentions_login(stdout)) {
+        return muse_status("not_logged_in");
+    }
+    if success && !stdout.trim().is_empty() {
+        return serde_json::json!({ "status": "ok", "stdout": stdout.trim() });
+    }
+    serde_json::json!({
+        "status": "failed",
+        "message": muse_failure_message(stdout, stderr),
+    })
+}
+
+/// A launcher that was just installed or self-updated can briefly report ETXTBSY
+/// ("text file busy") while another process still holds it open for writing.
+fn spawn_retrying_text_busy(
+    command: &mut std::process::Command,
+) -> std::io::Result<std::process::Child> {
+    let mut attempts = 0;
+    loop {
+        match command.spawn() {
+            #[cfg(unix)]
+            Err(err) if err.raw_os_error() == Some(libc::ETXTBSY) && attempts < 5 => {
+                attempts += 1;
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            other => return other,
+        }
+    }
+}
+
+fn run_muse_usage_with(
+    program: &str,
+    enriched_path: Option<&OsStr>,
+    timeout: Duration,
+    plugin_id: &str,
+) -> serde_json::Value {
+    let mut command = std::process::Command::new(program);
+    let args: Vec<String> = MUSE_USAGE_ARGS.iter().map(|arg| arg.to_string()).collect();
+    configure_ccusage_command(&mut command, &args, enriched_path);
+    command
+        .env("NO_COLOR", "1")
+        .stdin(std::process::Stdio::null())
+        .current_dir(std::env::temp_dir());
+
+    let mut child = match spawn_retrying_text_busy(&mut command) {
+        Ok(child) => child,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            return muse_status("not_installed");
+        }
+        Err(err) => {
+            log::warn!("[plugin:{}] muse spawn failed: {}", plugin_id, err);
+            return serde_json::json!({ "status": "failed", "message": "could not start muse" });
+        }
+    };
+
+    let mut stdout_reader = child.stdout.take().map(|mut stdout| {
+        std::thread::spawn(move || {
+            let mut v = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut stdout, &mut v);
+            v
+        })
+    });
+    let mut stderr_reader = child.stderr.take().map(|mut stderr| {
+        std::thread::spawn(move || {
+            let mut v = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut stderr, &mut v);
+            v
+        })
+    });
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let stdout = stdout_reader
+                    .take()
+                    .and_then(|reader| reader.join().ok())
+                    .unwrap_or_default();
+                let stderr = stderr_reader
+                    .take()
+                    .and_then(|reader| reader.join().ok())
+                    .unwrap_or_default();
+                let stdout = String::from_utf8_lossy(&stdout);
+                let stderr = String::from_utf8_lossy(&stderr);
+                let result = classify_muse_usage_output(status.success(), &stdout, &stderr);
+                if result["status"] == "failed" {
+                    log::warn!(
+                        "[plugin:{}] muse usage failed ({}): {}",
+                        plugin_id,
+                        status,
+                        result["message"].as_str().unwrap_or("")
+                    );
+                }
+                return result;
+            }
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    if kill_ccusage_on_timeout(&mut child).is_err() {
+                        let _ = child.kill();
+                    }
+                    let _ = child.wait();
+                    let _ = stdout_reader.take().and_then(|reader| reader.join().ok());
+                    let _ = stderr_reader.take().and_then(|reader| reader.join().ok());
+                    log::warn!(
+                        "[plugin:{}] muse usage timed out after {}",
+                        plugin_id,
+                        format_ccusage_timeout(timeout)
+                    );
+                    return muse_status("timed_out");
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(err) => {
+                log::warn!("[plugin:{}] muse wait failed: {}", plugin_id, err);
+                let _ = child.kill();
+                let _ = child.wait();
+                return serde_json::json!({ "status": "failed", "message": "muse did not finish" });
+            }
+        }
+    }
+}
+
+fn inject_muse<'js>(
+    ctx: &Ctx<'js>,
+    host: &Object<'js>,
+    plugin_id: &str,
+    deadline: ProbeDeadline,
+) -> rquickjs::Result<()> {
+    if plugin_id != MUSE_PLUGIN_ID {
+        return Ok(());
+    }
+    let muse_obj = Object::new(ctx.clone())?;
+    let pid = plugin_id.to_string();
+    muse_obj.set(
+        "usage",
+        Function::new(ctx.clone(), move || -> rquickjs::Result<String> {
+            let Some(timeout) = deadline.clamp_duration(Duration::from_secs(MUSE_TIMEOUT_SECS))
+            else {
+                log_probe_deadline_skip(&pid, "muse usage");
+                return Ok(muse_status("timed_out").to_string());
+            };
+            let enriched_path = ccusage_enriched_path();
+            Ok(run_muse_usage_with(MUSE_PROGRAM, enriched_path.as_deref(), timeout, &pid).to_string())
+        })?,
+    )?;
+    host.set("muse", muse_obj)?;
     Ok(())
 }
 
@@ -4657,5 +4841,111 @@ wait
         );
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    fn write_fake_muse(dir: &std::path::Path, body: &str) -> std::path::PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::create_dir_all(dir).expect("create fake muse dir");
+        let path = dir.join("muse");
+        std::fs::write(&path, format!("#!/bin/sh\n{}\n", body)).expect("write fake muse");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+            .expect("chmod fake muse");
+        path
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn muse_usage_returns_stdout_and_passes_fixed_args() {
+        let dir = std::env::temp_dir().join("watchtower-test-muse-ok");
+        let program = write_fake_muse(
+            &dir,
+            r#"[ "$1" = "usage" ] && [ "$2" = "--json" ] && [ "$#" -eq 2 ] || exit 9
+echo '{"window":{"usedPercent":12}}'"#,
+        );
+        let result = run_muse_usage_with(
+            program.to_str().unwrap(),
+            None,
+            Duration::from_secs(5),
+            "muse",
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(result["status"], "ok");
+        assert_eq!(result["stdout"], r#"{"window":{"usedPercent":12}}"#);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn muse_usage_reports_not_logged_in() {
+        let dir = std::env::temp_dir().join("watchtower-test-muse-login");
+        let program = write_fake_muse(
+            &dir,
+            "echo 'muse usage: not logged in: run `muse login` first' >&2\nexit 1",
+        );
+        let result = run_muse_usage_with(
+            program.to_str().unwrap(),
+            None,
+            Duration::from_secs(5),
+            "muse",
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(result["status"], "not_logged_in");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn muse_usage_reports_failure_with_redacted_first_line() {
+        let dir = std::env::temp_dir().join("watchtower-test-muse-fail");
+        let program = write_fake_muse(&dir, "echo 'muse usage: network unreachable' >&2\nexit 1");
+        let result = run_muse_usage_with(
+            program.to_str().unwrap(),
+            None,
+            Duration::from_secs(5),
+            "muse",
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(result["status"], "failed");
+        assert_eq!(result["message"], "muse usage: network unreachable");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn muse_usage_times_out() {
+        let dir = std::env::temp_dir().join("watchtower-test-muse-slow");
+        let program = write_fake_muse(&dir, "sleep 5");
+        let result = run_muse_usage_with(
+            program.to_str().unwrap(),
+            None,
+            Duration::from_millis(200),
+            "muse",
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(result["status"], "timed_out");
+    }
+
+    #[test]
+    fn muse_usage_reports_not_installed() {
+        let result = run_muse_usage_with(
+            "/nonexistent/watchtower-test/muse",
+            None,
+            Duration::from_secs(1),
+            "muse",
+        );
+        assert_eq!(result["status"], "not_installed");
+    }
+
+    #[test]
+    fn muse_host_api_is_only_injected_for_muse_plugin() {
+        let rt = rquickjs::Runtime::new().expect("runtime");
+        let qctx = rquickjs::Context::full(&rt).expect("context");
+        qctx.with(|ctx| {
+            let other = Object::new(ctx.clone()).expect("host");
+            inject_muse(&ctx, &other, "kimi", ProbeDeadline::none()).expect("inject");
+            assert!(!other.contains_key("muse").expect("contains"));
+
+            let muse = Object::new(ctx.clone()).expect("host");
+            inject_muse(&ctx, &muse, "muse", ProbeDeadline::none()).expect("inject");
+            assert!(muse.contains_key("muse").expect("contains"));
+        });
     }
 }
