@@ -97,12 +97,13 @@ describe("SideNav", () => {
 
     expect(nav.className).toContain("self-stretch")
     expect(nav.className).toContain("bg-sidebar")
-    expect(nav.className).toContain("w-10")
+    expect(nav.className).toContain("w-[52px]")
+    expect(nav.className).toContain("wt-dot-grid")
     expect(nav.className).not.toContain("h-full")
     expect(shortcut.querySelector("svg")).toBeTruthy()
   })
 
-  it("renders plugin icon button and uses brand color when appropriate", () => {
+  it("draws plugin icons in theme ink, ignoring the brand color", () => {
     const onViewChange = vi.fn()
     render(
       <SideNav
@@ -118,10 +119,10 @@ describe("SideNav", () => {
     expect(btn).toBeInTheDocument()
 
     const icon = screen.getByRole("img", { name: "Plugin 1" })
-    expect(icon).toHaveStyle({ backgroundColor: "#ff0000" })
+    expect(icon).toHaveStyle({ backgroundColor: "var(--provider-icon-monochrome)" })
   })
 
-  it("renders Gemini with the branded gradient provider icon", () => {
+  it("renders Gemini with the same monochrome mask as every other provider", () => {
     const onViewChange = vi.fn()
     render(
       <SideNav
@@ -132,8 +133,8 @@ describe("SideNav", () => {
     )
 
     const icon = screen.getByRole("img", { name: "Gemini" })
-    expect(icon.tagName).toBe("IMG")
-    expect(icon.getAttribute("src")).toContain("gemini")
+    expect(icon.tagName).toBe("SPAN")
+    expect(icon.getAttribute("style")).toContain("gemini.svg")
   })
 
   it("switches to a plugin view when its nav button is clicked", async () => {

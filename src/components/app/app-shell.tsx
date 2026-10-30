@@ -93,7 +93,8 @@ export function AppShell({
     >
       <div className="tray-arrow" />
       <div
-        className="relative flex w-full select-none flex-col overflow-hidden rounded-xl border border-line bg-card"
+        data-slot="app-panel"
+        className="relative flex w-full select-none flex-col overflow-hidden rounded-[16px] border border-line-bright bg-card"
         style={{
           boxShadow: "var(--panel-shadow)",
           ...(panelHeightPx ? { height: `${panelHeightPx - ARROW_OVERHEAD_PX}px` } : {}),
@@ -108,18 +109,31 @@ export function AppShell({
             isPluginRefreshAvailable={isPluginRefreshAvailable}
             onReorder={onNavReorder}
           />
-          <div className="relative flex min-w-0 flex-1 flex-col bg-card">
-            <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
-              <span data-slot="app-logo" className="grid size-4 shrink-0 place-items-center text-foreground">
-                <WatchtowerMark className="size-4" />
-              </span>
-              <div className="flex shrink-0 items-center gap-0.5">
+          <div className="wt-dot-grid relative flex min-w-0 flex-1 flex-col bg-card">
+            <header className="flex shrink-0 items-center justify-between gap-3 px-4 pb-3 pt-4">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <div
+                  data-slot="app-logo"
+                  className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-line bg-surface-raised text-foreground"
+                >
+                  <WatchtowerMark className="size-6" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="break-words text-[19px] font-semibold leading-6 tracking-tight text-foreground">
+                    Watchtower
+                  </h1>
+                  <p className="label-mono text-[9px] leading-3 text-muted-foreground/70">
+                    AI Usage Monitor
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Refresh"
-                  className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:rotate-180"
                   onClick={onRefreshAll}
                 >
                   <HugeiconsIcon icon={RefreshIcon} className="size-4" />
@@ -143,7 +157,7 @@ export function AppShell({
                 />
               </div>
               <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-card to-transparent transition-opacity duration-150 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
+                className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card to-transparent transition-opacity duration-200 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
               />
             </div>
             <PanelFooter

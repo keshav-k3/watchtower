@@ -39,17 +39,17 @@
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Space Mono", monospace;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 12px;
-  --radius-2xl: 12px;
-  --radius-3xl: 12px;
-  --radius-4xl: 12px;
+  --font-sans: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "Space Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Doto", "Space Mono", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -100,116 +100,118 @@
 
 :root {
   color-scheme: light;
-  --radius: 8px;
+  --radius: 0.75rem;
 
-  --background: #f5f5f7;
-  --foreground: #1d1d1f;
-  --card: #f5f5f7;
-  --card-foreground: #1d1d1f;
+  /* Light instrument panel — layered cool paper with high-contrast ink */
+  --background: #eef0f3;
+  --foreground: #141518;
+  --card: #f8f9fb;
+  --card-foreground: #141518;
   --popover: #ffffff;
-  --popover-foreground: #1d1d1f;
-  --primary: #1d1d1f;
+  --popover-foreground: #141518;
+  --primary: #141518;
   --primary-foreground: #ffffff;
-  --secondary: #ececef;
-  --secondary-foreground: #1d1d1f;
-  --muted: #ececef;
-  --muted-foreground: #6e6e73;
-  --accent: #ececef;
-  --accent-foreground: #1d1d1f;
-  --destructive: #d70015;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.16);
+  --secondary: #e8ebef;
+  --secondary-foreground: #141518;
+  --muted: #e2e6eb;
+  --muted-foreground: #626975;
+  --accent: #e5e9ee;
+  --accent-foreground: #141518;
+  --destructive: #d92d36;
+  --border: #cdd2da;
+  --input: #c5cbd4;
   --ring: #59616f;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: #f5f5f7;
-  --sidebar-foreground: #1d1d1f;
-  --sidebar-primary: #1d1d1f;
+  --sidebar: #eceff3;
+  --sidebar-foreground: #141518;
+  --sidebar-primary: #141518;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ececef;
-  --sidebar-accent-foreground: #1d1d1f;
-  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-accent: #dfe4ea;
+  --sidebar-accent-foreground: #141518;
+  --sidebar-border: #c8ced7;
   --sidebar-ring: #59616f;
 
-  --surface: #f5f5f7;
+  --surface: #e9edf2;
   --surface-raised: #ffffff;
-  --line: rgba(0, 0, 0, 0.1);
-  --line-bright: rgba(0, 0, 0, 0.16);
-  --display: #1d1d1f;
-  --signal: #d70015;
-  --dot-grid: transparent;
-  --provider-icon-monochrome: #1d1d1f;
-  --meter-track: #d5d5da;
-  --meter-fill: #1d1d1f;
+  --line: #cfd4dc;
+  --line-bright: #9da5b1;
+  --display: #090a0c;
+  --signal: #d71921;
+  --dot-grid: rgba(71, 85, 105, 0.16);
+  --provider-icon-monochrome: #16181c;
+  --meter-track: var(--line);
+  --meter-fill: #090a0c;
 
-  --page-accent: #248a3d;
-  --success: #248a3d;
-  --warning: #9a6700;
-  --green-500: #248a3d;
-  --yellow-500: #9a6700;
-  --red-500: #d70015;
+  --page-accent: #2f9e5f;
+  --success: #2f9e5f;
+  --warning: #b8860b;
+  --green-500: #2f9e5f;
+  --yellow-500: #b8860b;
+  --red-500: #d92d36;
 
-  --panel-shadow: 0 10px 32px rgba(0, 0, 0, 0.18);
-  --overlay-scrim: rgba(29, 29, 31, 0.28);
+  --panel-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
+  --overlay-scrim: rgba(15, 23, 42, 0.32);
 }
 
 :root.dark {
   color-scheme: dark;
-  --background: #161617;
-  --foreground: #f5f5f7;
-  --card: #161617;
-  --card-foreground: #f5f5f7;
-  --popover: #232325;
-  --popover-foreground: #f5f5f7;
-  --primary: #f5f5f7;
-  --primary-foreground: #161617;
-  --secondary: #2c2c2e;
-  --secondary-foreground: #f5f5f7;
-  --muted: #2c2c2e;
-  --muted-foreground: #9c9c9e;
-  --accent: #2c2c2e;
-  --accent-foreground: #f5f5f7;
-  --destructive: #ff453a;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.16);
-  --ring: #8e8e93;
-  --sidebar: #161617;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-primary: #f5f5f7;
-  --sidebar-primary-foreground: #161617;
-  --sidebar-accent: #2c2c2e;
-  --sidebar-accent-foreground: #f5f5f7;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #8e8e93;
+  /* OLED instrument panel */
+  --background: #000000;
+  --foreground: #e8e8e8;
+  --card: #0b0b0b;
+  --card-foreground: #e8e8e8;
+  --popover: #181818;
+  --popover-foreground: #e8e8e8;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #e8e8e8;
+  --muted: #161616;
+  --muted-foreground: #8c8c8c;
+  --accent: #1c1c1c;
+  --accent-foreground: #f5f5f5;
+  --destructive: #f0464d;
+  --border: #222222;
+  --input: #2a2a2a;
+  --ring: #3a3a3a;
+  --sidebar: #060606;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #161616;
+  --sidebar-accent-foreground: #e8e8e8;
+  --sidebar-border: #1c1c1c;
+  --sidebar-ring: #3a3a3a;
 
-  --surface: #1e1e20;
-  --surface-raised: #2c2c2e;
-  --line: rgba(255, 255, 255, 0.1);
-  --line-bright: rgba(255, 255, 255, 0.16);
-  --display: #f5f5f7;
-  --signal: #ff453a;
-  --dot-grid: transparent;
-  --provider-icon-monochrome: #f5f5f7;
-  --meter-track: #3a3a3e;
-  --meter-fill: #f2f2f4;
+  --surface: #131313;
+  --surface-raised: #1b1b1b;
+  --line: #242424;
+  --line-bright: #383838;
+  --display: #ffffff;
+  --signal: #d71921;
+  --dot-grid: rgba(255, 255, 255, 0.13);
+  --provider-icon-monochrome: #f5f5f5;
+  --meter-track: var(--line);
+  --meter-fill: #ffffff;
 
-  --page-accent: #30d158;
-  --success: #30d158;
-  --warning: #ff9f0a;
-  --green-500: #30d158;
-  --yellow-500: #ff9f0a;
-  --red-500: #ff453a;
+  --page-accent: #3fb970;
+  --success: #3fb970;
+  --warning: #e0b341;
+  --green-500: #3fb970;
+  --yellow-500: #e0b341;
+  --red-500: #f0464d;
 
-  --panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-  --overlay-scrim: rgba(0, 0, 0, 0.48);
+  --panel-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  --overlay-scrim: rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
@@ -228,9 +230,11 @@
 .font-mono {
   font-family: var(--font-mono);
 }
+/* Space Mono ALL-CAPS instrument label */
 .label-mono {
-  font-family: var(--font-sans);
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
 }
 
 /* Panel-specific styles for transparent Tauri window */
@@ -257,17 +261,26 @@ body,
   display: none; /* Chrome / Safari / WebKit */
 }
 
-/* Small square pointing up toward the menu-bar icon. */
+/* Arrow pointing up toward the tray icon */
 .tray-arrow {
-  width: 10px;
-  height: 10px;
-  margin-bottom: -6px;
-  background: var(--card);
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-  transform: rotate(45deg);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid var(--line-bright);
+  position: relative;
   flex-shrink: 0;
-  z-index: 1;
+}
+.tray-arrow::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 1.5px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--card);
 }
 
 /* Border beam for the update button */
@@ -320,7 +333,7 @@ body,
 @keyframes wt-fade-up {
   from {
     opacity: 0;
-    transform: translateY(2px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
@@ -328,7 +341,7 @@ body,
   }
 }
 .wt-enter {
-  animation: wt-fade-up 150ms ease-out both;
+  animation: wt-fade-up 360ms cubic-bezier(0.25, 0.1, 0.25, 1) both;
 }
 
 /* Status signal dot pulse */
@@ -345,19 +358,11 @@ body,
   animation: wt-pulse 2s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
 }
 
-/* Segmented bar: each block lights up in sequence */
-.wt-seg {
-  transition: background-color 320ms cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
   .wt-enter,
   .wt-pulse,
   .update-border-beam::before {
     animation: none;
-  }
-  .wt-seg {
-    transition: none;
   }
 }

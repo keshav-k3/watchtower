@@ -48,9 +48,9 @@ interface ProviderCardProps {
 }
 
 const PACE_VISUALS: Record<PaceStatus, { dotClass: string }> = {
-  ahead: { dotClass: "bg-muted-foreground" },
-  "on-track": { dotClass: "bg-muted-foreground" },
-  behind: { dotClass: "bg-warning" },
+  ahead: { dotClass: "bg-green-500" },
+  "on-track": { dotClass: "bg-yellow-500" },
+  behind: { dotClass: "bg-red-500" },
 }
 
 /** Colored dot indicator showing pace status */
@@ -89,6 +89,24 @@ function PaceIndicator({
         )}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+type ProviderStatus = "live" | "syncing" | "attention"
+
+const STATUS_VISUALS: Record<ProviderStatus, { label: string; dot: string; text: string; pulse: boolean }> = {
+  live: { label: "Live", dot: "bg-green-500", text: "text-muted-foreground", pulse: true },
+  syncing: { label: "Syncing", dot: "bg-yellow-500", text: "text-muted-foreground", pulse: true },
+  attention: { label: "Attention", dot: "bg-destructive", text: "text-destructive", pulse: false },
+}
+
+function StatusBadge({ status }: { status: ProviderStatus }) {
+  const cfg = STATUS_VISUALS[status]
+  return (
+    <div data-slot="provider-status" className="flex shrink-0 items-center gap-1.5 pt-1">
+      <span className={cn("size-1.5 rounded-full", cfg.dot, cfg.pulse && "wt-pulse")} />
+      <span className={cn("label-mono text-[9px]", cfg.text)}>{cfg.label}</span>
+    </div>
   )
 }
 
@@ -199,34 +217,57 @@ export function ProviderCard({
     return `Available in ${seconds}s`
   }
 
+  const status: ProviderStatus = loading ? "syncing" : error ? "attention" : "live"
+
+  const retryLink = onRetry && !loading ? (
+    <button
+      type="button"
+      className="label-mono shrink-0 self-start rounded-[6px] border border-line px-1.5 py-0.5 text-[9px] text-foreground transition-colors hover:border-line-bright hover:bg-surface-raised"
+      onClick={() => onRetry()}
+    >
+      Retry
+    </button>
+  ) : null
+
   return (
-    <section className="group py-2">
+    <section className="group relative overflow-hidden rounded-[14px] border border-line bg-surface px-3.5 py-3 transition-colors duration-200 hover:border-line-bright">
       <div>
-        <div className="mb-1.5 flex items-start gap-2">
-          <ProviderIcon
-            id={id}
-            name={name}
-            iconUrl={iconUrl}
-            brandColor={brandColor}
-            active
-            className="mt-0.5 size-4 shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="min-w-0 break-words text-[13px] font-semibold leading-4 text-foreground">{name}</h2>
-              <div className="flex shrink-0 items-center gap-1.5">
-                {(loading || error) && (
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="relative flex min-w-0 flex-1 items-center gap-2.5">
+            <div className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-raised ring-1 ring-line">
+              <ProviderIcon
+                id={id}
+                name={name}
+                iconUrl={iconUrl}
+                brandColor={brandColor}
+                active
+                className="size-[18px]"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <h2 className="min-w-0 break-words text-[15px] font-semibold leading-5 tracking-tight text-foreground">{name}</h2>
+                {plan && (
                   <span
-                    className={cn("size-1.5 rounded-full", loading ? "bg-warning" : "bg-destructive")}
-                    aria-hidden="true"
-                  />
+                    data-slot="plan-badge"
+                    className="label-mono inline-flex min-h-[18px] min-w-0 max-w-full items-center break-words rounded-[4px] border border-line px-1.5 py-px text-[9px] leading-3 text-muted-foreground"
+                  >
+                    {plan}
+                  </span>
                 )}
+              </div>
+              {lastUpdatedAt != null && (
+                <p className="label-mono mt-1 text-[9px] leading-3 text-muted-foreground/70">
+                  Updated {formatRelativeTime(Date.now() - lastUpdatedAt)}
+                </p>
+              )}
+            </div>
             {onRetry && !error && (
               loading ? (
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="pointer-events-none ml-0.5 opacity-50"
+                  className="pointer-events-none ml-0.5 shrink-0 opacity-50"
                   style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
                   tabIndex={-1}
                 >
@@ -235,7 +276,7 @@ export function ProviderCard({
               ) : inCooldown ? (
                 <Tooltip>
                   <TooltipTrigger
-                    className="ml-0.5"
+                    className="ml-0.5 shrink-0"
                     render={(props) => (
                       <span {...props} className={props.className}>
                         <Button
@@ -257,7 +298,7 @@ export function ProviderCard({
               ) : (
                 <Tooltip>
                   <TooltipTrigger
-                    className="ml-0.5"
+                    className="ml-0.5 shrink-0"
                     render={(props) => (
                       <Button
                         {...props}
@@ -268,7 +309,7 @@ export function ProviderCard({
                           e.currentTarget.blur()
                           onRetry()
                         }}
-                        className="text-muted-foreground"
+                        className="text-muted-foreground opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
                         style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
                       >
                         <HugeiconsIcon icon={RefreshIcon} className="size-3" />
@@ -278,63 +319,45 @@ export function ProviderCard({
                 </Tooltip>
               )
             )}
-              </div>
-            </div>
-            {(plan || lastUpdatedAt != null) && (
-              <p className="mt-0.5 break-words text-[11px] leading-[14px] text-muted-foreground">
-                {plan}
-                {plan && lastUpdatedAt != null ? " · " : ""}
-                {lastUpdatedAt != null ? `Updated ${formatRelativeTime(Date.now() - lastUpdatedAt)}` : ""}
-              </p>
-            )}
           </div>
+          <StatusBadge status={status} />
         </div>
         {accessory}
         {visibleLinks.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
+          <div className="mb-3 -mt-0.5 flex flex-wrap gap-1.5">
             {visibleLinks.map((link) => (
-              <button
+              <Button
                 key={`${link.label}-${link.url}`}
-                type="button"
-                className="inline-flex max-w-full items-center gap-1 break-words text-left text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                variant="outline"
+                size="xs"
+                className="label-mono h-auto min-h-6 max-w-full whitespace-normal break-words rounded-[6px] border-line bg-transparent py-1 text-left text-[10px] text-muted-foreground hover:border-line-bright hover:text-foreground"
                 onClick={() => {
                   openUrl(link.url).catch(console.error)
                 }}
               >
                 <span className="break-words">{link.label}</span>
-                <HugeiconsIcon icon={ExternalLinkIcon} className="size-3 shrink-0" />
-              </button>
+                <HugeiconsIcon icon={ExternalLinkIcon} className="size-3 opacity-70" />
+              </Button>
             ))}
           </div>
         )}
         {error && !hasStaleData && (
-          <div className="mb-2 flex items-center gap-2">
+          <div className="flex items-start gap-2 rounded-[10px] border border-line border-l-2 border-l-destructive bg-destructive/[0.06] px-3 py-2.5">
             <div className="min-w-0 flex-1">
               <PluginError message={error} />
             </div>
-            {onRetry && !loading && (
-              <button
-                type="button"
-                className="shrink-0 text-[12px] font-medium text-foreground underline-offset-2 hover:underline"
-                onClick={() => onRetry()}
-              >
-                Retry
-              </button>
-            )}
+            {retryLink}
           </div>
         )}
         {error && hasStaleData && (
-          <div className="mb-2 flex items-center gap-2 text-[12px] leading-4 text-destructive" title={error}>
-            <span className="min-w-0 flex-1 truncate">{error}</span>
-            {onRetry && !loading && (
-              <button
-                type="button"
-                className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline"
-                onClick={() => onRetry()}
-              >
-                Retry
-              </button>
-            )}
+          <div
+            data-slot="stale-error"
+            className="mb-2.5 flex items-start gap-2 rounded-[8px] border border-line border-l-2 border-l-destructive bg-destructive/[0.06] px-2 py-1.5"
+          >
+            <div className="min-w-0 flex-1">
+              <PluginError message={error} />
+            </div>
+            {retryLink}
           </div>
         )}
 
@@ -343,7 +366,7 @@ export function ProviderCard({
         )}
 
         {hasStaleData && (
-          <div className="space-y-2">
+          <div className="space-y-3.5">
             {groupLinesByType(visibleLines).map((group, gi) =>
               group.kind === "text" ? (
                 <div key={gi} className="space-y-1.5">
@@ -404,12 +427,12 @@ function MetricLineRenderer({
   if (line.type === "text") {
     return (
       <div>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground" title={line.label}>
+        <div className="flex min-h-[18px] items-baseline justify-between gap-3">
+          <span className="label-mono min-w-0 break-words text-[10px] text-muted-foreground" title={line.label}>
             {line.label}
           </span>
           <span
-            className="min-w-0 break-words text-right text-[12px] tabular-nums text-foreground"
+            className="min-w-0 break-words text-right font-mono text-[12px] tabular-nums text-foreground"
             style={line.color ? { color: line.color } : undefined}
             title={line.value}
           >
@@ -417,7 +440,7 @@ function MetricLineRenderer({
           </span>
         </div>
         {line.subtitle && (
-          <div className="text-right text-[11px] text-muted-foreground">{line.subtitle}</div>
+          <div className="label-mono -mt-0.5 text-right text-[9px] text-muted-foreground/70">{line.subtitle}</div>
         )}
       </div>
     )
@@ -426,18 +449,19 @@ function MetricLineRenderer({
   if (line.type === "badge") {
     return (
       <div>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{line.label}</span>
+        <div className="flex min-h-[22px] items-center justify-between gap-3">
+          <span className="label-mono shrink-0 text-[10px] text-muted-foreground">{line.label}</span>
           <span
-            className="min-w-0 break-words text-right text-[12px] text-foreground"
-            style={line.color ? { color: line.color } : undefined}
+            data-slot="badge-value"
+            className="label-mono min-w-0 break-words rounded-[4px] border border-line px-1.5 py-0.5 text-right text-[10px] leading-[14px] text-foreground"
+            style={line.color ? { color: line.color, borderColor: line.color } : undefined}
             title={line.text}
           >
             {line.text}
           </span>
         </div>
         {line.subtitle && (
-          <div className="text-right text-[11px] text-muted-foreground">{line.subtitle}</div>
+          <div className="label-mono -mt-0.5 text-right text-[9px] text-muted-foreground/70">{line.subtitle}</div>
         )}
       </div>
     )
@@ -461,6 +485,7 @@ function MetricLineRenderer({
     const percent = Math.round(clamp01(shownAmount / line.limit) * 10000) / 100
     const leftSuffix = displayMode === "left" ? " left" : ""
     const isLimitReached = line.used >= line.limit
+    const valueIsPercent = line.format.kind === "percent"
 
     const primaryText =
       line.format.kind === "percent"
@@ -539,25 +564,30 @@ function MetricLineRenderer({
       ? "var(--destructive)"
       : paceStatus === "behind"
         ? "var(--warning)"
-        : "var(--meter-fill)"
+        : "var(--display)"
 
     return (
       <div>
-        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="break-words text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{line.label}</span>
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+          <div className="flex min-w-0 items-center gap-1.5 pb-1">
+            <span className="label-mono break-words text-[10px] text-muted-foreground">{line.label}</span>
             {paceStatus && (
               <PaceIndicator status={paceStatus} detailText={paceDetailText} isLimitReached={isLimitReached} />
             )}
           </div>
           <span
-            className="shrink-0 text-[15px] font-semibold leading-none tabular-nums"
+            data-slot="metric-value"
+            className={cn(
+              "ml-auto min-w-0 break-words text-right leading-none tabular-nums",
+              valueIsPercent ? "font-display text-[25px]" : "font-mono text-[16px] font-medium"
+            )}
             style={{
               color: isLimitReached
                 ? "var(--destructive)"
                 : paceStatus === "behind"
                   ? "var(--warning)"
-                  : "var(--foreground)",
+                  : "var(--display)",
+              fontWeight: valueIsPercent ? 600 : undefined,
             }}
           >
             {primaryText}
@@ -569,7 +599,7 @@ function MetricLineRenderer({
           markerValue={paceMarkerValue}
           refreshing={refreshing}
         />
-        <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-x-2">
           {secondaryText && (
             resetTooltipText ? (
               <Tooltip>
@@ -580,12 +610,12 @@ function MetricLineRenderer({
                         {...props}
                         type="button"
                         onClick={onResetTimerDisplayModeToggle}
-                        className="text-left text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+                        className="label-mono text-right text-[10px] tabular-nums text-muted-foreground/80 transition-colors hover:text-foreground"
                       >
                         {secondaryText}
                       </button>
                     ) : (
-                      <span {...props} className="text-[11px] tabular-nums text-muted-foreground">
+                      <span {...props} className="label-mono text-[10px] tabular-nums text-muted-foreground/80">
                         {secondaryText}
                       </span>
                     )
@@ -597,26 +627,26 @@ function MetricLineRenderer({
               <button
                 type="button"
                 onClick={onResetTimerDisplayModeToggle}
-                className="text-left text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+                className="label-mono text-right text-[10px] tabular-nums text-muted-foreground/80 transition-colors hover:text-foreground"
               >
                 {secondaryText}
               </button>
             ) : (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="label-mono text-[10px] text-muted-foreground/80">
                 {secondaryText}
               </span>
             )
           )}
         </div>
         {(deficitText || runsOutText) && (
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
             {deficitText && (
-              <span className="text-[11px] tabular-nums text-muted-foreground">
+              <span className="label-mono text-[10px] tabular-nums text-muted-foreground/70">
                 {deficitText}
               </span>
             )}
             {runsOutText && (
-              <span className="text-[11px] tabular-nums text-muted-foreground">
+              <span className="label-mono ml-auto text-[10px] tabular-nums text-muted-foreground/70">
                 {runsOutText}
               </span>
             )}

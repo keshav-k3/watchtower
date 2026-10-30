@@ -115,10 +115,13 @@ describe("AppShell", () => {
     useAppUiStore.getState().resetState()
   })
 
-  it("leaves a plain logo slot instead of a truncated wordmark", () => {
+  it("shows the Watchtower title next to the logo and lets it wrap instead of truncating", () => {
     render(<AppShell {...createProps()} />)
 
-    expect(screen.queryByRole("heading", { name: "Watchtower" })).not.toBeInTheDocument()
+    const title = screen.getByRole("heading", { name: "Watchtower" })
+    expect(title.className).toContain("break-words")
+    expect(title.className).not.toContain("truncate")
+    expect(screen.getByText("AI Usage Monitor")).toBeInTheDocument()
     expect(document.querySelector("[data-slot=app-logo]")).toBeTruthy()
   })
 
@@ -178,8 +181,9 @@ describe("AppShell", () => {
       "Refresh",
       "Switch To Light Theme",
     ])
-    expect(theme.className).toContain("size-7")
-    expect(theme.className).toContain("bg-transparent")
+    expect(theme.className).toContain("size-8")
+    expect(theme.className).toContain("border-line")
+    expect(refresh.className).toContain("border-line")
     expect(refresh.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     await userEvent.click(theme)
@@ -192,8 +196,8 @@ describe("AppShell", () => {
     render(<AppShell {...props} />)
 
     const theme = screen.getByRole("button", { name: "Switch To Dark Theme" })
-    expect(theme.className).toContain("size-7")
-    expect(theme.className).toContain("bg-transparent")
+    expect(theme.className).toContain("size-8")
+    expect(theme.className).toContain("border-line")
 
     await userEvent.click(theme)
     expect(props.onThemeModeChange).toHaveBeenCalledWith("dark")
@@ -201,7 +205,7 @@ describe("AppShell", () => {
 
   it("gives the panel a fixed height so every page keeps the same size", () => {
     const { container } = render(<AppShell {...createProps()} />)
-    const panel = container.querySelector<HTMLElement>(".rounded-xl")
+    const panel = container.querySelector<HTMLElement>("[data-slot=app-panel]")
 
     expect(panel?.style.height).toBe("283px")
     expect(panel?.style.maxHeight).toBe("")

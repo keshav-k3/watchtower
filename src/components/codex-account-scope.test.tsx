@@ -73,10 +73,10 @@ describe("CodexScopedProviderCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Both" }))
     expect(screen.getByText("Personal · Session")).toBeInTheDocument()
     expect(storeState.get("codexAccountView")).toBe("both")
-    // Long labels truncate inside the card and keep the full name on hover.
+    // Long labels wrap inside the card instead of being cut off.
     const work = screen.getByRole("button", { name: "Work" })
-    expect(work).toHaveAttribute("title", "Work")
-    expect(work.className).toContain("truncate")
+    expect(work.className).toContain("break-words")
+    expect(work.className).not.toContain("truncate")
   })
 
   it("falls back to Both when the saved view no longer exists", async () => {

@@ -79,9 +79,9 @@ export function OverviewPage({
   }
 
   return (
-    <div className="divide-y divide-line px-3">
+    <div className="space-y-3 px-4 pb-5">
       {plugins.map((plugin, index) => (
-        <div key={plugin.meta.id} className="wt-enter" style={{ animationDelay: `${Math.min(index, 3) * 30}ms` }}>
+        <div key={plugin.meta.id} className="wt-enter" style={{ animationDelay: `${Math.min(index, 4) * 55}ms` }}>
           <ProviderRow
             plugin={plugin}
             displayMode={displayMode}

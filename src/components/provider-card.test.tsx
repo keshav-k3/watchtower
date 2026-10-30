@@ -556,8 +556,8 @@ describe("ProviderCard", () => {
     expect(markers).toHaveLength(2)
     expect(markers[0]?.style.left).toBe("50%")
     expect(markers[1]?.style.left).toBe("50%")
-    expect(markers[0]).toHaveClass("bg-muted-foreground", "w-px")
-    expect(markers[1]).toHaveClass("bg-muted-foreground", "w-px")
+    expect(markers[0]).toHaveClass("bg-muted-foreground", "w-0.5")
+    expect(markers[1]).toHaveClass("bg-muted-foreground", "w-0.5")
     vi.useRealTimers()
   })
 
@@ -897,10 +897,34 @@ describe("ProviderCard", () => {
         ]}
       />
     )
-    // Stale data still visible
+    // Stale data still visible, with the error boxed above it
     expect(screen.getByText("40%")).toBeInTheDocument()
-    expect(screen.getAllByText("Couldn't update data. Try again?").length).toBeGreaterThan(0)
-    expect(screen.queryByRole("alert")).toBeNull()
+    const stale = document.querySelector<HTMLElement>('[data-slot="stale-error"]')
+    expect(stale).toBeTruthy()
+    expect(stale).toHaveTextContent("Couldn't update data. Try again?")
+  })
+
+  it("wraps a long stale-data error instead of cutting it off", () => {
+    const message =
+      "Cursor's saved login is encrypted. Allow Watchtower to use the \"Cursor Safe Storage\" Keychain item, or run `agent login`."
+    render(
+      <ProviderCard
+        name="Cursor"
+        displayMode="used"
+        error={message}
+        lastUpdatedAt={Date.now() - 60_000}
+        lines={[
+          { type: "progress", label: "Plan usage", used: 40, limit: 100, format: { kind: "percent" } },
+        ]}
+      />
+    )
+    const stale = document.querySelector<HTMLElement>('[data-slot="stale-error"]')!
+    expect(stale).toHaveTextContent("Cursor Safe Storage")
+    expect(stale).toHaveTextContent("agent login")
+    for (const element of [stale, ...stale.querySelectorAll<HTMLElement>("*")]) {
+      const classes = element.getAttribute("class") ?? ""
+      expect(classes).not.toMatch(/\b(truncate|line-clamp-\d|whitespace-nowrap|text-ellipsis)\b/)
+    }
   })
 
   it("retries from the stale error row", async () => {
