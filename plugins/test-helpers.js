@@ -68,6 +68,19 @@ export const makeCtx = () => {
           const tag = cipher.getAuthTag()
           return `${iv.toString("base64")}:${tag.toString("base64")}:${ciphertext.toString("base64")}`
         }),
+        openSafeStorage: vi.fn((blobB64, password) => {
+          const raw = Buffer.from(String(blobB64), "base64")
+          if (raw.length <= 3 || raw.subarray(0, 3).toString() !== "v10") throw new Error("safe storage blob is not v10")
+          const key = crypto.pbkdf2Sync(String(password), "saltysalt", 1003, 16, "sha1")
+          const decipher = crypto.createDecipheriv("aes-128-cbc", key, Buffer.alloc(16, 0x20))
+          return Buffer.concat([decipher.update(raw.subarray(3)), decipher.final()]).toString("utf8")
+        }),
+        sealSafeStorage: vi.fn((plaintext, password) => {
+          const key = crypto.pbkdf2Sync(String(password), "saltysalt", 1003, 16, "sha1")
+          const cipher = crypto.createCipheriv("aes-128-cbc", key, Buffer.alloc(16, 0x20))
+          const body = Buffer.concat([cipher.update(String(plaintext), "utf8"), cipher.final()])
+          return Buffer.concat([Buffer.from("v10"), body]).toString("base64")
+        }),
         sha256Hex: vi.fn((text) => crypto.createHash("sha256").update(String(text)).digest("hex")),
       },
       sqlite: {
