@@ -20,7 +20,7 @@ describe("ThemeToggleButton", () => {
 
     const button = screen.getByRole("button", { name: "Switch To Dark Theme" })
     expect(button.querySelector("circle")).toBeNull()
-    expect(button.querySelector('path[fill-rule="evenodd"]')).toBeTruthy()
+    expect(button.querySelectorAll("path")).toHaveLength(1)
     await userEvent.click(button)
     expect(onThemeModeChange).toHaveBeenCalledWith("dark")
   })
@@ -35,12 +35,12 @@ describe("ThemeToggleButton", () => {
     expect(onThemeModeChange).toHaveBeenCalledWith("light")
   })
 
-  it("matches the Settings button surface styling", () => {
+  it("matches the bordered Refresh button styling", () => {
     render(<ThemeToggleButton themeMode="dark" onThemeModeChange={vi.fn()} />)
 
     const button = screen.getByRole("button", { name: "Switch To Light Theme" })
-    expect(button.className).toContain("size-7")
-    expect(button.className).toContain("bg-transparent")
-    expect(button.className).toContain("border-0")
+    expect(button.className).toContain("size-8")
+    expect(button.className).toContain("border-line")
+    expect(button.className).toContain("bg-surface")
   })
 })

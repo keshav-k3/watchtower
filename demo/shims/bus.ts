@@ -109,7 +109,7 @@ function grokBotOutput() {
     lines.push({
       type: "badge",
       label: "Status",
-      text: "Open Grok Bot to refresh",
+      text: "Last read 7h ago. Open Grok Bot to refresh.",
       color: "#f59e0b",
     })
   }
@@ -147,13 +147,27 @@ const outputs = [
   devinOutput(),
   grokBotOutput(),
   codexOutput(false),
-  {
-    providerId: "cursor",
-    displayName: "Cursor",
-    plan: "Pro",
-    iconUrl: icons.cursor,
-    lines: [progress("Plan usage", 22, later, 30 * 24 * 60 * 60 * 1000)],
-  },
+  demoParams.get("error") === "cursor"
+    ? {
+        providerId: "cursor",
+        displayName: "Cursor",
+        iconUrl: icons.cursor,
+        lines: [
+          {
+            type: "badge" as const,
+            label: "Error",
+            text: "Cursor's saved login is encrypted. Allow Watchtower to use the \"Cursor Safe Storage\" Keychain item, or run `agent login`.",
+            color: "#ef4444",
+          },
+        ],
+      }
+    : {
+        providerId: "cursor",
+        displayName: "Cursor",
+        plan: "Pro",
+        iconUrl: icons.cursor,
+        lines: [progress("Plan usage", 22, later, 30 * 24 * 60 * 60 * 1000)],
+      },
   {
     providerId: "claude",
     displayName: "Claude",

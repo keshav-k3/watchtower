@@ -15,7 +15,7 @@
 | Metric | Source | Scope | Format | Notes |
 | --- | --- | --- | --- | --- |
 | Weekly Usage | `usage.percentUsed` | overview | percent | Resets at `usage.nextResetMs`, one-week period |
-| Status | stale check | overview | badge | "Open Grok Bot to refresh" when the cache is stale |
+| Status | stale check | overview | badge | Only when the reading is more than 6 hours old |
 
 ## Local Source
 
@@ -57,10 +57,9 @@ Each kept file is JSON:
 
 ## Stale Handling
 
-The numbers are always shown. A "Open Grok Bot to refresh" badge is added when:
+The numbers are always shown. A "Last read 7h ago. Open Grok Bot to refresh." badge is added only when `readAtMs` is more than 6 hours old. Grok Bot rewrites the cache while it is open, so the badge goes away on the next refresh after you open it.
 
-- `expiresAtMs` is in the past, or
-- `readAtMs` is more than 60 minutes old.
+`expiresAtMs` is ignored. It is Grok Bot's own short cache lifetime (about 15 minutes), not a sign that the weekly number is out of date.
 
 ## Privacy
 

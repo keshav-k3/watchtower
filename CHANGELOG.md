@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.3 (Unreleased)
+
+### Bug Fixes
+- Cursor no longer shows "Session expired" after the Cursor 3.27 update encrypted its saved login
+- Long errors wrap inside the card instead of being cut off
+- Grok Bot shows "Open Grok Bot to refresh" only when its reading is more than 6 hours old
+
+### Improvements
+- The panel looks like 0.6 again: dot grid, Space Grotesk and Doto numbers, segmented bars, bordered cards with Live, Syncing and Attention status
+- Grok Bot uses the Grok Bot app's own mark, and every provider icon is drawn in the same theme ink
+- Ports shows one row per app with its ports grouped, a friendly name, the PID in small type, the full path on hover or expand, and Stop on the right
+
 ## v1.0.2
 
 v1.0.0 and v1.0.1 were tagged but never released; their macOS builds failed.

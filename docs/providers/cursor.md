@@ -166,6 +166,8 @@ sqlite3 ~/Library/Application\ Support/Cursor/User/globalStorage/state.vscdb \
 | `cursorAuth/stripeMembershipType` | Plan tier (e.g. `pro`, `ultra`) |
 | `cursorAuth/stripeSubscriptionStatus` | Subscription status |
 
+**Encrypted logins (Cursor 3.27 and later).** Newer Cursor builds encrypt the two token cells. They start with `cursor-safe-storage:v1:`. Watchtower opens them with the `Cursor Safe Storage` Keychain item, which macOS may ask you to allow once. A refreshed token is saved back encrypted. If the key can't be read, Watchtower uses the CLI login below, or asks you to allow Keychain access.
+
 #### 2) Cursor CLI keychain (fallback)
 
 Watchtower reads Cursor CLI tokens from keychain:

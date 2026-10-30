@@ -13,6 +13,14 @@
   const CLIENT_ID = "KbZUR41cY7W6zRSdpSUJ7I7mLYBKOCmB"
   const REFRESH_BUFFER_MS = 5 * 60 * 1000 // refresh 5 minutes before expiration
   const LOGIN_HINT = "Sign in via Cursor app or run `agent login`."
+  // Cursor 3.27+ seals editor tokens at rest (cursor.storage.authTokenEncryptionAtRest):
+  // "cursor-safe-storage:v1:" + base64 of an Electron safeStorage v10 blob, keyed by the
+  // "Cursor Safe Storage" Keychain password.
+  const SEALED_PREFIX = "cursor-safe-storage:v1:"
+  const SAFE_STORAGE_SERVICE = "Cursor Safe Storage"
+  const SAFE_STORAGE_ACCOUNTS = ["Cursor Key", "Cursor"]
+  const SEALED_KEY_HINT =
+    "Cursor's saved login is encrypted. Allow Watchtower to use the \"Cursor Safe Storage\" Keychain item, or run `agent login`."
 
   function readStateValue(ctx, key) {
     try {
@@ -66,6 +74,51 @@
     }
   }
 
+  function isSealed(value) {
+    return typeof value === "string" && value.indexOf(SEALED_PREFIX) === 0
+  }
+
+  function looksLikeJwt(value) {
+    return typeof value === "string" && value.split(".").length === 3
+  }
+
+  function readSafeStoragePassword(ctx) {
+    if (!ctx.host.keychain || typeof ctx.host.keychain.readGenericPassword !== "function") {
+      return null
+    }
+    for (const account of SAFE_STORAGE_ACCOUNTS) {
+      try {
+        const value = ctx.host.keychain.readGenericPassword(SAFE_STORAGE_SERVICE, account)
+        if (typeof value === "string" && value.trim()) return value.trim()
+      } catch (e) {
+        ctx.host.log.info("safe storage key read failed for account " + account + ": " + String(e))
+      }
+    }
+    return null
+  }
+
+  // Plaintext tokens pass through. A sealed token is opened with the Safe Storage key;
+  // one that cannot be opened becomes null so it is never posted to Cursor as a
+  // refresh token (Cursor answers that with shouldLogout, which looked like a
+  // signed-out session).
+  function openStateToken(ctx, stored, keyState) {
+    if (!isSealed(stored)) return stored
+    keyState.sealed = true
+    if (keyState.password === undefined) keyState.password = readSafeStoragePassword(ctx)
+    if (!keyState.password || !ctx.host.crypto || typeof ctx.host.crypto.openSafeStorage !== "function") {
+      keyState.failed = true
+      return null
+    }
+    try {
+      const opened = ctx.host.crypto.openSafeStorage(stored.slice(SEALED_PREFIX.length), keyState.password)
+      if (looksLikeJwt(opened)) return opened
+    } catch (e) {
+      ctx.host.log.warn("sealed cursor token could not be opened: " + String(e))
+    }
+    keyState.failed = true
+    return null
+  }
+
   function writeKeychainValue(ctx, service, value) {
     if (!ctx.host.keychain || typeof ctx.host.keychain.writeGenericPassword !== "function") {
       ctx.host.log.warn("keychain write unsupported")
@@ -81,8 +134,14 @@
   }
 
   function loadAuthState(ctx) {
-    const sqliteAccessToken = readStateValue(ctx, "cursorAuth/accessToken")
-    const sqliteRefreshToken = readStateValue(ctx, "cursorAuth/refreshToken")
+    const keyState = { password: undefined, sealed: false, failed: false }
+    const sqliteAccessToken = openStateToken(ctx, readStateValue(ctx, "cursorAuth/accessToken"), keyState)
+    const sqliteRefreshToken = openStateToken(ctx, readStateValue(ctx, "cursorAuth/refreshToken"), keyState)
+    if (keyState.failed) {
+      ctx.host.log.warn(keyState.password
+        ? "cursor login is sealed and the Safe Storage key could not open it"
+        : "cursor login is sealed and the Safe Storage key is unavailable")
+    }
     const sqliteMembershipTypeRaw = readStateValue(ctx, "cursorAuth/stripeMembershipType")
     const sqliteMembershipType = typeof sqliteMembershipTypeRaw === "string"
       ? sqliteMembershipTypeRaw.trim().toLowerCase()
@@ -110,6 +169,7 @@
         accessToken: sqliteAccessToken,
         refreshToken: sqliteRefreshToken,
         source: "sqlite",
+        sealedPassword: keyState.sealed ? keyState.password : null,
       }
     }
 
@@ -125,6 +185,7 @@
       accessToken: null,
       refreshToken: null,
       source: null,
+      sealedUnreadable: keyState.failed,
     }
   }
 
@@ -137,9 +198,14 @@
     return subject || null
   }
 
-  function persistAccessToken(ctx, source, accessToken) {
-    if (source === "keychain") {
+  function persistAccessToken(ctx, authState, accessToken) {
+    if (authState.source === "keychain") {
       return writeKeychainValue(ctx, KEYCHAIN_ACCESS_TOKEN_SERVICE, accessToken)
+    }
+    if (authState.sealedPassword) {
+      // Keep Cursor's seal: write the rotated token back sealed, never as plaintext.
+      const sealed = ctx.host.crypto.sealSafeStorage(accessToken, authState.sealedPassword)
+      return writeStateValue(ctx, "cursorAuth/accessToken", SEALED_PREFIX + sealed)
     }
     return writeStateValue(ctx, "cursorAuth/accessToken", accessToken)
   }
@@ -160,7 +226,7 @@
     })
   }
 
-  function refreshToken(ctx, refreshTokenValue, source) {
+  function refreshToken(ctx, refreshTokenValue, authState) {
     if (!refreshTokenValue) {
       ctx.host.log.warn("refresh skipped: no refresh token")
       return null
@@ -215,7 +281,7 @@
       }
 
       // Persist updated access token to source where auth was loaded from.
-      persistAccessToken(ctx, source, newAccessToken)
+      persistAccessToken(ctx, authState, newAccessToken)
       ctx.host.log.info("refresh succeeded, token persisted")
 
       // Note: Cursor refresh returns access_token which is used as both
@@ -385,6 +451,10 @@
     const authSource = authState.source
 
     if (!accessToken && !refreshTokenValue) {
+      if (authState.sealedUnreadable) {
+        ctx.host.log.error("probe failed: cursor login is sealed and no other login is available")
+        throw SEALED_KEY_HINT
+      }
       ctx.host.log.error("probe failed: no access or refresh token in sqlite/keychain")
       throw "Not logged in. " + LOGIN_HINT
     }
@@ -398,7 +468,7 @@
       ctx.host.log.info("token needs refresh (expired or expiring soon)")
       let refreshed = null
       try {
-        refreshed = refreshToken(ctx, refreshTokenValue, authSource)
+        refreshed = refreshToken(ctx, refreshTokenValue, authState)
       } catch (e) {
         // If refresh fails but we have an access token, try it anyway
         ctx.host.log.warn("refresh failed but have access token, will try: " + String(e))
@@ -430,7 +500,7 @@
         refresh: () => {
           ctx.host.log.info("usage returned 401, attempting refresh")
           didRefresh = true
-          const refreshed = refreshToken(ctx, refreshTokenValue, authSource)
+          const refreshed = refreshToken(ctx, refreshTokenValue, authState)
           if (refreshed) accessToken = refreshed
           return refreshed
         },

@@ -7,6 +7,8 @@ interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   indicatorColor?: string
   markerValue?: number
   refreshing?: boolean
+  /** Number of discrete instrument segments. */
+  segments?: number
 }
 
 function prefersReducedMotion() {
@@ -18,14 +20,19 @@ function prefersReducedMotion() {
 }
 
 /**
- * Thin continuous meter. The neutral fill is --meter-fill (dark on a light
- * track, light on a dark track). Callers pass amber or red only for behind
- * pace and over-limit.
+ * Segmented instrument bar. Discrete blocks light up left to right. The fill is
+ * painted on the first render: the panel can mount while hidden, and a
+ * hidden webview never runs animation frames, so nothing waits on one.
  */
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  ({ className, value = 0, indicatorColor, markerValue, refreshing, ...props }, ref) => {
+  (
+    { className, value = 0, indicatorColor, markerValue, refreshing, segments = 28, ...props },
+    ref
+  ) => {
     const clamped = Math.min(100, Math.max(0, value))
+
     const reducedMotion = prefersReducedMotion()
+    const filled = Math.round((clamped / 100) * segments)
     const fillColor = indicatorColor || "var(--meter-fill)"
 
     const clampedMarker =
@@ -55,23 +62,28 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        className={cn("relative h-[3px] w-full overflow-hidden rounded-full bg-[var(--meter-track)]", className)}
+        className={cn("relative flex h-2.5 w-full items-stretch gap-[2px]", className)}
         {...props}
       >
-        <div
-          data-slot="progress-fill"
-          className="h-full rounded-full"
-          style={{
-            width: `${clamped}%`,
-            backgroundColor: fillColor,
-            transition: reducedMotion ? undefined : "width 150ms ease-out",
-          }}
-        />
+        {Array.from({ length: segments }).map((_, index) => {
+          const isOn = index < filled
+          return (
+            <div
+              key={index}
+              data-slot={isOn ? "progress-segment-on" : "progress-segment"}
+              className="min-w-px flex-1 rounded-[1px]"
+              style={{
+                backgroundColor: isOn ? fillColor : "var(--meter-track)",
+                transition: reducedMotion ? undefined : "background-color 150ms ease-out",
+              }}
+            />
+          )
+        })}
         {showMarker && (
           <div
             data-slot="progress-marker"
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-[-1px] top-[-1px] z-10 w-px bg-muted-foreground"
+            className="pointer-events-none absolute bottom-[-1px] top-[-1px] z-10 w-0.5 rounded-sm bg-muted-foreground ring-1 ring-background/70"
             style={markerStyle}
           />
         )}
@@ -79,9 +91,9 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           <div
             data-slot="progress-refreshing"
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1px]"
           >
-            <div className="h-full w-full animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+            <div className="h-full w-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
         )}
       </div>

@@ -1,7 +1,11 @@
 (function () {
   const DIR = "~/Library/Application Support/Grok Bot/sand-client-persistence"
   const LOGIN_HINT = "Sign in to the Grok Bot app"
-  const STALE_AGE_MS = 60 * 60 * 1000
+  // Grok Bot rewrites this cache whenever it is open, and its own expiresAtMs is a
+  // short (~15 min) cache TTL, so it says nothing about whether the weekly number is
+  // still right. Only flag readings that are genuinely old.
+  const STALE_AGE_MS = 6 * 60 * 60 * 1000
+  const HOUR_MS = 60 * 60 * 1000
   const WEEK_MS = 7 * 24 * 60 * 60 * 1000
   const B32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
 
@@ -59,20 +63,20 @@
     const percentUsed = readNumber(usage.percentUsed)
     if (percentUsed === null) return null
 
-    const expiresAtMs =
-      readNumber(parsed.expiresAtMs) !== null
-        ? readNumber(parsed.expiresAtMs)
-        : readNumber(value.expiresAtMs)
-
     return {
       readAtMs,
-      expiresAtMs,
       percentUsed: Math.min(100, Math.max(0, percentUsed)),
       nextResetMs: readNumber(usage.nextResetMs),
       plan: typeof usage.grokPlanLabel === "string" && usage.grokPlanLabel.trim()
         ? usage.grokPlanLabel
         : null,
     }
+  }
+
+  function formatAge(ms) {
+    const hours = Math.floor(ms / HOUR_MS)
+    if (hours < 48) return hours + "h"
+    return Math.floor(hours / 24) + "d"
   }
 
   function probe(ctx) {
@@ -112,9 +116,8 @@
     }
 
     const nowMs = Date.now()
-    const stale =
-      (newest.expiresAtMs !== null && nowMs > newest.expiresAtMs) ||
-      nowMs - newest.readAtMs > STALE_AGE_MS
+    const ageMs = nowMs - newest.readAtMs
+    const stale = ageMs > STALE_AGE_MS
 
     const lines = [
       ctx.line.progress({
@@ -130,7 +133,7 @@
       lines.push(
         ctx.line.badge({
           label: "Status",
-          text: "Open Grok Bot to refresh",
+          text: "Last read " + formatAge(ageMs) + " ago. Open Grok Bot to refresh.",
           color: "#f59e0b",
         })
       )

@@ -22,7 +22,7 @@ export function ThemeToggleButton({
       variant="ghost"
       size="icon-sm"
       aria-label={label}
-      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+      className="rounded-[10px] border border-line bg-surface text-foreground hover:border-line-bright hover:bg-surface-raised"
       onClick={() => onThemeModeChange(nextMode)}
     >
       <HugeiconsIcon icon={isLight ? MoonIcon : Sun01Icon} className="size-4" />

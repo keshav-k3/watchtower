@@ -62,11 +62,11 @@ export function CodexScopedProviderCard({ lines = [], ...props }: CodexScopedPro
 
   const accessory =
     accountLabels.length >= 2 ? (
-      <div className="mb-1.5 flex justify-end">
+      <div className="mb-3 flex justify-end">
         <div
           role="group"
           aria-label="Codex Account"
-          className="inline-flex max-w-full min-w-0 items-center rounded-full border border-line bg-surface p-0.5"
+          className="inline-flex max-w-full min-w-0 flex-wrap items-center justify-end gap-0.5 rounded-[8px] border border-line bg-card p-0.5"
         >
           {["Both", ...accountLabels].map((option) => {
             const value = option === "Both" ? DEFAULT_CODEX_ACCOUNT_VIEW : option
@@ -79,9 +79,9 @@ export function CodexScopedProviderCard({ lines = [], ...props }: CodexScopedPro
                 title={option}
                 onClick={() => selectView(value)}
                 className={cn(
-                  "min-w-0 max-w-[7.5rem] truncate rounded-full px-2 py-0.5 text-[11px] leading-4 transition-colors",
+                  "label-mono min-w-0 break-words rounded-[6px] px-2 py-0.5 text-[9px] leading-4 transition-colors",
                   active
-                    ? "bg-foreground text-background"
+                    ? "bg-surface-raised text-foreground ring-1 ring-line-bright"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
