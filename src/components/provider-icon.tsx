@@ -3,7 +3,7 @@ import cursorDarkIcon from "@/assets/providers/cursor-dark.svg"
 import cursorLightIcon from "@/assets/providers/cursor-light.svg"
 import devinIcon from "@/assets/providers/devin.svg"
 import geminiIcon from "@/assets/providers/gemini.svg"
-import grokIcon from "@/assets/providers/grok.svg"
+import grokBotIcon from "@/assets/providers/grok-bot.svg"
 import kimiDarkIcon from "@/assets/providers/kimi-dark.svg"
 import kimiLightIcon from "@/assets/providers/kimi-light.svg"
 import kiroIcon from "@/assets/providers/kiro.svg"
@@ -41,9 +41,8 @@ const MONO_ICONS: Record<string, string> = {
   codex: openaiIcon,
   openai: openaiIcon,
   devin: devinIcon,
-  grok: grokIcon,
-  "grok-bot": grokIcon,
-  grokbot: grokIcon,
+  "grok-bot": grokBotIcon,
+  grokbot: grokBotIcon,
 }
 
 function BrandImage({

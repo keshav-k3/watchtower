@@ -212,28 +212,50 @@ describe("grok-bot plugin", () => {
     expect(result.lines[0].used).toBe(12)
   })
 
-  it("adds a refresh badge when the cache is expired", async () => {
+  it("does not flag a recent reading just because the short cache TTL passed", async () => {
     const ctx = makeCtx()
     seed(ctx, {
-      [blobName(keyFor("e@example.com"))]: cacheFile({ expiresAtMs: NOW - 1000 }),
+      [blobName(keyFor("e@example.com"))]: cacheFile({ expiresAtMs: NOW - 1000, valueExpiresAtMs: NOW - 1000 }),
     })
     const plugin = await loadPlugin()
     const result = plugin.probe(ctx)
-    const badge = result.lines.find((line) => line.type === "badge")
-    expect(badge).toMatchObject({ label: "Status", text: "Open Grok Bot to refresh" })
+    expect(result.lines.find((line) => line.type === "badge")).toBeUndefined()
     expect(result.lines[0].used).toBe(42)
   })
 
-  it("adds a refresh badge when the reading is older than 60 minutes", async () => {
+  it("does not flag a reading a few hours old", async () => {
     const ctx = makeCtx()
     seed(ctx, {
       [blobName(keyFor("f@example.com"))]: cacheFile({
-        value: { reading: { readAtMs: NOW - 61 * 60 * 1000, usage: { percentUsed: 30, nextResetMs: NOW + HOUR, grokPlanLabel: "SuperGrok" } } },
+        value: { reading: { readAtMs: NOW - 5 * HOUR, usage: { percentUsed: 30, nextResetMs: NOW + HOUR, grokPlanLabel: "SuperGrok" } } },
       }),
     })
     const plugin = await loadPlugin()
-    const result = plugin.probe(ctx)
-    expect(result.lines.find((line) => line.type === "badge")).toBeTruthy()
+    expect(plugin.probe(ctx).lines.find((line) => line.type === "badge")).toBeUndefined()
+  })
+
+  it("says how old the reading is once it is more than 6 hours old", async () => {
+    const ctx = makeCtx()
+    seed(ctx, {
+      [blobName(keyFor("f@example.com"))]: cacheFile({
+        value: { reading: { readAtMs: NOW - 7 * HOUR, usage: { percentUsed: 30, nextResetMs: NOW + HOUR, grokPlanLabel: "SuperGrok" } } },
+      }),
+    })
+    const plugin = await loadPlugin()
+    const badge = plugin.probe(ctx).lines.find((line) => line.type === "badge")
+    expect(badge).toMatchObject({ label: "Status", text: "Last read 7h ago. Open Grok Bot to refresh." })
+  })
+
+  it("counts days for readings older than two days", async () => {
+    const ctx = makeCtx()
+    seed(ctx, {
+      [blobName(keyFor("g@example.com"))]: cacheFile({
+        value: { reading: { readAtMs: NOW - 3 * 24 * HOUR - HOUR, usage: { percentUsed: 30, grokPlanLabel: "SuperGrok" } } },
+      }),
+    })
+    const plugin = await loadPlugin()
+    const badge = plugin.probe(ctx).lines.find((line) => line.type === "badge")
+    expect(badge.text).toBe("Last read 3d ago. Open Grok Bot to refresh.")
   })
 
   it("throws a friendly sign-in error when the directory is missing", async () => {

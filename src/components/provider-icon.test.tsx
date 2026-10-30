@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { ProviderIcon } from "@/components/provider-icon"
 
 describe("ProviderIcon", () => {
-  it.each(["codex", "devin", "grok"])(
+  it.each(["codex", "devin", "grok-bot"])(
     "uses the theme-aware monochrome template for %s",
     (id) => {
       render(
