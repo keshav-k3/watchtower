@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.4
+
+v1.0.3 was tagged but never released.
+
+### Bug Fixes
+- About and Release Notes backdrop stays inside the panel
+- Release Notes sheet no longer sticks out past the panel
+- Empty shortcut field shows "Not set"
+- Command highlight visible on error cards
+
 ## v1.0.3
 
 ### Bug Fixes
