@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.3 (Unreleased)
+## v1.0.3
 
 ### Bug Fixes
 - Cursor no longer shows "Session expired" after the Cursor 3.27 update encrypted its saved login
