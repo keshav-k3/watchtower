@@ -38,7 +38,7 @@ const systemPort: ListeningPort = {
 const selfPort: ListeningPort = {
   port: 1420,
   pid: 7,
-  processName: "watchtower",
+  processName: "/Applications/Watchtower.app/Contents/MacOS/watchtower",
   user: "keshav",
   cwd: "/Applications/Watchtower.app",
   project: null,
@@ -46,43 +46,113 @@ const selfPort: ListeningPort = {
   selfProcess: true,
 }
 
+const nodeSecondPort: ListeningPort = { ...nodePort, port: 3001 }
+
+const appPort: ListeningPort = {
+  port: 7265,
+  pid: 88,
+  processName: "/Applications/Raycast.app/Contents/MacOS/Raycast",
+  user: "keshav",
+  cwd: "/",
+  project: null,
+  system: false,
+  selfProcess: false,
+}
+
+const helperPort: ListeningPort = {
+  ...appPort,
+  port: 9222,
+  pid: 99,
+  processName:
+    "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Helpers/Google Chrome Helper",
+}
+
+const stopDialog = () => screen.getByRole("dialog", { name: "Stop Process" })
+
 describe("PortsPage", () => {
   beforeEach(() => {
     invokeMock.mockReset()
-    invokeMock.mockResolvedValue({ supported: true, note: null, ports: [systemPort, nodePort, selfPort] })
+    invokeMock.mockResolvedValue({
+      supported: true,
+      note: null,
+      ports: [systemPort, nodeSecondPort, nodePort, selfPort, appPort, helperPort],
+    })
   })
 
-  it("lists user ports, reveals system ports, and stops a process", async () => {
+  it("shows one row per process with its ports grouped, and reveals system ports", async () => {
     render(<PortsPage />)
-    expect(await screen.findByText("3000")).toBeInTheDocument()
-    expect(screen.getByText("demo · /Users/keshav/demo")).toBeInTheDocument()
-    expect(screen.getByText("Watchtower")).toBeInTheDocument()
-    expect(screen.queryByText("22")).not.toBeInTheDocument()
+    const nodeRow = await screen.findByRole("button", { name: "node details" })
+    expect(within(nodeRow).getByText(":3000")).toBeInTheDocument()
+    expect(within(nodeRow).getByText(":3001")).toBeInTheDocument()
+    expect(within(nodeRow).getByText("PID 42")).toBeInTheDocument()
+    expect(within(nodeRow).getByText("demo")).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: /details$/ })).toHaveLength(4)
 
-    const systemSwitch = screen.getByRole("switch", { name: "Show System" })
-    await userEvent.click(systemSwitch)
-    expect(screen.getByText("22")).toBeInTheDocument()
+    // App bundles show the app name; the full path stays on hover.
+    const raycast = screen.getByRole("button", { name: "Raycast details" })
+    expect(raycast).toHaveAttribute("title", "/Applications/Raycast.app/Contents/MacOS/Raycast")
+    expect(screen.getByText("This App")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Stop Watchtower" })).not.toBeInTheDocument()
+    const helper = screen.getByRole("button", { name: "Google Chrome details" })
+    expect(within(helper).getByText("Google Chrome Helper")).toBeInTheDocument()
+    // Same name in a different case is not repeated.
+    expect(within(screen.getByRole("button", { name: "Watchtower details" })).queryByText("watchtower")).toBeNull()
+    expect(screen.queryByText(":22")).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("switch", { name: "Show System" }))
+    expect(screen.getByText(":22")).toBeInTheDocument()
     expect(screen.getByText("System")).toBeInTheDocument()
-    expect(screen.getByText("Working directory unavailable")).toBeInTheDocument()
     expect(screen.getByRole("switch", { name: "Show System" })).toHaveAttribute("aria-checked", "true")
     await userEvent.click(screen.getByRole("switch", { name: "Show System" }))
-    expect(screen.queryByText("22")).not.toBeInTheDocument()
+    expect(screen.queryByText(":22")).not.toBeInTheDocument()
+  })
 
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
+  it("expands a row to show the full path, folder, and user", async () => {
+    render(<PortsPage />)
+    const raycast = await screen.findByRole("button", { name: "Raycast details" })
+    expect(raycast).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(raycast)
+    expect(raycast).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByText("/Applications/Raycast.app/Contents/MacOS/Raycast", { selector: "dd" })).toBeInTheDocument()
+    expect(screen.getByText("Not available")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "node details" }))
+    expect(raycast).toHaveAttribute("aria-expanded", "false")
+    expect(screen.getByText("/Users/keshav/demo")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "node details" }))
+    expect(screen.queryByText("/Users/keshav/demo")).not.toBeInTheDocument()
+  })
+
+  it("asks before stopping, then offers Force Stop", async () => {
+    render(<PortsPage />)
+    await userEvent.click(await screen.findByRole("button", { name: "Stop node" }))
+    expect(within(stopDialog()).getByText("PID 42 · :3000, :3001")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }))
     expect(invokeMock).not.toHaveBeenCalledWith("stop_listening_process", expect.anything())
 
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
+    await userEvent.click(screen.getByRole("button", { name: "Stop node" }))
     invokeMock.mockResolvedValueOnce(undefined)
-    const dialog = screen.getByRole("dialog", { name: "Stop Process" })
-    await userEvent.click(within(dialog).getByRole("button", { name: "Stop" }))
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Stop" }))
     expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: false, expectedProcess: "node" })
 
-    const forceButton = await screen.findByRole("button", { name: "Force Stop" })
-    await userEvent.click(forceButton)
+    await userEvent.click(await screen.findByRole("button", { name: "Force Stop node" }))
+    expect(within(stopDialog()).getByText("Force Stop node?")).toBeInTheDocument()
     invokeMock.mockResolvedValueOnce(undefined)
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Force Stop" }))
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Force Stop" }))
     expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", { pid: 42, force: true, expectedProcess: "node" })
+    expect(await screen.findByRole("button", { name: "Stop node" })).toBeInTheDocument()
+  })
+
+  it("sends the full executable path as the expected process", async () => {
+    render(<PortsPage />)
+    await userEvent.click(await screen.findByRole("button", { name: "Stop Raycast" }))
+    invokeMock.mockResolvedValueOnce(undefined)
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Stop" }))
+    expect(invokeMock).toHaveBeenCalledWith("stop_listening_process", {
+      pid: 88,
+      force: false,
+      expectedProcess: "/Applications/Raycast.app/Contents/MacOS/Raycast",
+    })
   })
 
   it("refreshes while the view is open", async () => {
@@ -121,9 +191,8 @@ describe("PortsPage", () => {
       return { supported: true, note: null, ports: [nodePort] }
     })
     render(<PortsPage />)
-    await screen.findByText("3000")
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Stop" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Stop node" }))
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Stop" }))
     expect(await screen.findByText("nope")).toBeInTheDocument()
     consoleSpy.mockRestore()
   })
@@ -135,9 +204,8 @@ describe("PortsPage", () => {
       return { supported: true, note: null, ports: [nodePort] }
     })
     render(<PortsPage />)
-    await screen.findByText("3000")
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Stop" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Stop node" }))
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Stop" }))
     expect(await screen.findByText("busy")).toBeInTheDocument()
     consoleSpy.mockRestore()
   })
@@ -153,9 +221,8 @@ describe("PortsPage", () => {
       return { supported: true, note: null, ports: [nodePort] }
     })
     render(<PortsPage />)
-    await screen.findByText("3000")
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
-    const dialog = screen.getByRole("dialog", { name: "Stop Process" })
+    await userEvent.click(await screen.findByRole("button", { name: "Stop node" }))
+    const dialog = stopDialog()
     await userEvent.click(within(dialog).getByRole("button", { name: "Stop" }))
     expect(await within(dialog).findByRole("button", { name: "Stopping…" })).toBeDisabled()
     expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled()
@@ -163,7 +230,7 @@ describe("PortsPage", () => {
       resolveStop()
       await Promise.resolve()
     })
-    expect(await screen.findByRole("button", { name: "Force Stop" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Force Stop node" })).toBeInTheDocument()
   })
 
   it("forgets a SIGTERM mark once the pid leaves the list", async () => {
@@ -174,22 +241,21 @@ describe("PortsPage", () => {
     })
     vi.useFakeTimers({ shouldAdvanceTime: true })
     render(<PortsPage />)
-    await screen.findByText("3000")
-    await userEvent.click(screen.getByRole("button", { name: "Stop" }))
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Stop Process" })).getByRole("button", { name: "Stop" }))
-    expect(await screen.findByRole("button", { name: "Force Stop" })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole("button", { name: "Stop node" }))
+    await userEvent.click(within(stopDialog()).getByRole("button", { name: "Stop" }))
+    expect(await screen.findByRole("button", { name: "Force Stop node" })).toBeInTheDocument()
 
     listed = [selfPort]
     await act(async () => {
       vi.advanceTimersByTime(3000)
     })
-    await waitFor(() => expect(screen.queryByText("3000")).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(":3000")).not.toBeInTheDocument())
     listed = [nodePort]
     await act(async () => {
       vi.advanceTimersByTime(3000)
     })
-    expect(await screen.findByRole("button", { name: "Stop" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Force Stop" })).not.toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Stop node" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Force Stop node" })).not.toBeInTheDocument()
     vi.useRealTimers()
   })
 })

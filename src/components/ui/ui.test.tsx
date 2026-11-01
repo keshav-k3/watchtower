@@ -92,7 +92,7 @@ describe("ui components", () => {
     expect(marker).toBeTruthy()
     expect(marker?.style.left).toBe("100%")
     expect(marker?.style.transform).toBe("translateX(-100%)")
-    expect(marker).toHaveClass("bg-muted-foreground", "w-px")
+    expect(marker).toHaveClass("bg-muted-foreground", "w-0.5")
 
     rerender(<Progress value={25} markerValue={-10} />)
     marker = container.querySelector<HTMLElement>('[data-slot="progress-marker"]')
@@ -134,24 +134,33 @@ describe("ui components", () => {
     vi.stubGlobal("matchMedia", matchMedia)
 
     const { container } = render(<Progress value={73} />)
-    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
-    const track = screen.getByRole("progressbar")
+    const on = container.querySelectorAll<HTMLElement>("[data-slot=progress-segment-on]")
+    const off = container.querySelectorAll<HTMLElement>("[data-slot=progress-segment]")
 
-    expect(fill).toHaveStyle({ width: "73%", backgroundColor: "var(--meter-fill)" })
-    expect(fill?.getAttribute("style")).toContain("transition: width 150ms ease-out")
-    expect(track.className).toContain("bg-[var(--meter-track)]")
+    expect(on).toHaveLength(20)
+    expect(off).toHaveLength(8)
+    expect(on[0]).toHaveStyle({ backgroundColor: "var(--meter-fill)" })
+    expect(off[0]).toHaveStyle({ backgroundColor: "var(--meter-track)" })
+    expect(on[0]?.getAttribute("style")).toContain("transition: background-color 150ms ease-out")
 
     vi.unstubAllGlobals()
   })
 
-  it("skips the width transition when reduced motion is requested", () => {
+  it("uses the indicator color and segment count it is given", () => {
+    const { container } = render(<Progress value={50} segments={10} indicatorColor="#ff0000" />)
+    const on = container.querySelectorAll<HTMLElement>("[data-slot=progress-segment-on]")
+    expect(on).toHaveLength(5)
+    expect(on[0]).toHaveStyle({ backgroundColor: "#ff0000" })
+  })
+
+  it("skips the fill transition when reduced motion is requested", () => {
     const matchMedia = vi.fn().mockReturnValue({ matches: true })
     vi.stubGlobal("matchMedia", matchMedia)
 
     const { container } = render(<Progress value={50} />)
-    const fill = container.querySelector<HTMLElement>("[data-slot=progress-fill]")
-    expect(fill).toHaveStyle({ width: "50%" })
-    expect(fill?.getAttribute("style")).not.toContain("transition")
+    const on = container.querySelectorAll<HTMLElement>("[data-slot=progress-segment-on]")
+    expect(on).toHaveLength(14)
+    expect(on[0]?.getAttribute("style")).not.toContain("transition")
 
     vi.unstubAllGlobals()
   })

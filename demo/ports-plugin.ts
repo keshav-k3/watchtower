@@ -10,14 +10,30 @@ export function demoPortsPlugin(): Plugin {
   let child: ChildProcess | null = null
   const root = join(tmpdir(), "watchtower-demo-server")
 
+  const user = process.env.USER || "ubuntu"
+  // Shapes taken from a real Mac: full executable paths, one process on many ports.
+  const samples = [
+    ...[2300, 3100, 3101, 3102].map((port) => ({
+      port, pid: 3543, processName: "/opt/podman/bin/gvproxy", user, cwd: "/", project: null, system: false, selfProcess: false,
+    })),
+    ...[5000, 7000].map((port) => ({
+      port, pid: 612, processName: "/System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter", user, cwd: "/", project: null, system: true, selfProcess: false,
+    })),
+    { port: 5476, pid: 8812, processName: "/Applications/KiroCrew.app/Contents/Resources/dist/kirocrew-backend-arm64/bin/python3.12", user, cwd: "/", project: null, system: false, selfProcess: false },
+    { port: 6736, pid: 9120, processName: "/Applications/Watchtower.app/Contents/MacOS/watchtower", user, cwd: "/", project: null, system: false, selfProcess: true },
+    { port: 7265, pid: 701, processName: "/Applications/Raycast.app/Contents/MacOS/Raycast", user, cwd: "/", project: null, system: false, selfProcess: false },
+    { port: 9222, pid: 9304, processName: "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper", user, cwd: "/", project: null, system: false, selfProcess: false },
+  ]
+
   const snapshot = () => {
-    if (!child?.pid || child.exitCode !== null) return []
+    if (!child?.pid || child.exitCode !== null) return samples
     return [
+      ...samples,
       {
         port: PORT,
         pid: child.pid,
         processName: "python3",
-        user: process.env.USER || "ubuntu",
+        user,
         cwd: root,
         project: "demo-server",
         system: false,

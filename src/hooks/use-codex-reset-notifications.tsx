@@ -80,13 +80,13 @@ export function useCodexResetNotifications(lines: MetricLine[] | null) {
   return (
     <div
       role="status"
-      className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-1.5"
+      className="mx-4 mb-3 flex shrink-0 items-start gap-2 rounded-[10px] border border-line border-l-2 border-l-success bg-surface px-3 py-2"
     >
-      <HugeiconsIcon icon={CheckmarkSquare02Icon} className="size-3.5 shrink-0 text-foreground" />
+      <HugeiconsIcon icon={CheckmarkSquare02Icon} className="mt-px size-3.5 shrink-0 text-success" />
       <p className="min-w-0 flex-1 break-words text-[12px] leading-4 text-foreground">{message}</p>
       <button
         type="button"
-        className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        className="label-mono shrink-0 pt-0.5 text-[9px] text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => setMessage(null)}
       >
         Dismiss

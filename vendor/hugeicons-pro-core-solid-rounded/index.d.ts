@@ -18,3 +18,4 @@ export declare const ArrowRight01Icon: IconSvgElement
 export declare const Sun01Icon: IconSvgElement
 export declare const Moon02Icon: IconSvgElement
 export declare const MoonIcon: IconSvgElement
+export declare const PlugSocketIcon: IconSvgElement

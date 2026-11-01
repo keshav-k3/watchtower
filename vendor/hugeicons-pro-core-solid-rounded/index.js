@@ -116,8 +116,12 @@ export const Moon02Icon = [
 ]
 
 export const MoonIcon = [
-  path(
-    "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM8.75 6.75a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5Zm6.5 5.25a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM8 15.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z",
-    { fillRule: "evenodd", clipRule: "evenodd" }
-  ),
+  path("M20.96 14.3a1 1 0 0 0-1.2-.36A7.5 7.5 0 0 1 10.06 4.24a1 1 0 0 0-1.56-1.17A9.5 9.5 0 1 0 21.06 15.6a1 1 0 0 0-.1-1.3Z"),
+]
+
+export const PlugSocketIcon = [
+  rect({ x: 8, y: 2, width: 2, height: 5.5, rx: 1 }),
+  rect({ x: 14, y: 2, width: 2, height: 5.5, rx: 1 }),
+  path("M6 8.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1V10a6 6 0 0 1-12 0V8.5Z"),
+  rect({ x: 11, y: 15, width: 2, height: 7, rx: 1 }),
 ]

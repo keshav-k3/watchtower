@@ -802,6 +802,24 @@ fn inject_crypto<'js>(ctx: &Ctx<'js>, host: &Object<'js>) -> rquickjs::Result<()
     )?;
 
     crypto_obj.set(
+        "openSafeStorage",
+        Function::new(
+            ctx.clone(),
+            move |ctx_inner: Ctx<'_>, blob_b64: String, password: String| -> rquickjs::Result<String> {
+                super::safe_storage::open(&blob_b64, &password)
+                    .map_err(|e| Exception::throw_message(&ctx_inner, &e))
+            },
+        )?,
+    )?;
+
+    crypto_obj.set(
+        "sealSafeStorage",
+        Function::new(ctx.clone(), move |plaintext: String, password: String| -> String {
+            super::safe_storage::seal(&plaintext, &password)
+        })?,
+    )?;
+
+    crypto_obj.set(
         "sha256Hex",
         Function::new(ctx.clone(), move |text: String| -> String {
             let digest = Sha256::digest(text.as_bytes());
@@ -3299,6 +3317,29 @@ mod tests {
                 empty,
                 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             );
+        });
+    }
+
+    #[test]
+    fn crypto_api_exposes_safe_storage() {
+        let rt = Runtime::new().expect("runtime");
+        let ctx = Context::full(&rt).expect("context");
+        ctx.with(|ctx| {
+            let app_data = std::env::temp_dir();
+            inject_host_api(&ctx, "test", &app_data, "0.0.0").expect("inject host api");
+            let opened: String = ctx
+                .eval(
+                    r#"var c = __watchtower_ctx.host.crypto;
+                    c.openSafeStorage(c.sealSafeStorage("a.b.c", "pw"), "pw")"#,
+                )
+                .expect("js safe storage round trip");
+            assert_eq!(opened, "a.b.c");
+            let err: String = ctx
+                .eval(
+                    r#"(function(){ try { __watchtower_ctx.host.crypto.openSafeStorage("%%", "pw"); return "no" } catch (e) { return String(e) } })()"#,
+                )
+                .expect("js safe storage error");
+            assert!(err.contains("base64"), "{}", err);
         });
     }
 

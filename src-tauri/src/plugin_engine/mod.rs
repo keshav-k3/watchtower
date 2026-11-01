@@ -2,6 +2,7 @@ pub mod host_api;
 pub mod http_client;
 pub mod manifest;
 pub mod runtime;
+pub(crate) mod safe_storage;
 
 use manifest::LoadedPlugin;
 use sha2::{Digest, Sha256};

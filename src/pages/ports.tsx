@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ChevronRightIcon } from "@hugeicons-pro/core-solid-rounded"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+import { groupPortsByProcess, meaningfulCwd, type ListeningPort, type PortProcess } from "@/lib/port-groups"
 
-export type ListeningPort = {
-  port: number
-  pid: number
-  processName: string
-  user: string
-  cwd: string | null
-  project: string | null
-  system: boolean
-  selfProcess: boolean
-}
+export type { ListeningPort } from "@/lib/port-groups"
 
 type ListeningPortsResponse = {
   supported: boolean
@@ -20,11 +15,124 @@ type ListeningPortsResponse = {
 }
 
 type ConfirmState = {
-  port: ListeningPort
+  process: PortProcess
   force: boolean
 }
 
 const REFRESH_MS = 3000
+
+function formatPorts(ports: number[]): string {
+  return ports.map((port) => `:${port}`).join(", ")
+}
+
+function ProcessAction({
+  process,
+  stillRunning,
+  onStop,
+}: {
+  process: PortProcess
+  stillRunning: boolean
+  onStop: (force: boolean) => void
+}) {
+  if (process.system) {
+    return <span className="label-mono shrink-0 pt-0.5 text-[9px] text-muted-foreground">System</span>
+  }
+  if (process.selfProcess) {
+    return <span className="label-mono shrink-0 pt-0.5 text-[9px] text-muted-foreground">This App</span>
+  }
+  return (
+    <button
+      type="button"
+      className={cn(
+        "label-mono shrink-0 rounded-[6px] border px-2 py-1 text-[9px] leading-3 transition-colors",
+        stillRunning
+          ? "border-destructive/60 text-destructive hover:bg-destructive/10"
+          : "border-line text-foreground hover:border-line-bright hover:bg-surface-raised"
+      )}
+      aria-label={`${stillRunning ? "Force Stop" : "Stop"} ${process.displayName}`}
+      onClick={() => onStop(stillRunning)}
+    >
+      {stillRunning ? "Force Stop" : "Stop"}
+    </button>
+  )
+}
+
+function ProcessRow({
+  process,
+  stillRunning,
+  expanded,
+  onToggle,
+  onStop,
+}: {
+  process: PortProcess
+  stillRunning: boolean
+  expanded: boolean
+  onToggle: () => void
+  onStop: (force: boolean) => void
+}) {
+  const cwd = meaningfulCwd(process.cwd)
+  return (
+    <li className="px-3 py-2.5" data-pid={process.pid}>
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          className="group/row flex min-w-0 flex-1 items-start gap-1.5 text-left"
+          aria-expanded={expanded}
+          aria-label={`${process.displayName} details`}
+          title={process.processName}
+          onClick={onToggle}
+        >
+          <HugeiconsIcon
+            icon={ChevronRightIcon}
+            className={cn(
+              "mt-[3px] size-3 shrink-0 text-muted-foreground transition-transform duration-150 group-hover/row:text-foreground",
+              expanded && "rotate-90"
+            )}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+              <span className="min-w-0 break-words text-[13px] font-semibold leading-[18px] text-foreground">
+                {process.displayName}
+              </span>
+              {process.binaryName && (
+                <span className="min-w-0 break-all text-[11px] leading-4 text-muted-foreground">
+                  {process.binaryName}
+                </span>
+              )}
+            </span>
+            <span className="mt-1 flex flex-wrap items-center gap-1">
+              {process.ports.map((port) => (
+                <span
+                  key={port}
+                  className="label-mono rounded-[4px] border border-line bg-card px-1.5 py-px text-[10px] leading-[14px] tabular-nums text-foreground"
+                >
+                  :{port}
+                </span>
+              ))}
+              <span className="label-mono pl-1 text-[9px] tabular-nums text-muted-foreground">PID {process.pid}</span>
+            </span>
+            {process.project && (
+              <span className="mt-1 block break-words text-[11px] leading-4 text-muted-foreground">
+                {process.project}
+              </span>
+            )}
+          </span>
+        </button>
+        <ProcessAction process={process} stillRunning={stillRunning} onStop={onStop} />
+      </div>
+      {expanded && (
+        <dl className="ml-[18px] mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-[8px] border border-line bg-card px-2.5 py-2 text-[11px] leading-4">
+          <dt className="label-mono pt-px text-[9px] text-muted-foreground">Path</dt>
+          <dd className="min-w-0 break-all text-foreground">{process.processName}</dd>
+          <dt className="label-mono pt-px text-[9px] text-muted-foreground">Folder</dt>
+          <dd className="min-w-0 break-all text-foreground">{cwd ?? "Not available"}</dd>
+          <dt className="label-mono pt-px text-[9px] text-muted-foreground">User</dt>
+          <dd className="min-w-0 break-all text-foreground">{process.user}</dd>
+        </dl>
+      )}
+    </li>
+  )
+}
 
 export function PortsPage() {
   const [ports, setPorts] = useState<ListeningPort[]>([])
@@ -34,6 +142,7 @@ export function PortsPage() {
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [stopping, setStopping] = useState(false)
   const [termSent, setTermSent] = useState<Record<number, true>>({})
+  const [expandedPid, setExpandedPid] = useState<number | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -63,7 +172,7 @@ export function PortsPage() {
     return () => window.clearInterval(timer)
   }, [refresh])
 
-  const visible = ports.filter((port) => showSystem || !port.system)
+  const processes = groupPortsByProcess(ports.filter((port) => showSystem || !port.system))
 
   const stop = async () => {
     // The dialog is the only caller, so confirm is set. The guard is for the click race.
@@ -73,16 +182,16 @@ export function PortsPage() {
     setStopping(true)
     try {
       await invoke("stop_listening_process", {
-        pid: pending.port.pid,
+        pid: pending.process.pid,
         force: pending.force,
-        expectedProcess: pending.port.processName,
+        expectedProcess: pending.process.processName,
       })
       if (!pending.force) {
-        setTermSent((current) => ({ ...current, [pending.port.pid]: true }))
+        setTermSent((current) => ({ ...current, [pending.process.pid]: true }))
       } else {
         setTermSent((current) => {
           const next = { ...current }
-          delete next[pending.port.pid]
+          delete next[pending.process.pid]
           return next
         })
       }
@@ -97,10 +206,10 @@ export function PortsPage() {
   }
 
   return (
-    <div className="pb-5">
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <h2 className="text-[13px] font-semibold text-foreground">Ports</h2>
-        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+    <div className="px-4 pb-5">
+      <div className="flex items-center justify-between gap-3 pb-1">
+        <h2 className="text-[15px] font-semibold tracking-tight text-foreground">Ports</h2>
+        <label className="label-mono flex shrink-0 items-center gap-2 text-[9px] text-muted-foreground">
           Show System
           <Switch
             aria-label="Show System"
@@ -109,85 +218,32 @@ export function PortsPage() {
           />
         </label>
       </div>
-      <p className="px-3 pb-2 text-[11px] leading-4 text-muted-foreground">
-        TCP ports listening on this Mac. Stopping a process asks first, then gives it a chance to exit.
+      <p className="pb-3 text-[11px] leading-4 text-muted-foreground">
+        Apps listening for TCP connections on this computer. Stop asks first, then lets the app exit on its own.
       </p>
-      {note && <p className="px-3 pb-2 text-[12px] text-muted-foreground">{note}</p>}
-      {error && <p className="px-3 py-6 text-center text-[12px] text-destructive">{error}</p>}
-      {visible.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center gap-1 px-6 py-12 text-center">
-          <p className="text-[13px] font-medium text-foreground">No Listening Ports</p>
-          <p className="text-[12px] text-muted-foreground">Nothing is accepting connections right now.</p>
-        </div>
-      )}
-      <ul className="divide-y divide-line border-t border-line">
-        {visible.map((port) => {
-          const stillRunning = termSent[port.pid] === true
-          return (
-            <li key={`${port.pid}:${port.port}`} className="flex items-center gap-2 px-3 py-2">
-              <span className="label-mono w-12 shrink-0 text-[13px] tabular-nums text-foreground">
-                {port.port}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="break-words text-[13px] font-medium text-foreground">
-                    {port.processName}
-                  </span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                    PID {port.pid}
-                  </span>
-                </div>
-                <p
-                  className="truncate text-[11px] leading-4 text-muted-foreground"
-                  title={port.cwd ?? undefined}
-                >
-                  {port.project ? `${port.project} · ` : ""}
-                  {port.cwd ?? "Working directory unavailable"}
-                </p>
-              </div>
-              {port.system ? (
-                <span className="label-mono shrink-0 text-[10px] uppercase text-muted-foreground">
-                  System
-                </span>
-              ) : port.selfProcess ? (
-                <span className="label-mono shrink-0 text-[10px] uppercase text-muted-foreground">
-                  Watchtower
-                </span>
-              ) : stillRunning ? (
-                <button
-                  type="button"
-                  className="shrink-0 text-[12px] font-medium text-destructive underline-offset-2 hover:underline"
-                  onClick={() => setConfirm({ port, force: true })}
-                >
-                  Force Stop
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="shrink-0 text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                  onClick={() => setConfirm({ port, force: false })}
-                >
-                  Stop
-                </button>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+      {note && <p className="pb-2 text-[12px] leading-4 text-muted-foreground">{note}</p>}
+      {error && <p className="py-4 text-center text-[12px] leading-4 text-destructive">{error}</p>}
       {confirm && (
-        <div className="border-t border-line bg-surface px-3 py-3" role="dialog" aria-label="Stop Process">
-          <h3 className="break-words text-[13px] font-semibold text-foreground">
-            {confirm.force ? "Force Stop" : "Stop"} {confirm.port.processName} on :{confirm.port.port}?
+        <div
+          className="mb-3 rounded-[10px] border border-line border-l-2 border-l-destructive bg-surface px-3 py-2.5"
+          role="dialog"
+          aria-label="Stop Process"
+        >
+          <h3 className="break-words text-[13px] font-semibold leading-[18px] text-foreground">
+            {confirm.force ? "Force Stop" : "Stop"} {confirm.process.displayName}?
           </h3>
-          <p className="mt-1 text-[12px] leading-4 text-muted-foreground">
+          <p className="label-mono mt-1 break-words text-[9px] leading-3 text-muted-foreground">
+            PID {confirm.process.pid} · {formatPorts(confirm.process.ports)}
+          </p>
+          <p className="mt-1.5 text-[12px] leading-4 text-muted-foreground">
             {confirm.force
               ? "It did not exit after being asked. Force Stop sends SIGKILL and ends it immediately, without cleanup."
               : "This sends SIGTERM, which asks the process to shut down and gives it a moment to clean up."}
           </p>
-          <div className="mt-2 flex items-center justify-end gap-3">
+          <div className="mt-2.5 flex items-center justify-end gap-2">
             <button
               type="button"
-              className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              className="label-mono rounded-[6px] border border-line px-2 py-1 text-[9px] leading-3 text-muted-foreground transition-colors hover:border-line-bright hover:text-foreground"
               onClick={() => setConfirm(null)}
               disabled={stopping}
             >
@@ -195,7 +251,7 @@ export function PortsPage() {
             </button>
             <button
               type="button"
-              className="text-[12px] font-medium text-destructive underline-offset-2 hover:underline"
+              className="label-mono rounded-[6px] border border-destructive/60 px-2 py-1 text-[9px] leading-3 text-destructive transition-colors hover:bg-destructive/10"
               onClick={() => void stop()}
               disabled={stopping}
             >
@@ -203,6 +259,26 @@ export function PortsPage() {
             </button>
           </div>
         </div>
+      )}
+      {processes.length === 0 && !error && (
+        <div className="flex flex-col items-center justify-center gap-1 px-6 py-12 text-center">
+          <p className="label-mono text-[11px] text-muted-foreground">No Listening Ports</p>
+          <p className="text-[12px] text-muted-foreground/70">Nothing is accepting connections right now.</p>
+        </div>
+      )}
+      {processes.length > 0 && (
+        <ul className="divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+          {processes.map((process) => (
+            <ProcessRow
+              key={process.pid}
+              process={process}
+              stillRunning={termSent[process.pid] === true}
+              expanded={expandedPid === process.pid}
+              onToggle={() => setExpandedPid((current) => (current === process.pid ? null : process.pid))}
+              onStop={(force) => setConfirm({ process, force })}
+            />
+          ))}
+        </ul>
       )}
     </div>
   )

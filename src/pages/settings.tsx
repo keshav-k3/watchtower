@@ -20,7 +20,7 @@ export function SettingsPage({
   onProviderToggle = () => {},
 }: SettingsPageProps) {
   return (
-    <div className="px-3 py-2">
+    <div className="px-4 py-2">
       <section className="border-b border-line py-2">
         <h2 className="px-1 pb-1 text-[13px] font-semibold text-foreground">Providers</h2>
         <ProviderSettingsPopover
