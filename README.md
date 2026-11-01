@@ -7,7 +7,7 @@ Opinionated OpenUsage for Codex, Cursor, Claude, OpenCode, Gemini, Kiro, Kimi, D
 See [docs/local-development.md](docs/local-development.md) for prerequisites, `bun run tauri dev`, and tests on macOS.
 
 <p align="center">
-  <img src="./screenshot.png" alt="Watchtower AI usage monitor" />
+  <img src="./screenshot.png" alt="Watchtower AI usage monitor" width="420" />
 </p>
 
 ## Install
