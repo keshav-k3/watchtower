@@ -5,6 +5,7 @@ import grokBotSvg from "../../plugins/grok-bot/icon.svg?raw"
 import codexSvg from "../../plugins/codex/icon.svg?raw"
 import cursorSvg from "../../plugins/cursor/icon.svg?raw"
 import claudeSvg from "../../plugins/claude/icon.svg?raw"
+import pkg from "../../package.json"
 
 type Listener = (event: { payload: unknown }) => void
 
@@ -275,7 +276,7 @@ export async function isEnabled() {
 export async function enable() {}
 export async function disable() {}
 export async function getVersion() {
-  return "1.0.0"
+  return pkg.version
 }
 export class PhysicalSize {
   width: number

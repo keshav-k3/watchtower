@@ -11,7 +11,7 @@ function formatMessage(message: string) {
     index % 2 === 1 ? (
       <code
         key={`code-${index}`}
-        className="rounded bg-muted px-1 font-mono text-[0.75rem] leading-tight"
+        className="rounded bg-destructive/10 px-1 font-mono text-[0.75rem] leading-tight"
       >
         {part}
       </code>
