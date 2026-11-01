@@ -215,7 +215,7 @@ export function GlobalShortcutSection({
       if (pendingDisplay) return pendingDisplay
       return "Press keys..."
     }
-    return globalShortcut ? formatShortcutForDisplay(globalShortcut) : "Click to set"
+    return globalShortcut ? formatShortcutForDisplay(globalShortcut) : "Not set"
   }
 
   const hasShortcut = globalShortcut !== null

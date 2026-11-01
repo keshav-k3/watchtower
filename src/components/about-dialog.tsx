@@ -71,7 +71,7 @@ export function AboutDialog({ version, onClose }: AboutDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-x-5 top-[13px] bottom-5 z-50 flex items-center justify-center overflow-hidden rounded-[16px]"
       style={{ backgroundColor: "var(--overlay-scrim)" }}
       onClick={handleBackdropClick}
     >
