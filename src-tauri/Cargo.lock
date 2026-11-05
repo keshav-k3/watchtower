@@ -5981,7 +5981,7 @@ version = "1.0.6"
 dependencies = [
  "aes",
  "aes-gcm",
- "base64 0.22.1",
+ "base64 0.23.1",
  "cbc",
  "dirs 7.0.0",
  "libc",
