@@ -232,6 +232,7 @@ describe("PanelFooter", () => {
     unmount()
     vi.useRealTimers()
   })
+
   it("shows hours and minutes for long countdowns", () => {
     render(
       <PanelFooter
