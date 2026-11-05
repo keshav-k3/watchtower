@@ -2790,6 +2790,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "muda"
+version = "0.21.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4340e89c178916e62879c5c36b7f699019369be413e496178a6983ce91b8bc03"
+dependencies = [
+ "crossbeam-channel",
+ "dpi",
+ "keyboard-types 0.8.3",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "png",
+ "thiserror 2.0.21",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "multiversion_no_op"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4912,7 +4930,7 @@ dependencies = [
  "libc",
  "log",
  "mime",
- "muda",
+ "muda 0.20.0",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
@@ -4934,7 +4952,7 @@ dependencies = [
  "tauri-utils",
  "thiserror 2.0.21",
  "tokio",
- "tray-icon",
+ "tray-icon 0.25.1",
  "url",
  "webkit2gtk",
  "webview2-com",
@@ -5695,7 +5713,7 @@ dependencies = [
  "crossbeam-channel",
  "dirs 7.0.0",
  "libappindicator",
- "muda",
+ "muda 0.20.0",
  "objc2",
  "objc2-app-kit",
  "objc2-core-foundation",
@@ -5704,6 +5722,25 @@ dependencies = [
  "once_cell",
  "png",
  "serde",
+ "thiserror 2.0.21",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tray-icon"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f5cc5858ecf9574ddd8f0032a2ff7ffd6f7724d2b81e48b9374984b3fd6ddc9"
+dependencies = [
+ "crossbeam-channel",
+ "muda 0.21.2",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
+ "objc2-foundation",
+ "once_cell",
+ "png",
  "thiserror 2.0.21",
  "windows-sys 0.61.2",
 ]
@@ -6014,7 +6051,7 @@ dependencies = [
  "tauri-plugin-updater",
  "time",
  "tokio",
- "tray-icon",
+ "tray-icon 0.26.1",
  "uuid",
 ]
 
