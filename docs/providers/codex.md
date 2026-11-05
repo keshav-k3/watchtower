@@ -60,6 +60,10 @@ Returns rate limit windows and optional credits.
 
 Both rate_limit windows are enforced simultaneously — hitting either limit throttles the user.
 
+`plan_type` is shown as a short label on the card: `plus` is "Plus", `prolite` is "Pro 5x", `pro` is
+"Pro 20x", and Business workspaces such as `self_serve_business_prolite` read "Business Pro 5x". An
+id Watchtower does not know yet is never shown raw: `some_new_plan` reads "Some New Plan".
+
 Watchtower floors the remaining credit balance to a whole number and displays its fixed USD
 equivalent at `$0.04` per credit. For example, `820.6969075` renders as
 `$32.80 · 820 credits`. The credit balance is unbounded; the API does not provide a maximum.

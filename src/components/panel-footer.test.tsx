@@ -232,4 +232,37 @@ describe("PanelFooter", () => {
     unmount()
     vi.useRealTimers()
   })
+  it("shows hours and minutes for long countdowns", () => {
+    render(
+      <PanelFooter
+        version="0.0.0"
+        autoUpdateNextAt={Date.now() + 65 * 60 * 1000}
+        updateStatus={idle}
+        onUpdateInstall={noop}
+        {...footerProps}
+      />
+    )
+    expect(screen.getByText("Next update in 1h 5m")).toBeTruthy()
+  })
+
+  it("reads the clock again when the panel shows after a long time hidden", () => {
+    // Regression: hidden for ~27.7h, then shown with a fresh 5m poll, read "1667m".
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+    const props = { version: "0.0.0", updateStatus: idle, onUpdateInstall: noop, ...footerProps }
+    const { rerender, unmount } = render(
+      <PanelFooter {...props} autoUpdateNextAt={1_000_000 + 5 * 60_000} panelVisible />
+    )
+    expect(screen.getByText("Next update in 5m")).toBeTruthy()
+    rerender(<PanelFooter {...props} autoUpdateNextAt={1_000_000 + 20 * 60_000} panelVisible={false} />)
+
+    const shownAt = 1_000_000 + (1667 - 5) * 60_000
+    vi.setSystemTime(shownAt)
+    rerender(<PanelFooter {...props} autoUpdateNextAt={shownAt + 5 * 60_000} panelVisible />)
+
+    expect(screen.getByText("Next update in 5m")).toBeTruthy()
+    expect(screen.queryByText(/1667m|27h/)).toBeNull()
+    unmount()
+    vi.useRealTimers()
+  })
 })

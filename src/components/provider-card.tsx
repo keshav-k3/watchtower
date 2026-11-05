@@ -246,11 +246,14 @@ export function ProviderCard({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <h2 className="min-w-0 break-words text-[15px] font-semibold leading-5 tracking-tight text-foreground">{name}</h2>
+                <h2 className="min-w-0 truncate text-[15px] font-semibold leading-5 tracking-tight text-foreground" title={name}>{name}</h2>
                 {plan && (
+                  // One line, never wider than its row: a long plan drops under the
+                  // name and ends in an ellipsis instead of running under the refresh button.
                   <span
                     data-slot="plan-badge"
-                    className="label-mono inline-flex min-h-[18px] min-w-0 max-w-full items-center break-words rounded-[4px] border border-line px-1.5 py-px text-[9px] leading-3 text-muted-foreground"
+                    className="label-mono block min-w-0 max-w-full truncate rounded-[4px] border border-line px-1.5 py-[2px] text-[9px] leading-3 text-muted-foreground"
+                    title={plan}
                   >
                     {plan}
                   </span>

@@ -68,7 +68,7 @@ function codexOutput(reset: boolean) {
   return {
     providerId: "codex",
     displayName: "Codex",
-    plan: "Work Plus · Personal Pro",
+    plan: demoParams.get("codexPlan") ?? "Work Plus · Personal Pro",
     iconUrl: icons.codex,
     lines: [
       progress(reset ? "Work · Session" : "Work · Session", reset ? 3 : 78, reset ? sooner : later, 5 * 60 * 60 * 1000),
@@ -180,6 +180,11 @@ const outputs = [
 
 function emit(event: string, payload: unknown) {
   for (const listener of listeners.get(event) ?? []) listener({ payload })
+}
+
+// Lets screenshot scripts drive host events, e.g. hiding and showing the panel.
+if (typeof window !== "undefined") {
+  ;(window as unknown as { __demoEmit?: typeof emit }).__demoEmit = emit
 }
 
 export async function listen(event: string, handler: Listener) {

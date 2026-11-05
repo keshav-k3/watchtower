@@ -363,15 +363,35 @@
     return readNumber(resp.headers["x-codex-credits-balance"])
   }
 
+  // ChatGPT plan ids from the usage API. Self-serve Business workspaces send
+  // ids like "self_serve_business_prolite"; Codex itself shows that one as
+  // "Self Serve Business ProLite": a Business workspace on the Pro Lite tier,
+  // which this plugin already labels "Pro 5x" for personal accounts.
+  const CODEX_PLAN_LABELS = {
+    free: "Free",
+    go: "Go",
+    plus: "Plus",
+    prolite: "Pro 5x",
+    pro: "Pro 20x",
+    team: "Team",
+    business: "Business",
+    self_serve_business: "Business",
+    self_serve_business_prolite: "Business Pro 5x",
+    self_serve_business_usage_based: "Business Usage Based",
+    enterprise: "Enterprise",
+    enterprise_cbp_usage_based: "Enterprise Usage Based",
+    edu: "Edu",
+  }
+
   function formatCodexPlan(ctx, planType) {
     /* v8 ignore next */
     const rawPlan = typeof planType === "string" ? planType.trim() : ""
     /* v8 ignore next */
     if (!rawPlan) return null
-    if (rawPlan.toLowerCase() === "prolite") return "Pro 5x"
-    if (rawPlan.toLowerCase() === "pro") return "Pro 20x"
-    /* v8 ignore next */
-    return ctx.fmt.planLabel(rawPlan) || null
+    const id = rawPlan.toLowerCase()
+    if (Object.prototype.hasOwnProperty.call(CODEX_PLAN_LABELS, id)) return CODEX_PLAN_LABELS[id]
+    // Unknown id: never show it raw. "new_plan_x" becomes "New Plan X".
+    return ctx.fmt.planLabel(rawPlan.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase()) || null
   }
 
   function getResetsAtIso(ctx, nowSec, window) {

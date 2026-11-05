@@ -270,6 +270,36 @@ describe("codex plugin", () => {
     expect(credits.value).toBe("$4.00 · 100 credits")
   })
 
+  it.each([
+    ["self_serve_business_prolite", "Business Pro 5x"],
+    ["SELF_SERVE_BUSINESS_PROLITE", "Business Pro 5x"],
+    ["self_serve_business", "Business"],
+    ["business", "Business"],
+    ["team", "Team"],
+    ["enterprise", "Enterprise"],
+    ["plus", "Plus"],
+    ["some_future_plan-tier", "Some Future Plan Tier"],
+    ["constructor", "Constructor"],
+    ["___", null],
+  ])("labels plan id %s as %s", async (planType, label) => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText("~/.codex/auth.json", JSON.stringify({
+      tokens: { access_token: "token" },
+      last_refresh: new Date().toISOString(),
+    }))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: { "x-codex-primary-used-percent": "25" },
+      bodyText: JSON.stringify({
+        plan_type: planType,
+        rate_limit: { primary_window: { reset_after_seconds: 60, used_percent: 10 } },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    expect(plugin.probe(ctx).plan).toBe(label)
+  })
+
   it("uses zero credits from the response body when the account has no credits", async () => {
     const ctx = makeCtx()
     ctx.host.fs.writeText("~/.codex/auth.json", JSON.stringify({

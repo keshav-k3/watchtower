@@ -3,7 +3,9 @@ import {
   BATTERY_POLL_FACTOR,
   HIDDEN_POLL_FACTOR,
   MAX_POLL_INTERVAL_MS,
+  formatCountdown,
   nextCountdownDelayMs,
+  nextRefreshRemainingMs,
   pollIntervalMs,
   shouldRefreshOnShow,
 } from "@/lib/probe-schedule"
@@ -92,5 +94,46 @@ describe("nextCountdownDelayMs", () => {
     expect(nextCountdownDelayMs(-5)).toBe(1_000)
     expect(nextCountdownDelayMs(Number.NaN)).toBe(1_000)
     expect(nextCountdownDelayMs(Number.POSITIVE_INFINITY)).toBe(1_000)
+  })
+})
+
+describe("formatCountdown", () => {
+  it("shows seconds under a minute", () => {
+    expect(formatCountdown(45_000)).toBe("45s")
+    expect(formatCountdown(1_500)).toBe("2s")
+    expect(formatCountdown(0)).toBe("0s")
+    expect(formatCountdown(-10)).toBe("0s")
+  })
+
+  it("shows minutes under an hour, rounding up", () => {
+    expect(formatCountdown(60_000)).toBe("1m")
+    expect(formatCountdown(4 * 60_000)).toBe("4m")
+    expect(formatCountdown(4 * 60_000 + 1)).toBe("5m")
+    expect(formatCountdown(59 * 60_000)).toBe("59m")
+  })
+
+  it("switches to hours and minutes instead of a long minute count", () => {
+    expect(formatCountdown(59 * 60_000 + 1)).toBe("1h")
+    expect(formatCountdown(65 * 60_000)).toBe("1h 5m")
+    expect(formatCountdown(1667 * 60_000)).toBe("27h 47m")
+  })
+})
+
+describe("nextRefreshRemainingMs", () => {
+  it("counts down from a fresh clock reading", () => {
+    expect(nextRefreshRemainingMs(1_000_000 + 5 * 60_000, 1_000_000)).toBe(5 * 60_000)
+  })
+
+  it("never goes below zero once the refresh is due", () => {
+    expect(nextRefreshRemainingMs(1_000_000, 1_000_500)).toBe(0)
+  })
+
+  it("is only as long as the gap when the clock reading is stale (the 1667m report)", () => {
+    // Panel hid ~27.7h ago; the poll was re-armed for 5m on show.
+    const shownAt = 1_000_000_000
+    const hiddenAt = shownAt - (1667 - 5) * 60_000
+    const nextAt = shownAt + 5 * 60_000
+    expect(formatCountdown(nextRefreshRemainingMs(nextAt, hiddenAt))).toBe("27h 47m")
+    expect(formatCountdown(nextRefreshRemainingMs(nextAt, shownAt))).toBe("5m")
   })
 })

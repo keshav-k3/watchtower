@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AboutDialog } from "@/components/about-dialog";
 import type { UpdateStatus } from "@/hooks/use-app-update";
-import { nextCountdownDelayMs } from "@/lib/probe-schedule";
+import { formatCountdown, nextCountdownDelayMs, nextRefreshRemainingMs } from "@/lib/probe-schedule";
 
 interface PanelFooterProps {
   version: string;
@@ -99,27 +99,24 @@ export function PanelFooter({
 }: PanelFooterProps) {
   const [now, setNow] = useState(() => Date.now());
 
-  useEffect(() => {
+  // The ticker stops while the panel is hidden. Read the clock again as soon
+  // as it shows (before paint), or the label measures from the moment it hid
+  // and reads e.g. "1667m" after a day in the menu bar.
+  useLayoutEffect(() => {
     if (!autoUpdateNextAt || !panelVisible) return;
     let timer = 0;
-    const schedule = () => {
+    const tick = () => {
       const nextNow = Date.now();
       setNow(nextNow);
-      timer = window.setTimeout(schedule, nextCountdownDelayMs(autoUpdateNextAt - nextNow));
+      timer = window.setTimeout(tick, nextCountdownDelayMs(autoUpdateNextAt - nextNow));
     };
-    timer = window.setTimeout(schedule, nextCountdownDelayMs(autoUpdateNextAt - Date.now()));
+    tick();
     return () => window.clearTimeout(timer);
   }, [autoUpdateNextAt, panelVisible]);
 
   const countdownLabel = useMemo(() => {
     if (!autoUpdateNextAt) return "Paused";
-    const remainingMs = Math.max(0, autoUpdateNextAt - now);
-    const totalSeconds = Math.ceil(remainingMs / 1000);
-    if (totalSeconds >= 60) {
-      const minutes = Math.ceil(totalSeconds / 60);
-      return `Next update in ${minutes}m`;
-    }
-    return `Next update in ${totalSeconds}s`;
+    return `Next update in ${formatCountdown(nextRefreshRemainingMs(autoUpdateNextAt, now))}`;
   }, [autoUpdateNextAt, now]);
 
   return (
