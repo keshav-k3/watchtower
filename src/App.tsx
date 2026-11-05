@@ -14,6 +14,7 @@ import { useAppPluginStore } from "@/stores/app-plugin-store"
 import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 import { useAppUiStore } from "@/stores/app-ui-store"
 import { useCodexResetNotifications } from "@/hooks/use-codex-reset-notifications"
+import { useLowUsageNotifications } from "@/hooks/use-low-usage-notifications"
 
 const TRAY_PROBE_DEBOUNCE_MS = 500
 
@@ -223,6 +224,7 @@ function App() {
   )
 
   const resetNotice = useCodexResetNotifications(pluginStates.codex?.data?.lines ?? null)
+  useLowUsageNotifications(pluginStates)
 
   return (
     <AppShell

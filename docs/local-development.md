@@ -56,6 +56,7 @@ Query params toggle extra demo states:
 - `?error=cursor` shows Cursor with a long sign-in error, to check that error text wraps.
 - `?error=devin` shows Devin in its signed-out error state ("Sign in to Devin").
 - `?codexPlan=...` sets the Codex plan label, to check that a long plan ends in an ellipsis.
+- `?offline=claude` gives Claude numbers saved 3 hours ago and makes every refresh fail, to check the faded "Updated 3h ago" card.
 
 ## Log level
 

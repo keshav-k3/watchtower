@@ -136,14 +136,14 @@ export function PanelFooter({
               event.currentTarget.blur()
               onRefreshAll()
             }}
-            className="label-mono text-[10px] text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
+            className="font-mono text-[10px] tracking-[0.09em] text-muted-foreground tabular-nums hover:text-foreground transition-colors cursor-pointer"
             aria-label={`Refresh now, ${countdownLabel}`}
             title="Refresh Now"
           >
             {countdownLabel}
           </button>
         ) : (
-          <span className="label-mono text-[10px] text-muted-foreground tabular-nums">
+          <span className="font-mono text-[10px] tracking-[0.09em] text-muted-foreground tabular-nums">
             {countdownLabel}
           </span>
         )}

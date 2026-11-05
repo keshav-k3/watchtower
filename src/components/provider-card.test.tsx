@@ -997,6 +997,54 @@ describe("ProviderCard", () => {
     vi.useRealTimers()
   })
 
+  it("dims old numbers and highlights when they were last updated", () => {
+    vi.useFakeTimers()
+    const now = new Date("2026-02-02T05:00:00.000Z")
+    vi.setSystemTime(now)
+    const { container } = render(
+      <ProviderCard
+        name="Old"
+        displayMode="used"
+        lastUpdatedAt={now.getTime() - 3 * 60 * 60 * 1000}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    expect(container.querySelector("section")).toHaveAttribute("data-stale", "true")
+    const updated = screen.getByText("Updated 3h ago")
+    expect(updated).toHaveClass("text-warning")
+    expect(updated).not.toHaveClass("label-mono")
+    expect(screen.getByText("Value").closest(".space-y-3\\.5")).toHaveClass("opacity-55")
+    vi.useRealTimers()
+  })
+
+  it("dims shown numbers when the latest refresh failed", () => {
+    const { container } = render(
+      <ProviderCard
+        name="Failed"
+        displayMode="used"
+        error="Network error"
+        lastUpdatedAt={Date.now() - 60_000}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    expect(container.querySelector("section")).toHaveAttribute("data-stale", "true")
+    expect(screen.getByText("Updated 1m ago")).toHaveClass("text-warning")
+  })
+
+  it("leaves a fresh card undimmed", () => {
+    const { container } = render(
+      <ProviderCard
+        name="Fresh"
+        displayMode="used"
+        lastUpdatedAt={Date.now() - 60_000}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    expect(container.querySelector("section")).not.toHaveAttribute("data-stale")
+    expect(screen.getByText("Updated 1m ago")).not.toHaveClass("text-warning")
+    expect(screen.getByText("Value").closest(".space-y-3\\.5")).not.toHaveClass("opacity-55")
+  })
+
   it("formats hours and days for older last-updated timestamps", () => {
     vi.useFakeTimers()
     const now = new Date("2026-02-02T00:05:00.000Z")

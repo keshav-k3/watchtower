@@ -1,5 +1,6 @@
 import { CodexAccountsSection } from "@/components/codex-accounts-section"
 import { GlobalShortcutSection } from "@/components/global-shortcut-section"
+import { LowUsageAlertsSection } from "@/components/low-usage-alerts-section"
 import { ProviderSettingsPopover } from "@/components/provider-settings-popover"
 import type { PluginMeta } from "@/lib/plugin-types"
 import type { GlobalShortcut, PluginSettings } from "@/lib/settings"
@@ -35,6 +36,9 @@ export function SettingsPage({
           globalShortcut={globalShortcut}
           onGlobalShortcutChange={onGlobalShortcutChange}
         />
+      </section>
+      <section className="border-t border-line py-3">
+        <LowUsageAlertsSection />
       </section>
       <section className="border-t border-line py-3">
         <CodexAccountsSection />

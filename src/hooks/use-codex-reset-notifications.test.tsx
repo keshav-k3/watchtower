@@ -114,7 +114,7 @@ describe("useCodexResetNotifications", () => {
     ])
     const { unmount } = render(<Harness lines={[reset]} />)
     await screen.findByRole("status")
-    expect(consoleSpy).toHaveBeenCalledWith("Codex reset notification permission was denied")
+    expect(consoleSpy).toHaveBeenCalledWith("Notification permission was denied: Codex Limits Were Reset")
     unmount()
 
     sendNotificationMock.mockImplementation(() => {
@@ -124,7 +124,7 @@ describe("useCodexResetNotifications", () => {
     render(<Harness lines={[reset]} />)
     await screen.findByRole("status")
     expect(consoleSpy).toHaveBeenCalledWith(
-      "Failed to send Codex reset notification:",
+      "Failed to send notification: Codex Limits Were Reset",
       expect.any(Error),
     )
     consoleSpy.mockRestore()

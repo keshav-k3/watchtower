@@ -4,10 +4,12 @@ import {
   HIDDEN_POLL_FACTOR,
   MAX_POLL_INTERVAL_MS,
   formatCountdown,
+  isStale,
   nextCountdownDelayMs,
   nextRefreshRemainingMs,
   pollIntervalMs,
   shouldRefreshOnShow,
+  staleAfterMs,
 } from "@/lib/probe-schedule"
 
 describe("pollIntervalMs", () => {
@@ -135,5 +137,32 @@ describe("nextRefreshRemainingMs", () => {
     const nextAt = shownAt + 5 * 60_000
     expect(formatCountdown(nextRefreshRemainingMs(nextAt, hiddenAt))).toBe("27h 47m")
     expect(formatCountdown(nextRefreshRemainingMs(nextAt, shownAt))).toBe("5m")
+  })
+})
+
+describe("isStale", () => {
+  const base = 5 * 60_000
+  const now = 10 * 60 * 60_000
+
+  it("allows two of the slowest normal polls before numbers count as old", () => {
+    expect(staleAfterMs(base)).toBe(80 * 60_000)
+    expect(staleAfterMs(30 * 60_000)).toBe(2 * MAX_POLL_INTERVAL_MS)
+  })
+
+  it("keeps a recent result fresh, even across a hidden-panel gap", () => {
+    expect(isStale({ lastUpdatedAt: now - 40 * 60_000, loading: false, error: null }, base, now)).toBe(false)
+  })
+
+  it("marks a result older than the limit as stale", () => {
+    expect(isStale({ lastUpdatedAt: now - 3 * 60 * 60_000, loading: false, error: null }, base, now)).toBe(true)
+  })
+
+  it("marks shown numbers stale as soon as the latest refresh failed", () => {
+    expect(isStale({ lastUpdatedAt: now - 60_000, loading: false, error: "offline" }, base, now)).toBe(true)
+  })
+
+  it("never marks a card stale while it refreshes or before it ever loaded", () => {
+    expect(isStale({ lastUpdatedAt: now - 3 * 60 * 60_000, loading: true, error: null }, base, now)).toBe(false)
+    expect(isStale({ lastUpdatedAt: null, loading: false, error: "signed out" }, base, now)).toBe(false)
   })
 })
