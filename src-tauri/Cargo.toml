@@ -45,7 +45,7 @@ aes-gcm = "0.10.3"
 sha2 = "0.11"
 pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
 sha1 = "0.10"
-aes = "0.8"
+aes = "0.9"
 cbc = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
