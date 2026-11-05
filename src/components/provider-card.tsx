@@ -23,6 +23,8 @@ import { calculateDeficit, calculatePaceStatus, type PaceStatus } from "@/lib/pa
 import { buildPaceDetailText, formatDeficitText, formatRunsOutText, getPaceStatusText } from "@/lib/pace-tooltip"
 import { formatResetAbsoluteLabel, formatResetRelativeLabel, formatResetTooltipText } from "@/lib/reset-tooltip"
 import { isOverviewLine } from "@/lib/overview-lines"
+import { isStale } from "@/lib/probe-schedule"
+import { useAppPreferencesStore } from "@/stores/app-preferences-store"
 
 interface ProviderCardProps {
   id: string
@@ -217,6 +219,13 @@ export function ProviderCard({
     return `Available in ${seconds}s`
   }
 
+  const autoUpdateInterval = useAppPreferencesStore((state) => state.autoUpdateInterval)
+  const stale = isStale(
+    { lastUpdatedAt: lastUpdatedAt ?? null, loading, error },
+    autoUpdateInterval * 60_000,
+    Date.now()
+  )
+
   const status: ProviderStatus = loading ? "syncing" : error ? "attention" : "live"
 
   const retryLink = onRetry && !loading ? (
@@ -230,7 +239,10 @@ export function ProviderCard({
   ) : null
 
   return (
-    <section className="group relative overflow-hidden rounded-[14px] border border-line bg-surface px-3.5 py-3 transition-colors duration-200 hover:border-line-bright">
+    <section
+      data-stale={stale || undefined}
+      className="group relative overflow-hidden rounded-[14px] border border-line bg-surface px-3.5 py-3 transition-colors duration-200 hover:border-line-bright"
+    >
       <div>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="relative flex min-w-0 flex-1 items-center gap-2.5">
@@ -260,7 +272,13 @@ export function ProviderCard({
                 )}
               </div>
               {lastUpdatedAt != null && (
-                <p className="label-mono mt-1 text-[9px] leading-3 text-muted-foreground/70">
+                <p
+                  data-slot="updated-at"
+                  className={cn(
+                    "mt-1 font-mono text-[9px] leading-3 tracking-[0.09em]",
+                    stale ? "text-warning" : "text-muted-foreground/70"
+                  )}
+                >
                   Updated {formatRelativeTime(Date.now() - lastUpdatedAt)}
                 </p>
               )}
@@ -369,7 +387,8 @@ export function ProviderCard({
         )}
 
         {hasStaleData && (
-          <div className="space-y-3.5">
+          // Old numbers fade a little so they never look current.
+          <div className={cn("space-y-3.5 transition-opacity duration-200", stale && "opacity-55")}>
             {groupLinesByType(visibleLines).map((group, gi) =>
               group.kind === "text" ? (
                 <div key={gi} className="space-y-1.5">

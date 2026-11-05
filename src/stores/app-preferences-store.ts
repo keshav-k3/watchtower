@@ -3,6 +3,7 @@ import {
   DEFAULT_AUTO_UPDATE_INTERVAL,
   DEFAULT_DISPLAY_MODE,
   DEFAULT_GLOBAL_SHORTCUT,
+  DEFAULT_LOW_USAGE_ALERTS,
   DEFAULT_MENUBAR_ICON_STYLE,
   DEFAULT_MENUBAR_METRIC,
   DEFAULT_RESET_TIMER_DISPLAY_MODE,
@@ -12,6 +13,7 @@ import {
   type AutoUpdateIntervalMinutes,
   type DisplayMode,
   type GlobalShortcut,
+  type LowUsageAlertSettings,
   type MenubarIconStyle,
   type MenubarMetric,
   type ResetTimerDisplayMode,
@@ -30,6 +32,7 @@ type AppPreferencesStore = {
   menubarIconStyle: MenubarIconStyle
   menubarMetric: MenubarMetric
   codexResetNotifications: boolean
+  lowUsageAlerts: LowUsageAlertSettings
   setAutoUpdateInterval: (value: AutoUpdateIntervalMinutes) => void
   setThemeMode: (value: ThemeMode) => void
   setDisplayMode: (value: DisplayMode) => void
@@ -40,6 +43,7 @@ type AppPreferencesStore = {
   setMenubarIconStyle: (value: MenubarIconStyle) => void
   setMenubarMetric: (value: MenubarMetric) => void
   setCodexResetNotifications: (value: boolean) => void
+  setLowUsageAlerts: (value: LowUsageAlertSettings) => void
   resetState: () => void
 }
 
@@ -54,6 +58,7 @@ const initialState = {
   menubarIconStyle: DEFAULT_MENUBAR_ICON_STYLE,
   menubarMetric: DEFAULT_MENUBAR_METRIC,
   codexResetNotifications: true,
+  lowUsageAlerts: DEFAULT_LOW_USAGE_ALERTS,
 }
 
 export const useAppPreferencesStore = create<AppPreferencesStore>((set) => ({
@@ -68,5 +73,6 @@ export const useAppPreferencesStore = create<AppPreferencesStore>((set) => ({
   setMenubarIconStyle: (value) => set({ menubarIconStyle: value }),
   setMenubarMetric: (value) => set({ menubarMetric: value }),
   setCodexResetNotifications: (value) => set({ codexResetNotifications: value }),
+  setLowUsageAlerts: (value) => set({ lowUsageAlerts: value }),
   resetState: () => set(initialState),
 }))

@@ -279,6 +279,8 @@ describe("codex plugin", () => {
     ["enterprise", "Enterprise"],
     ["plus", "Plus"],
     ["some_future_plan-tier", "Some Future Plan Tier"],
+    ["SELF_SERVE_BUSINESS_FOO", "Business Foo"],
+    ["self-serve-enterprise_max", "Enterprise Max"],
     ["constructor", "Constructor"],
     ["___", null],
   ])("labels plan id %s as %s", async (planType, label) => {

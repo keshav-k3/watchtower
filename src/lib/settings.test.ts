@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  loadLowUsageAlerted,
+  loadLowUsageAlerts,
+  saveLowUsageAlerted,
+  saveLowUsageAlerts,
   DEFAULT_AUTO_UPDATE_INTERVAL,
   DEFAULT_DISPLAY_MODE,
   DEFAULT_GLOBAL_SHORTCUT,
@@ -462,6 +466,25 @@ describe("settings", () => {
       showAll: true,
       accounts: [{ label: "Work", home: "/tmp/work" }],
     })
+  })
+
+  it("keeps low usage alerts off at 10% until the user changes them", async () => {
+    await expect(loadLowUsageAlerts()).resolves.toEqual({ enabled: false, thresholdPercent: 10 })
+    storeState.set("lowUsageAlerts", "nope")
+    await expect(loadLowUsageAlerts()).resolves.toEqual({ enabled: false, thresholdPercent: 10 })
+    storeState.set("lowUsageAlerts", { enabled: "yes", thresholdPercent: 13 })
+    await expect(loadLowUsageAlerts()).resolves.toEqual({ enabled: false, thresholdPercent: 10 })
+    await saveLowUsageAlerts({ enabled: true, thresholdPercent: 20 })
+    expect(storeSaveMock).toHaveBeenCalled()
+    await expect(loadLowUsageAlerts()).resolves.toEqual({ enabled: true, thresholdPercent: 20 })
+  })
+
+  it("remembers which limits already alerted", async () => {
+    await expect(loadLowUsageAlerted()).resolves.toEqual([])
+    storeState.set("lowUsageAlerted", ["codex:Session", 4, null])
+    await expect(loadLowUsageAlerted()).resolves.toEqual(["codex:Session"])
+    await saveLowUsageAlerted(["claude:Weekly"])
+    await expect(loadLowUsageAlerted()).resolves.toEqual(["claude:Weekly"])
   })
 
   it("saves and loads Codex account settings and reset alerts", async () => {

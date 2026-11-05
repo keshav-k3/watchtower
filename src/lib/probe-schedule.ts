@@ -60,3 +60,23 @@ export function formatCountdown(remainingMs: number): string {
   const minutes = totalMinutes % 60
   return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`
 }
+
+// A card's numbers count as old when its newest good result is older than two
+// of the slowest normal polls (panel hidden, on battery), or when the latest
+// refresh failed. Normal hidden-panel gaps never trip it, so fresh cards stay
+// as they are.
+export function staleAfterMs(baseMs: number): number {
+  return 2 * pollIntervalMs(baseMs, false, true)
+}
+
+type StaleState = {
+  lastUpdatedAt: number | null
+  loading: boolean
+  error: string | null
+}
+
+export function isStale(state: StaleState, baseMs: number, nowMs: number): boolean {
+  if (state.lastUpdatedAt == null || state.loading) return false
+  if (state.error) return true
+  return nowMs - state.lastUpdatedAt > staleAfterMs(baseMs)
+}

@@ -29,6 +29,7 @@ const icons = {
 
 const demoParams =
   typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams()
+const offline = demoParams.get("offline")
 
 function nextThursday(): string {
   const d = new Date()
@@ -206,12 +207,26 @@ const metas = [
 
 export async function invoke(command: string, args?: Record<string, unknown>) {
   if (command === "list_plugins") return metas
+  if (command === "get_cached_usage") {
+    // ?offline=claude: Claude has numbers saved 3h ago and every refresh fails.
+    if (!offline) return []
+    const saved = outputs.find((output) => output.providerId === offline)
+    return saved ? [{ ...saved, fetchedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() }] : []
+  }
   if (command === "start_probe_batch") {
     const batchId = String(args?.batchId ?? "batch")
     const ids = (args?.pluginIds as string[] | undefined) ?? outputs.map((output) => output.providerId)
     setTimeout(() => {
       for (const output of outputs) {
         if (!ids.includes(output.providerId)) continue
+        if (output.providerId === offline) {
+          const failed = {
+            ...output,
+            lines: [{ type: "badge" as const, label: "Error", text: "Couldn't reach the server. Check your connection.", color: "#ef4444" }],
+          }
+          emit("probe:result", { batchId, output: failed })
+          continue
+        }
         emit("probe:result", { batchId, output })
       }
       if (!codexResetSent && ids.includes("codex")) {

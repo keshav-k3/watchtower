@@ -9,25 +9,9 @@ import {
 } from "@/lib/codex-reset"
 import { loadCodexResetSnapshot, saveCodexResetSnapshot } from "@/lib/settings"
 import type { MetricLine } from "@/lib/plugin-types"
+import { sendNativeNotification } from "@/lib/notify"
 
 const AUTO_DISMISS_MS = 8000
-
-async function sendNativeNotification(message: string) {
-  try {
-    const mod = await import("@tauri-apps/plugin-notification")
-    let granted = await mod.isPermissionGranted()
-    if (!granted) {
-      granted = (await mod.requestPermission()) === "granted"
-    }
-    if (!granted) {
-      console.error("Codex reset notification permission was denied")
-      return
-    }
-    mod.sendNotification({ title: "Codex Limits Were Reset", body: message })
-  } catch (error) {
-    console.error("Failed to send Codex reset notification:", error)
-  }
-}
 
 export function useCodexResetNotifications(lines: MetricLine[] | null) {
   const enabled = useAppPreferencesStore((state) => state.codexResetNotifications)
@@ -66,7 +50,7 @@ export function useCodexResetNotifications(lines: MetricLine[] | null) {
     if (alerts.length === 0) return
     const text = alerts.join(". ")
     setMessage(text)
-    void sendNativeNotification(text)
+    void sendNativeNotification("Codex Limits Were Reset", text)
   }, [enabled, lines, ready])
 
   useEffect(() => {

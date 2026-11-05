@@ -246,6 +246,30 @@ describe("PanelFooter", () => {
     expect(screen.getByText("Next update in 1h 5m")).toBeTruthy()
   })
 
+  it("keeps countdown units lowercase instead of the all-caps label style", () => {
+    const { rerender } = render(
+      <PanelFooter
+        version="0.0.0"
+        autoUpdateNextAt={Date.now() + 65 * 60 * 1000}
+        updateStatus={idle}
+        onUpdateInstall={noop}
+        {...footerProps}
+      />
+    )
+    // The all-caps label style would turn "1h 5m" into "1H 5M".
+    expect(screen.getByText("Next update in 1h 5m")).not.toHaveClass("label-mono")
+    rerender(
+      <PanelFooter
+        version="0.0.0"
+        autoUpdateNextAt={null}
+        updateStatus={idle}
+        onUpdateInstall={noop}
+        {...footerProps}
+      />
+    )
+    expect(screen.getByText("Paused")).not.toHaveClass("label-mono")
+  })
+
   it("reads the clock again when the panel shows after a long time hidden", () => {
     // Regression: hidden for ~27.7h, then shown with a fresh 5m poll, read "1667m".
     vi.useFakeTimers()

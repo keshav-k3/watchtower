@@ -474,3 +474,49 @@ export async function saveCodexResetSnapshot(snapshot: StoredCodexWindow[]): Pro
   await store.set(CODEX_RESET_SNAPSHOT_KEY, snapshot);
   await store.save();
 }
+
+export type LowUsageAlertSettings = {
+  enabled: boolean;
+  thresholdPercent: number;
+};
+
+const LOW_USAGE_ALERTS_KEY = "lowUsageAlerts";
+const LOW_USAGE_ALERTED_KEY = "lowUsageAlerted";
+
+export const LOW_USAGE_THRESHOLD_OPTIONS = [5, 10, 20, 30] as const;
+
+export const DEFAULT_LOW_USAGE_ALERTS: LowUsageAlertSettings = {
+  enabled: false,
+  thresholdPercent: 10,
+};
+
+export function normalizeLowUsageAlerts(value: unknown): LowUsageAlertSettings {
+  if (!value || typeof value !== "object") return { ...DEFAULT_LOW_USAGE_ALERTS };
+  const raw = value as { enabled?: unknown; thresholdPercent?: unknown };
+  const threshold = LOW_USAGE_THRESHOLD_OPTIONS.find((option) => option === raw.thresholdPercent);
+  return {
+    enabled: raw.enabled === true,
+    thresholdPercent: threshold ?? DEFAULT_LOW_USAGE_ALERTS.thresholdPercent,
+  };
+}
+
+export async function loadLowUsageAlerts(): Promise<LowUsageAlertSettings> {
+  return normalizeLowUsageAlerts(await store.get<unknown>(LOW_USAGE_ALERTS_KEY));
+}
+
+export async function saveLowUsageAlerts(settings: LowUsageAlertSettings): Promise<void> {
+  await store.set(LOW_USAGE_ALERTS_KEY, normalizeLowUsageAlerts(settings));
+  await store.save();
+}
+
+// Limits that already sent a low-usage alert, so a relaunch does not repeat it.
+export async function loadLowUsageAlerted(): Promise<string[]> {
+  const stored = await store.get<unknown>(LOW_USAGE_ALERTED_KEY);
+  if (!Array.isArray(stored)) return [];
+  return stored.filter((entry): entry is string => typeof entry === "string");
+}
+
+export async function saveLowUsageAlerted(keys: string[]): Promise<void> {
+  await store.set(LOW_USAGE_ALERTED_KEY, keys);
+  await store.save();
+}

@@ -6,6 +6,10 @@ vi.mock("@/hooks/use-codex-reset-notifications", () => ({
   useCodexResetNotifications: () => null,
 }))
 
+vi.mock("@/hooks/use-low-usage-notifications", () => ({
+  useLowUsageNotifications: () => undefined,
+}))
+
 const state = vi.hoisted(() => ({
   appShellProps: null as any,
   capturedOnProbeResult: null as (() => void) | null,

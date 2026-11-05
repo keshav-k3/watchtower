@@ -390,8 +390,10 @@
     if (!rawPlan) return null
     const id = rawPlan.toLowerCase()
     if (Object.prototype.hasOwnProperty.call(CODEX_PLAN_LABELS, id)) return CODEX_PLAN_LABELS[id]
-    // Unknown id: never show it raw. "new_plan_x" becomes "New Plan X".
-    return ctx.fmt.planLabel(rawPlan.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase()) || null
+    // Unknown id: never show it raw. Drop the "self_serve_" billing prefix and
+    // title-case the rest: "self_serve_business_foo" becomes "Business Foo".
+    const words = id.replace(/^self[_-]serve[_-]+/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+    return ctx.fmt.planLabel(words) || null
   }
 
   function getResetsAtIso(ctx, nowSec, window) {
