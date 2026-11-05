@@ -959,6 +959,26 @@ describe("ProviderCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Retry" }))
   })
 
+  it("keeps a long plan badge on one line with the full name on hover", () => {
+    const plan = "Work Business Pro 5x · Personal Pro 20x"
+    render(
+      <ProviderCard
+        name="Codex"
+        plan={plan}
+        displayMode="used"
+        onRetry={() => {}}
+        lines={[{ type: "text", label: "Label", value: "Value" }]}
+      />
+    )
+    const badge = screen.getByText(plan)
+    expect(badge).toHaveAttribute("data-slot", "plan-badge")
+    expect(badge).toHaveAttribute("title", plan)
+    expect(badge.className).toContain("truncate")
+    expect(badge.className).toContain("max-w-full")
+    expect(badge.className).not.toContain("break-words")
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument()
+  })
+
   it("shows relative last-updated timestamp in retry tooltip", () => {
     vi.useFakeTimers()
     const now = new Date("2026-02-02T00:05:00.000Z")

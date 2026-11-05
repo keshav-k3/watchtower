@@ -55,6 +55,7 @@ Query params toggle extra demo states:
 - `?stale=grok-bot` (or `?stale=1`) shows Grok Bot with its "Last read 7h ago" stale badge.
 - `?error=cursor` shows Cursor with a long sign-in error, to check that error text wraps.
 - `?error=devin` shows Devin in its signed-out error state ("Sign in to Devin").
+- `?codexPlan=...` sets the Codex plan label, to check that a long plan ends in an ellipsis.
 
 ## Log level
 

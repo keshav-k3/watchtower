@@ -42,3 +42,21 @@ export function nextCountdownDelayMs(remainingMs: number): number {
   const intoSecond = remainingMs % 1000
   return intoSecond === 0 ? 1000 : intoSecond
 }
+
+// Time left until the next auto refresh. `nowMs` must be read fresh: a clock
+// value saved before the panel was hidden makes this as long as the gap.
+export function nextRefreshRemainingMs(nextAtMs: number, nowMs: number): number {
+  return Math.max(0, nextAtMs - nowMs)
+}
+
+// Footer countdown text: "45s", "4m", "1h 5m". Partial units round up, so the
+// label never reads "0m" while time is left, and minutes stop at 59.
+export function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.ceil(Math.max(0, remainingMs) / 1000)
+  if (totalSeconds < 60) return `${totalSeconds}s`
+  const totalMinutes = Math.ceil(totalSeconds / 60)
+  if (totalMinutes < 60) return `${totalMinutes}m`
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`
+}
