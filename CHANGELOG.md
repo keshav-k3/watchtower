@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.6
+
+### New
+- Low usage alerts: an optional notification when a provider drops below the share left you pick (default 10%), once per limit until it resets
+- Cards whose numbers are old (refresh failing or offline) fade a little and show "Updated 3h ago" in amber
+
+### Bug Fixes
+- Unknown Codex plan ids read as a tidy name ("Business Foo") instead of the raw id
+- Footer countdown reads "1h 5m" in lowercase instead of "1H 5M"
+
 ## v1.0.5
 
 ### Bug Fixes
