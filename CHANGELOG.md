@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.5
+
+### Bug Fixes
+- Codex plan badge shows a real name ("Business Pro 5x") instead of the raw plan id
+- Long plan badges stay on one line, end in an ellipsis and no longer run under the refresh button
+- Footer "Next update in" no longer jumps to a huge number like "1667m" after the panel was hidden for a while
+- Long countdowns read "1h 5m" instead of a large minute count
+
 ## v1.0.4
 
 v1.0.3 was tagged but never released.
